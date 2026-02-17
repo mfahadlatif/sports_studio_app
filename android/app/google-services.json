@@ -1,0 +1,63 @@
+{
+  "project_info": {
+    "project_number": "945595614098",
+    "project_id": "sportstudioapp",
+    "storage_bucket": "sportstudioapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:945595614098:android:b21ea927b5de458bfbf74b",
+        "android_client_info": {
+          "package_name": "com.sportsstudio.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "945595614098-hd3ivsf5fosk87ssl95ffpk7h2vqmphm.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sportsstudio.app",
+            "certificate_hash": "8565c01170f7ecf22b8e9af680ca07d983cadbe0"
+          }
+        },
+        {
+          "client_id": "945595614098-p4h8q7it0efhujv84vk9ca7leckmv1sp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sportsstudio.app",
+            "certificate_hash": "29d86f3a07191d22597f0ab9d2800376c31d08f0"
+          }
+        },
+        {
+          "client_id": "945595614098-u814asb6abr8aqtdd9k18jrfepco7nts.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.sportsstudio.app",
+            "certificate_hash": "5a460ae82817c83be4eef708ff4f0c7d31e87dce"
+          }
+        },
+        {
+          "client_id": "945595614098-805nscipvooqrdl7ilut986h82nlg5me.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAUuVL_HRLABCgv81mmeHegabiPEXMC9sI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "945595614098-805nscipvooqrdl7ilut986h82nlg5me.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
