@@ -1,43 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:provider/provider.dart';
-import 'core/theme/app_theme.dart';
-import 'data/services/api_service.dart';
-import 'data/services/auth_service.dart';
-import 'domain/providers/auth_provider.dart';
-import 'domain/providers/ground_provider.dart';
-import 'domain/providers/booking_provider.dart';
-import 'data/services/booking_service.dart';
-import 'domain/providers/event_provider.dart';
-import 'presentation/screens/root_screen.dart'; // Keep for now if needed or remove
-import 'presentation/screens/splash/splash_screen.dart';
+import 'package:get/get.dart';
+import 'package:sports_studio/core/theme/app_theme.dart';
+import 'package:sports_studio/features/landing/presentation/landing_page.dart';
+import 'package:sports_studio/features/auth/presentation/pages/auth_page.dart';
+import 'package:sports_studio/features/grounds/presentation/pages/ground_detail_page.dart';
+import 'package:sports_studio/features/booking/presentation/pages/booking_slot_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/add_ground_page.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-
-  // Initialize Services
-  final apiService = ApiService();
-  final authService = AuthService(apiService: apiService);
-  final bookingService = BookingService(apiService: apiService);
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => AuthProvider(authService: authService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => GroundProvider(apiService: apiService),
-        ),
-        ChangeNotifierProvider(
-          create: (_) => BookingProvider(bookingService: bookingService),
-        ),
-        ChangeNotifierProvider(create: (_) => EventProvider()),
-      ],
-      child: const SportsStudioApp(),
-    ),
-  );
+  runApp(const SportsStudioApp());
 }
 
 class SportsStudioApp extends StatelessWidget {
@@ -45,14 +17,38 @@ class SportsStudioApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'Sports Studio',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      // For now, bypass Auth check and go straight to RootScreen
-      // In real app, check auth state:
-      // home: Consumer<AuthProvider>(builder: (ctx, auth, _) => auth.isAuthenticated ? RootScreen() : LoginScreen()),
-      home: const SplashScreen(),
+      theme: AppTheme.lightTheme,
+      initialRoute: '/auth', // Start with Auth for this phase
+      getPages: [
+        GetPage(
+          name: '/',
+          page: () => const LandingPage(),
+          transition: Transition.fade,
+        ),
+        GetPage(
+          name: '/auth',
+          page: () => const AuthPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/ground-detail',
+          page: () => const GroundDetailPage(),
+          transition: Transition.fadeIn,
+        ),
+        GetPage(
+          name: '/book-slot',
+          page: () => const BookingSlotPage(),
+          transition: Transition.cupertino,
+        ),
+        GetPage(
+          name: '/add-ground',
+          page: () => const AddGroundPage(),
+          transition: Transition.downToUp,
+        ),
+      ],
     );
   }
 }
