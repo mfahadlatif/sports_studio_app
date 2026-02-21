@@ -13,58 +13,75 @@ class HomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const HeroSection(),
-            const SizedBox(height: AppSpacing.l),
-            const GroundsPreviewSection(),
-            const SizedBox(height: AppSpacing.l),
-            
-            // Stats Section
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-              padding: const EdgeInsets.all(AppSpacing.l),
-              decoration: BoxDecoration(
-                color: AppColors.secondary,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                   _buildStat('50+', 'Arenas'),
-                   _buildStat('10k+', 'Players'),
-                   _buildStat('4.9/5', 'Rating'),
-                ],
-              ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Column(
+              children: [
+                const HeroSection(),
+                const SizedBox(height: AppSpacing.l),
+                const GroundsPreviewSection(),
+                const SizedBox(height: AppSpacing.l),
+
+                // Stats Section
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildStat('50+', 'Arenas'),
+                      _buildStat('10k+', 'Players'),
+                      _buildStat('4.9/5', 'Rating'),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+
+                // Why Choose Us
+                SectionHeader(
+                  title: 'Why Choose Us',
+                  subtitle: 'The best sports experience in the city',
+                ),
+                SizedBox(
+                  height: 160,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                    ),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _buildFeatureCard(
+                        Icons.verified_user_outlined,
+                        'Certified Grounds',
+                      ),
+                      _buildFeatureCard(
+                        Icons.support_agent_outlined,
+                        '24/7 Support',
+                      ),
+                      _buildFeatureCard(
+                        Icons.payments_outlined,
+                        'Secure Payments',
+                      ),
+                      _buildFeatureCard(
+                        Icons.star_outline,
+                        'Professional Staff',
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+
+                const SizedBox(height: AppSpacing.xxl), // Just for scroll space
+              ],
             ),
-            
-            const SizedBox(height: AppSpacing.l),
-            
-            // Why Choose Us
-            SectionHeader(
-              title: 'Why Choose Us',
-              subtitle: 'The best sports experience in the city',
-            ),
-            SizedBox(
-              height: 160,
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                scrollDirection: Axis.horizontal,
-                children: [
-                  _buildFeatureCard(Icons.verified_user_outlined, 'Certified Grounds'),
-                  _buildFeatureCard(Icons.support_agent_outlined, '24/7 Support'),
-                  _buildFeatureCard(Icons.payments_outlined, 'Secure Payments'),
-                  _buildFeatureCard(Icons.star_outline, 'Professional Staff'),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: AppSpacing.l),
-            
-            // Events Preview
-            
-             const SizedBox(height: AppSpacing.xxl), // Just for scroll space
-          ],
+          ),
         ),
       ),
     );
@@ -80,10 +97,7 @@ class HomeView extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border.withOpacity(0.5)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -101,7 +115,9 @@ class HomeView extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.bold),
+            style: AppTextStyles.bodySmall.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -122,10 +138,7 @@ class HomeView extends StatelessWidget {
         const SizedBox(height: 4),
         Text(
           label,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
       ],
     );

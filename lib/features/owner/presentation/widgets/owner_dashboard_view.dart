@@ -4,57 +4,124 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/widgets/section_header.dart';
 
+import 'package:get/get.dart';
+import 'package:sports_studio/features/owner/controller/owner_controller.dart';
+
 class OwnerDashboardView extends StatelessWidget {
   const OwnerDashboardView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(OwnerController());
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: AppSpacing.l),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-              child: GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                crossAxisSpacing: AppSpacing.m,
-                mainAxisSpacing: AppSpacing.m,
-                childAspectRatio: 1.5,
-                children: [
-                  _buildStatCard('Total Bookings', '156', Icons.calendar_today, Colors.blue),
-                  _buildStatCard('Total Revenue', 'Rs. 45k', Icons.payments_outlined, Colors.green),
-                  _buildStatCard('Active Grounds', '4', Icons.sports_soccer, Colors.orange),
-                  _buildStatCard('Reviews', '4.8/5', Icons.star_outline, Colors.amber),
-                ],
-              ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+                const SizedBox(height: AppSpacing.l),
+
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                  child: Obx(() {
+                    if (controller.isLoading.value) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossAxisCount = 2;
+                        if (constraints.maxWidth > 1200) {
+                          crossAxisCount = 4;
+                        } else if (constraints.maxWidth > 800) {
+                          crossAxisCount = 3;
+                        }
+
+                        return GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: AppSpacing.m,
+                          mainAxisSpacing: AppSpacing.m,
+                          childAspectRatio: constraints.maxWidth > 800
+                              ? 2.0
+                              : 1.5,
+                          children: [
+                            _buildStatCard(
+                              'Total Bookings',
+                              '${controller.totalBookings.value}',
+                              Icons.calendar_today,
+                              Colors.blue,
+                            ),
+                            _buildStatCard(
+                              'Total Revenue',
+                              'Rs. ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
+                              Icons.payments_outlined,
+                              Colors.green,
+                            ),
+                            _buildStatCard(
+                              'Active Grounds',
+                              '${controller.totalGrounds.value}',
+                              Icons.sports_soccer,
+                              Colors.orange,
+                            ),
+                            _buildStatCard(
+                              'Reviews',
+                              '4.8/5',
+                              Icons.star_outline,
+                              Colors.amber,
+                            ), // Stubbed for now
+                          ],
+                        );
+                      },
+                    );
+                  }),
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+
+                const SectionHeader(
+                  title: 'Recent Bookings',
+                  subtitle: 'Latest activity from your grounds',
+                ),
+
+                Obx(() {
+                  if (controller.isLoading.value) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (controller.recentBookings.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(AppSpacing.m),
+                      child: Text(
+                        'No recent bookings yet.',
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                    ),
+                    itemCount: controller.recentBookings.length,
+                    itemBuilder: (context, index) {
+                      final booking = controller.recentBookings[index];
+                      return _buildBookingItem(booking);
+                    },
+                  );
+                }),
+
+                const SizedBox(height: AppSpacing.xxl),
+              ],
             ),
-            
-            const SizedBox(height: AppSpacing.l),
-            
-            const SectionHeader(
-              title: 'Recent Bookings',
-              subtitle: 'Latest activity from your grounds',
-            ),
-            
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return _buildBookingItem();
-              },
-            ),
-            
-            const SizedBox(height: AppSpacing.xxl),
-          ],
+          ),
         ),
       ),
     );
@@ -63,7 +130,12 @@ class OwnerDashboardView extends StatelessWidget {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(AppSpacing.m, 60, AppSpacing.m, AppSpacing.l),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.m,
+        60,
+        AppSpacing.m,
+        AppSpacing.l,
+      ),
       decoration: const BoxDecoration(
         color: AppColors.secondary,
         borderRadius: BorderRadius.only(
@@ -80,9 +152,11 @@ class OwnerDashboardView extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(
+                  Text(
                     'Owner Dashboard',
-                    style: AppTextStyles.bodyMedium.copyWith(color: Colors.white70),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: Colors.white70,
+                    ),
                   ),
                   Text(
                     'Welcome Back!',
@@ -102,7 +176,12 @@ class OwnerDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
@@ -129,7 +208,20 @@ class OwnerDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildBookingItem() {
+  Widget _buildBookingItem(dynamic booking) {
+    // Parse API fields safely
+    final userName = booking['user'] != null
+        ? booking['user']['name']
+        : 'Customer';
+    final groundName = booking['ground'] != null
+        ? booking['ground']['name']
+        : 'Ground';
+    final startTime = booking['start_time'] ?? '';
+    final totalAmount = booking['total_amount'] ?? '';
+    final formattedTime = startTime.length > 5
+        ? startTime.substring(0, 5)
+        : startTime;
+
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.m),
       padding: const EdgeInsets.all(AppSpacing.m),
@@ -153,16 +245,32 @@ class OwnerDashboardView extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('John Doe', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-                Text('Cricket Arena - Pitch 1', style: AppTextStyles.bodySmall),
+                Text(
+                  userName.toString(),
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(groundName.toString(), style: AppTextStyles.bodySmall),
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text('6:00 PM', style: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.bold)),
-              Text('Today', style: AppTextStyles.label),
+              Text(
+                formattedTime,
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                'Rs. $totalAmount',
+                style: AppTextStyles.label.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ],

@@ -34,12 +34,17 @@ class OwnerBookingsView extends StatelessWidget {
   }
 
   Widget _buildBookingList(String type) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(AppSpacing.m),
-      itemCount: 8,
-      itemBuilder: (context, index) {
-        return _buildBookingCard(index, type);
-      },
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1000),
+        child: ListView.builder(
+          padding: const EdgeInsets.all(AppSpacing.m),
+          itemCount: 8,
+          itemBuilder: (context, index) {
+            return _buildBookingCard(index, type);
+          },
+        ),
+      ),
     );
   }
 
@@ -51,10 +56,7 @@ class OwnerBookingsView extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -63,22 +65,36 @@ class OwnerBookingsView extends StatelessWidget {
             children: [
               CircleAvatar(
                 backgroundColor: AppColors.primaryLight,
-                child: Text('${index + 1}', style: const TextStyle(color: AppColors.primary)),
+                child: Text(
+                  '${index + 1}',
+                  style: const TextStyle(color: AppColors.primary),
+                ),
               ),
               const SizedBox(width: AppSpacing.m),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Customer Name ${index + 1}', style: AppTextStyles.bodyLarge),
-                    Text('Ground Alpha - Pitch ${index % 2 + 1}', style: AppTextStyles.bodySmall),
+                    Text(
+                      'Customer Name ${index + 1}',
+                      style: AppTextStyles.bodyLarge,
+                    ),
+                    Text(
+                      'Ground Alpha - Pitch ${index % 2 + 1}',
+                      style: AppTextStyles.bodySmall,
+                    ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
-                  color: type == 'Upcoming' ? Colors.green.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                  color: type == 'Upcoming'
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.grey.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -96,14 +112,22 @@ class OwnerBookingsView extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.access_time, size: 16, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Text('6:00 PM - 8:00 PM', style: AppTextStyles.bodySmall),
                 ],
               ),
               Row(
                 children: [
-                  const Icon(Icons.calendar_month, size: 16, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.calendar_month,
+                    size: 16,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 4),
                   Text('25 Oct, 2023', style: AppTextStyles.bodySmall),
                 ],

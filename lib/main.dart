@@ -6,6 +6,9 @@ import 'package:sports_studio/features/auth/presentation/pages/auth_page.dart';
 import 'package:sports_studio/features/grounds/presentation/pages/ground_detail_page.dart';
 import 'package:sports_studio/features/booking/presentation/pages/booking_slot_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/add_ground_page.dart';
+import 'package:sports_studio/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:sports_studio/features/events/presentation/event_detail_page.dart';
+import 'package:sports_studio/features/profile/presentation/setting_detail_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,8 +24,13 @@ class SportsStudioApp extends StatelessWidget {
       title: 'Sports Studio',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/auth', // Start with Auth for this phase
+      initialRoute: '/onboarding', // Changed to launch Onboarding first
       getPages: [
+        GetPage(
+          name: '/onboarding',
+          page: () => const OnboardingPage(),
+          transition: Transition.fadeIn,
+        ),
         GetPage(
           name: '/',
           page: () => const LandingPage(),
@@ -47,6 +55,16 @@ class SportsStudioApp extends StatelessWidget {
           name: '/add-ground',
           page: () => const AddGroundPage(),
           transition: Transition.downToUp,
+        ),
+        GetPage(
+          name: '/event-detail',
+          page: () => const EventDetailPage(),
+          transition: Transition.fadeIn,
+        ),
+        GetPage(
+          name: '/setting-detail',
+          page: () => const SettingDetailPage(),
+          transition: Transition.rightToLeft,
         ),
       ],
     );

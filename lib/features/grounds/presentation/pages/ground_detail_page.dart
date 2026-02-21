@@ -14,28 +14,33 @@ class GroundDetailPage extends StatelessWidget {
       body: Stack(
         children: [
           // Content
-          SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildImageHeader(),
-                Padding(
-                  padding: const EdgeInsets.all(AppSpacing.m),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTitleSection(),
-                      const Divider(height: AppSpacing.xl),
-                      _buildAmenities(),
-                      const SizedBox(height: AppSpacing.l),
-                      _buildDescription(),
-                      const SizedBox(height: AppSpacing.l),
-                      _buildReviewsSummary(),
-                      const SizedBox(height: 100), // Spacer for bottom bar
-                    ],
-                  ),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildImageHeader(Get.arguments),
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.m),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTitleSection(Get.arguments),
+                          const Divider(height: AppSpacing.xl),
+                          _buildAmenities(Get.arguments),
+                          const SizedBox(height: AppSpacing.l),
+                          _buildDescription(Get.arguments),
+                          const SizedBox(height: AppSpacing.l),
+                          _buildReviewsSummary(Get.arguments),
+                          const SizedBox(height: 100), // Spacer for bottom bar
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
 
@@ -56,22 +61,40 @@ class GroundDetailPage extends StatelessWidget {
           // Bottom Action Bar
           Align(
             alignment: Alignment.bottomCenter,
-            child: _buildBottomBar(),
+            child: _buildBottomBar(Get.arguments),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildImageHeader() {
+  Widget _buildImageHeader(dynamic ground) {
+    String imageUrl =
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
+    if (ground != null &&
+        ground['images'] != null &&
+        (ground['images'] as List).isNotEmpty) {
+      imageUrl = ground['images'][0];
+      if (imageUrl.contains('localhost')) {
+        imageUrl = imageUrl.replaceAll(
+          'localhost/cricket-oasis-bookings/backend/public',
+          'lightcoral-goose-424965.hostingersite.com/backend/public',
+        );
+        imageUrl = imageUrl.replaceAll(
+          'http://localhost',
+          'https://lightcoral-goose-424965.hostingersite.com',
+        );
+      }
+    }
+
     return Hero(
-      tag: 'ground_image',
+      tag: 'ground_image_${ground?['id'] ?? ''}',
       child: Container(
         height: 300,
         width: double.infinity,
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           image: DecorationImage(
-            image: NetworkImage('https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800'),
+            image: CachedNetworkImageProvider(imageUrl),
             fit: BoxFit.cover,
           ),
         ),
@@ -79,7 +102,12 @@ class GroundDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTitleSection() {
+  Widget _buildTitleSection(dynamic ground) {
+    final type = ground?['type'] ?? 'Cricket';
+    final name = ground?['name'] ?? 'Premium Cricket Arena';
+    final complex = ground?['complex'] ?? {};
+    final address = complex['address'] ?? 'Gulberg III, Lahore, Pakistan';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -92,45 +120,59 @@ class GroundDetailPage extends StatelessWidget {
                 color: AppColors.primaryLight,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text('Cricket', style: AppTextStyles.label.copyWith(color: AppColors.primary)),
+              child: Text(
+                type.toString().capitalizeFirst ?? type,
+                style: AppTextStyles.label.copyWith(color: AppColors.primary),
+              ),
             ),
             Row(
               children: [
                 const Icon(Icons.star, color: Colors.amber, size: 18),
                 const SizedBox(width: 4),
-                Text('4.9', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  '4.9',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 Text(' (120 reviews)', style: AppTextStyles.bodySmall),
               ],
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.s),
-        Text('Premium Cricket Arena', style: AppTextStyles.h1),
+        Text(name, style: AppTextStyles.h1),
         const SizedBox(height: AppSpacing.xs),
         Row(
           children: [
-            const Icon(Icons.location_on_outlined, size: 18, color: AppColors.textSecondary),
+            const Icon(
+              Icons.location_on_outlined,
+              size: 18,
+              color: AppColors.textSecondary,
+            ),
             const SizedBox(width: 4),
-            Text('Gulberg III, Lahore, Pakistan', style: AppTextStyles.bodyMedium),
+            Expanded(child: Text(address, style: AppTextStyles.bodyMedium)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildAmenities() {
+  Widget _buildAmenities(dynamic ground) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Amenities', style: AppTextStyles.h3),
         const SizedBox(height: AppSpacing.m),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          spacing: 20,
+          runSpacing: 20,
           children: [
             _amenityIcon(Icons.directions_car_outlined, 'Parking'),
             _amenityIcon(Icons.water_drop_outlined, 'Water'),
             _amenityIcon(Icons.restaurant_outlined, 'Cafe'),
-            _amenityIcon(Icons.wifi_outlined, 'Free Wi-Fi'),
+            if (ground?['lighting'] == true)
+              _amenityIcon(Icons.lightbulb_outline, 'Lighting'),
           ],
         ),
       ],
@@ -154,21 +196,22 @@ class GroundDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(dynamic ground) {
+    final description =
+        ground?['description'] ??
+        'This premium cricket arena features a high-quality turf pitch, professional-grade floodlights, and a spacious outfield.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('About this Ground', style: AppTextStyles.h3),
         const SizedBox(height: AppSpacing.m),
-        Text(
-          'This premium cricket arena features a high-quality turf pitch, professional-grade floodlights, and a spacious outfield. Perfect for T20 matches and training sessions.',
-          style: AppTextStyles.bodyMedium,
-        ),
+        Text(description, style: AppTextStyles.bodyMedium),
       ],
     );
   }
 
-  Widget _buildReviewsSummary() {
+  Widget _buildReviewsSummary(dynamic ground) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -188,8 +231,15 @@ class GroundDetailPage extends StatelessWidget {
             return ListTile(
               contentPadding: EdgeInsets.zero,
               leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text('Player ${index + 1}', style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold)),
-              subtitle: const Text('Amazing experience, the pitch was in great condition!'),
+              title: Text(
+                'Player ${index + 1}',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: const Text(
+                'Amazing experience, the pitch was in great condition!',
+              ),
             );
           },
         ),
@@ -197,7 +247,9 @@ class GroundDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildBottomBar(dynamic ground) {
+    final price = ground?['price_per_hour'] ?? '3,000';
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
@@ -210,26 +262,36 @@ class GroundDetailPage extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Price', style: AppTextStyles.label),
-                Text('Rs. 3,000/hr', style: AppTextStyles.h2.copyWith(color: AppColors.primary)),
-              ],
-            ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1000),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Price', style: AppTextStyles.label),
+                    Text(
+                      'Rs. $price/hr',
+                      style: AppTextStyles.h2.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: () => Get.toNamed('/book-slot', arguments: ground),
+                  child: const Text('Book Now'),
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: () => Get.toNamed('/book-slot'),
-              child: const Text('Book Now'),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

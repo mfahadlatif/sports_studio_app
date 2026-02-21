@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
@@ -9,27 +10,57 @@ class OwnerSettingsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Owner Settings'),
-      ),
+      appBar: AppBar(title: const Text('Owner Settings')),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.m),
         children: [
           _buildSettingsSection('Business Settings', [
-            _buildSettingsTile(Icons.business_outlined, 'Business Profile', 'Manage company details'),
-            _buildSettingsTile(Icons.payments_outlined, 'Payment Methods', 'Payouts and bank accounts'),
-            _buildSettingsTile(Icons.schedule_outlined, 'Operating Hours', 'Set when grounds are open'),
+            _buildSettingsTile(
+              Icons.business_outlined,
+              'Business Profile',
+              'Manage company details',
+            ),
+            _buildSettingsTile(
+              Icons.payments_outlined,
+              'Payment Methods',
+              'Payouts and bank accounts',
+            ),
+            _buildSettingsTile(
+              Icons.schedule_outlined,
+              'Operating Hours',
+              'Set when grounds are open',
+            ),
           ]),
           const SizedBox(height: AppSpacing.l),
           _buildSettingsSection('App Settings', [
-            _buildSettingsTile(Icons.notifications_outlined, 'Notifications', 'Push and email alerts'),
-            _buildSettingsTile(Icons.language_outlined, 'Language', 'Default app language'),
-            _buildSettingsTile(Icons.dark_mode_outlined, 'Dark Mode', 'Appearance settings'),
+            _buildSettingsTile(
+              Icons.notifications_outlined,
+              'Notifications',
+              'Push and email alerts',
+            ),
+            _buildSettingsTile(
+              Icons.language_outlined,
+              'Language',
+              'Default app language',
+            ),
+            _buildSettingsTile(
+              Icons.dark_mode_outlined,
+              'Dark Mode',
+              'Appearance settings',
+            ),
           ]),
           const SizedBox(height: AppSpacing.l),
           _buildSettingsSection('Support', [
-            _buildSettingsTile(Icons.help_outline, 'Help Center', 'FAQs and troubleshooting'),
-            _buildSettingsTile(Icons.privacy_tip_outlined, 'Privacy Policy', 'Terms and conditions'),
+            _buildSettingsTile(
+              Icons.help_outline,
+              'Help Center',
+              'FAQs and troubleshooting',
+            ),
+            _buildSettingsTile(
+              Icons.privacy_tip_outlined,
+              'Privacy Policy',
+              'Terms and conditions',
+            ),
           ]),
         ],
       ),
@@ -42,22 +73,20 @@ class OwnerSettingsView extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(left: 8, bottom: 8),
-          child: Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
+          child: Text(
+            title,
+            style: AppTextStyles.h3.copyWith(color: AppColors.primary),
+          ),
         ),
         Container(
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 10,
-              ),
+              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10),
             ],
           ),
-          child: Column(
-            children: children,
-          ),
+          child: Column(children: children),
         ),
       ],
     );
@@ -69,7 +98,10 @@ class OwnerSettingsView extends StatelessWidget {
       title: Text(title, style: AppTextStyles.bodyLarge),
       subtitle: Text(subtitle, style: AppTextStyles.bodySmall),
       trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: () {},
+      onTap: () => Get.toNamed(
+        '/setting-detail',
+        arguments: {'title': title, 'description': subtitle},
+      ),
     );
   }
 }
