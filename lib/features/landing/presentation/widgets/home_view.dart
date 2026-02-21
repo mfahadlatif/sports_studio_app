@@ -23,6 +23,46 @@ class HomeView extends StatelessWidget {
                 const GroundsPreviewSection(),
                 const SizedBox(height: AppSpacing.l),
 
+                // Deals & Promotions (Hot Deals Integration)
+                SectionHeader(
+                  title: 'Hot Deals',
+                  subtitle: 'Exclusive discounts on your favorite grounds',
+                  onActionPressed: () {},
+                ),
+                SizedBox(
+                  height: 140,
+                  child: ListView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                    ),
+                    scrollDirection: Axis.horizontal,
+                    children: [
+                      _buildHotDealCard(
+                        'MORNING30',
+                        '30% OFF',
+                        'Valid until 10 AM on Weekdays',
+                        Colors.orange,
+                        Colors.deepOrange,
+                      ),
+                      _buildHotDealCard(
+                        'WEEKENDWARRIOR',
+                        '25% OFF',
+                        'Exclusive Weekend Tournaments',
+                        AppColors.primary,
+                        const Color(0xFF0F172A), // Dark slate
+                      ),
+                      _buildHotDealCard(
+                        'FIRSTBOOK',
+                        'Rs. 500 OFF',
+                        'On your first ground booking',
+                        Colors.teal,
+                        Colors.teal.shade900,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.l),
+
                 // Stats Section
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
@@ -141,6 +181,87 @@ class HomeView extends StatelessWidget {
           style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
       ],
+    );
+  }
+
+  Widget _buildHotDealCard(
+    String code,
+    String discount,
+    String description,
+    Color colorStart,
+    Color colorEnd,
+  ) {
+    return Container(
+      width: 250,
+      margin: const EdgeInsets.only(right: AppSpacing.m),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(
+          colors: [colorStart, colorEnd],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: colorEnd.withAlpha(50),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Icon(
+              Icons.local_offer,
+              size: 100,
+              color: Colors.white.withAlpha(20),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.l),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(50),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    code,
+                    style: AppTextStyles.label.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.s),
+                Text(
+                  discount,
+                  style: AppTextStyles.h2.copyWith(color: Colors.white),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white.withAlpha(200),
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

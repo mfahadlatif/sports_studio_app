@@ -14,16 +14,19 @@ class BookingSlotPage extends StatelessWidget {
     final controller = Get.put(BookingController());
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Select Time Slot'),
-      ),
-      body: Column(
-        children: [
-          _buildDateSelector(controller),
-          const SizedBox(height: AppSpacing.l),
-          Expanded(child: _buildSlotGrid(controller)),
-          _buildPriceSummary(controller),
-        ],
+      appBar: AppBar(title: const Text('Select Time Slot')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            children: [
+              _buildDateSelector(controller),
+              const SizedBox(height: AppSpacing.l),
+              Expanded(child: _buildSlotGrid(controller)),
+              _buildPriceSummary(controller),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -49,7 +52,10 @@ class BookingSlotPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 final date = DateTime.now().add(Duration(days: index));
                 return Obx(() {
-                  final isSelected = DateFormat('yyyy-MM-dd').format(controller.selectedDate.value) ==
+                  final isSelected =
+                      DateFormat(
+                        'yyyy-MM-dd',
+                      ).format(controller.selectedDate.value) ==
                       DateFormat('yyyy-MM-dd').format(date);
                   return GestureDetector(
                     onTap: () => controller.selectDate(date),
@@ -57,9 +63,15 @@ class BookingSlotPage extends StatelessWidget {
                       width: 70,
                       margin: const EdgeInsets.only(right: 12),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : Colors.grey[100],
+                        color: isSelected
+                            ? AppColors.primary
+                            : Colors.grey[100],
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.border,
+                        ),
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -67,14 +79,18 @@ class BookingSlotPage extends StatelessWidget {
                           Text(
                             DateFormat('EEE').format(date),
                             style: AppTextStyles.label.copyWith(
-                              color: isSelected ? Colors.white70 : AppColors.textSecondary,
+                              color: isSelected
+                                  ? Colors.white70
+                                  : AppColors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             DateFormat('dd').format(date),
                             style: AppTextStyles.h3.copyWith(
-                              color: isSelected ? Colors.white : AppColors.textPrimary,
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
                             ),
                           ),
                         ],
@@ -99,39 +115,47 @@ class BookingSlotPage extends StatelessWidget {
           Text('Available Slots', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.m),
           Expanded(
-            child: Obx(() => GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 2.2,
+            child: Obx(
+              () => GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 2.2,
+                ),
+                itemCount: controller.availableSlots.length,
+                itemBuilder: (context, index) {
+                  final slot = controller.availableSlots[index];
+                  final isSelected = controller.selectedSlots.contains(slot);
+                  return GestureDetector(
+                    onTap: () => controller.toggleSlot(slot),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColors.primary
+                              : AppColors.border,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        slot,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: isSelected
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
-              itemCount: controller.availableSlots.length,
-              itemBuilder: (context, index) {
-                final slot = controller.availableSlots[index];
-                final isSelected = controller.selectedSlots.contains(slot);
-                return GestureDetector(
-                  onTap: () => controller.toggleSlot(slot),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: isSelected ? AppColors.primary : Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      slot,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: isSelected ? Colors.white : AppColors.textPrimary,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              },
-            )),
+            ),
           ),
         ],
       ),
@@ -152,28 +176,50 @@ class BookingSlotPage extends StatelessWidget {
         ],
       ),
       child: SafeArea(
-        child: Obx(() => Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                   Text('${controller.selectedSlots.length} Slots Selected', style: AppTextStyles.label),
-                   Text('Total: Rs. ${NumberFormat('#,###').format(controller.totalPrice)}', 
-                        style: AppTextStyles.h2.copyWith(color: AppColors.primary)),
-                ],
+        child: Obx(
+          () => Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${controller.selectedSlots.length} Slots Selected',
+                      style: AppTextStyles.label,
+                    ),
+                    Text(
+                      'Total: Rs. ${NumberFormat('#,###').format(controller.totalPrice)}',
+                      style: AppTextStyles.h2.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.m),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: controller.selectedSlots.isEmpty ? null : () {},
-                child: const Text('Proceed to Pay'),
+              const SizedBox(width: AppSpacing.m),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed:
+                      controller.selectedSlots.isEmpty ||
+                          controller.isBooking.value
+                      ? null
+                      : () => controller.createBooking(),
+                  child: controller.isBooking.value
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text('Confirm Booking'),
+                ),
               ),
-            ),
-          ],
-        )),
+            ],
+          ),
+        ),
       ),
     );
   }

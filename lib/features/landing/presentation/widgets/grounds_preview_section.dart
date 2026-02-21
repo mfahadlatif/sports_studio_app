@@ -6,6 +6,8 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/widgets/section_header.dart';
 import 'package:sports_studio/features/landing/controller/home_controller.dart';
+import 'package:sports_studio/features/landing/controller/landing_controller.dart'
+    as sports_landing;
 
 class GroundsPreviewSection extends StatelessWidget {
   const GroundsPreviewSection({super.key});
@@ -19,7 +21,11 @@ class GroundsPreviewSection extends StatelessWidget {
         SectionHeader(
           title: 'Premium Grounds',
           subtitle: 'Choose from our top-rated sports arenas',
-          onActionPressed: () {},
+          onActionPressed: () {
+            final landingController =
+                Get.find<sports_landing.LandingController>();
+            landingController.changeNavIndex(1); // switch to Grounds Tab
+          },
         ),
         SizedBox(
           height: 280,

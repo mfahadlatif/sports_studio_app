@@ -51,4 +51,19 @@ class GroundsController extends GetxController {
     }
     return false;
   }
+
+  Future<bool> deleteGround(int id) async {
+    try {
+      final response = await _apiClient.dio.delete('/grounds/$id');
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        grounds.removeWhere((g) => g.id == id);
+        Get.snackbar('Success', 'Ground deleted successfully');
+        return true;
+      }
+    } catch (e) {
+      print('Delete Error: $e');
+      Get.snackbar('Error', 'Failed to delete ground');
+    }
+    return false;
+  }
 }

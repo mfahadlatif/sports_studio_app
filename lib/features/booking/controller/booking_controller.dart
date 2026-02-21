@@ -1,9 +1,11 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:sports_studio/core/network/api_client.dart';
 
 class BookingController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final RxList<String> selectedSlots = <String>[].obs;
+  final RxBool isBooking = false.obs;
 
   final RxList<String> availableSlots = <String>[
     '09:00 AM',
@@ -36,6 +38,59 @@ class BookingController extends GetxController {
   }
 
   double get totalPrice {
-    return selectedSlots.length * 3000.0;
+    final ground = Get.arguments;
+    final price = ground != null
+        ? double.tryParse(ground['price_per_hour'].toString()) ?? 3000.0
+        : 3000.0;
+    return selectedSlots.length * price;
+  }
+
+  Future<void> createBooking() async {
+    final ground = Get.arguments;
+    if (ground == null || ground['id'] == null) {
+      Get.snackbar('Error', 'Ground data is missing.');
+      return;
+    }
+
+    isBooking.value = true;
+    try {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate.value);
+      final startTime = DateFormat(
+        'HH:mm',
+      ).format(DateFormat('hh:mm a').parse(selectedSlots.first));
+      final endTime = DateFormat('HH:mm').format(
+        DateFormat(
+          'hh:mm a',
+        ).parse(selectedSlots.last).add(const Duration(hours: 1)),
+      );
+
+      final data = {
+        'ground_id': ground['id'],
+        'date': formattedDate,
+        'start_time': startTime,
+        'end_time': endTime,
+        'total_amount': totalPrice,
+        'status': 'pending',
+      };
+
+      final response = await ApiClient().dio.post('/bookings', data: data);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final bookingId = response.data['id'];
+        // Redirect to the Secure Payment Checkout with 20-Minute Lock Phase
+        Get.offAllNamed(
+          '/payment',
+          arguments: {'bookingId': bookingId, 'totalPrice': totalPrice},
+        );
+        selectedSlots.clear();
+      } else {
+        Get.snackbar('Error', 'Failed to create booking.');
+      }
+    } catch (e) {
+      print('Booking error: $e');
+      Get.snackbar('Error', 'Something went wrong: $e');
+    } finally {
+      isBooking.value = false;
+    }
   }
 }

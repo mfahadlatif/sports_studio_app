@@ -113,15 +113,105 @@ class OwnerDashboardView extends StatelessWidget {
                     itemCount: controller.recentBookings.length,
                     itemBuilder: (context, index) {
                       final booking = controller.recentBookings[index];
-                      return _buildBookingItem(booking);
+                      return GestureDetector(
+                        onTap: () => Get.toNamed(
+                          '/booking-detail',
+                          arguments: {'booking': booking},
+                        ),
+                        child: _buildBookingItem(booking),
+                      );
                     },
                   );
                 }),
+
+                const SizedBox(height: AppSpacing.l),
+
+                // ── Quick Management Shortcuts ──────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                  child: Text('Management', style: AppTextStyles.h3),
+                ),
+                const SizedBox(height: AppSpacing.m),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: AppSpacing.m,
+                    mainAxisSpacing: AppSpacing.m,
+                    childAspectRatio: 2.2,
+                    children: [
+                      _buildManagementCard(
+                        'Reports',
+                        Icons.analytics_outlined,
+                        Colors.indigo,
+                        () => Get.toNamed('/owner-reports'),
+                      ),
+                      _buildManagementCard(
+                        'Complexes',
+                        Icons.corporate_fare_outlined,
+                        Colors.teal,
+                        () => Get.toNamed('/sports-complexes'),
+                      ),
+                      _buildManagementCard(
+                        'Deals',
+                        Icons.local_offer_outlined,
+                        Colors.deepOrange,
+                        () => Get.toNamed('/owner-deals'),
+                      ),
+                      _buildManagementCard(
+                        'Reviews',
+                        Icons.rate_review_outlined,
+                        Colors.amber,
+                        () => Get.toNamed('/review-moderation'),
+                      ),
+                    ],
+                  ),
+                ),
 
                 const SizedBox(height: AppSpacing.xxl),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManagementCard(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.m),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: AppTextStyles.bodyMedium.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );

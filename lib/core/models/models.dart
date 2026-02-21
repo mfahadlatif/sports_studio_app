@@ -30,6 +30,7 @@ class Ground {
   final int complexId;
   final String status;
   final String type;
+  final List<String>? images;
 
   Ground({
     required this.id,
@@ -40,6 +41,7 @@ class Ground {
     required this.complexId,
     required this.status,
     required this.type,
+    this.images,
   });
 
   factory Ground.fromJson(Map<String, dynamic> json) {
@@ -52,6 +54,7 @@ class Ground {
       complexId: json['complex_id'] ?? 0,
       status: json['status'] ?? 'active',
       type: json['type'] ?? 'cricket',
+      images: json['images'] != null ? List<String>.from(json['images']) : null,
     );
   }
 }

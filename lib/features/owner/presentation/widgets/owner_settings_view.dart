@@ -16,6 +16,30 @@ class OwnerSettingsView extends StatelessWidget {
         children: [
           _buildSettingsSection('Business Settings', [
             _buildSettingsTile(
+              Icons.analytics_outlined,
+              'Reports & Analytics',
+              'Revenue, bookings and performance',
+              onTap: () => Get.toNamed('/owner-reports'),
+            ),
+            _buildSettingsTile(
+              Icons.corporate_fare_outlined,
+              'Sports Complexes',
+              'Manage your complexes & facilities',
+              onTap: () => Get.toNamed('/sports-complexes'),
+            ),
+            _buildSettingsTile(
+              Icons.local_offer_outlined,
+              'Manage Deals',
+              'Create & edit discount offers',
+              onTap: () => Get.toNamed('/owner-deals'),
+            ),
+            _buildSettingsTile(
+              Icons.rate_review_outlined,
+              'Review Moderation',
+              'Manage player feedback & ratings',
+              onTap: () => Get.toNamed('/review-moderation'),
+            ),
+            _buildSettingsTile(
               Icons.business_outlined,
               'Business Profile',
               'Manage company details',
@@ -37,6 +61,7 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.notifications_outlined,
               'Notifications',
               'Push and email alerts',
+              onTap: () => Get.toNamed('/notifications'),
             ),
             _buildSettingsTile(
               Icons.language_outlined,
@@ -92,16 +117,23 @@ class OwnerSettingsView extends StatelessWidget {
     );
   }
 
-  Widget _buildSettingsTile(IconData icon, String title, String subtitle) {
+  Widget _buildSettingsTile(
+    IconData icon,
+    String title,
+    String subtitle, {
+    VoidCallback? onTap,
+  }) {
     return ListTile(
       leading: Icon(icon, color: AppColors.textPrimary),
       title: Text(title, style: AppTextStyles.bodyLarge),
       subtitle: Text(subtitle, style: AppTextStyles.bodySmall),
       trailing: const Icon(Icons.chevron_right, size: 20),
-      onTap: () => Get.toNamed(
-        '/setting-detail',
-        arguments: {'title': title, 'description': subtitle},
-      ),
+      onTap:
+          onTap ??
+          () => Get.toNamed(
+            '/setting-detail',
+            arguments: {'title': title, 'description': subtitle},
+          ),
     );
   }
 }

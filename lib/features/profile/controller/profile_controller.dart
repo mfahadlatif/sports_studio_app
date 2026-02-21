@@ -24,4 +24,72 @@ class ProfileController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  Future<void> updateProfile({
+    required String name,
+    required String email,
+    String? phone,
+    String? businessName,
+  }) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiClient().dio.post(
+        '/profile',
+        data: {
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'business_name': businessName,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        userProfile.value = response.data['user'];
+        Get.back();
+        Get.snackbar(
+          'Success',
+          'Profile updated successfully',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update profile');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiClient().dio.post(
+        '/profile/password',
+        data: {
+          'current_password': currentPassword,
+          'password': newPassword,
+          'password_confirmation': confirmPassword,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        Get.back();
+        Get.snackbar(
+          'Success',
+          'Password changed successfully',
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to change password. Ensure current password is correct.',
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

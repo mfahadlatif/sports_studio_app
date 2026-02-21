@@ -20,7 +20,8 @@ class LandingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<LandingController>();
+    // Use put() which reuses existing instance if already registered
+    final controller = Get.put(LandingController(), permanent: true);
 
     final List<Widget> userPages = [
       const HomeView(),
@@ -32,7 +33,7 @@ class LandingPage extends StatelessWidget {
 
     final List<Widget> ownerPages = [
       const OwnerDashboardView(),
-       OwnerGroundsView(),
+      OwnerGroundsView(),
       const OwnerBookingsView(),
       const OwnerSettingsView(),
       const ProfilePage(),
@@ -56,48 +57,128 @@ class LandingPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Obx(() => Text(
-              controller.currentRole.value == UserRole.user ? 'Sports Studio' : 'Owner Dashboard',
-              style: AppTextStyles.h3,
-            )),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: Obx(() => IndexedStack(
-            index: controller.currentNavIndex.value,
-            children: controller.currentRole.value == UserRole.user ? userPages : ownerPages,
-          )),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              blurRadius: 20,
-              color: Colors.black.withOpacity(.1),
-            )
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 8),
-            child: Obx(() => GNav(
-                  rippleColor: Colors.grey[300]!,
-                  hoverColor: Colors.grey[100]!,
-                  gap: 4,
-                  activeColor: AppColors.primary,
-                  iconSize: 22,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                  duration: const Duration(milliseconds: 400),
-                  tabBackgroundColor: AppColors.primaryLight,
-                  color: AppColors.textSecondary,
-                  tabs: controller.currentRole.value == UserRole.user ? userTabs : ownerTabs,
-                  selectedIndex: controller.currentNavIndex.value,
-                  onTabChange: (index) {
-                    controller.changeNavIndex(index);
-                  },
-                )),
+        title: Obx(
+          () => Text(
+            controller.currentRole.value == UserRole.user
+                ? 'Sports Studio'
+                : 'Owner Dashboard',
+            style: AppTextStyles.h3,
           ),
         ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            // Web Layout: Use a side Navigation Rail
+            return Row(
+              children: [
+                Obx(
+                  () => NavigationRail(
+                    selectedIndex: controller.currentNavIndex.value,
+                    onDestinationSelected: (index) {
+                      controller.changeNavIndex(index);
+                    },
+                    labelType: NavigationRailLabelType.all,
+                    selectedIconTheme: const IconThemeData(
+                      color: AppColors.primary,
+                    ),
+                    selectedLabelTextStyle: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    destinations:
+                        (controller.currentRole.value == UserRole.user
+                                ? userTabs
+                                : ownerTabs)
+                            .map(
+                              (tab) => NavigationRailDestination(
+                                icon: Icon(tab.icon),
+                                label: Text(tab.text),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ),
+                const VerticalDivider(thickness: 1, width: 1),
+                Expanded(
+                  child: Obx(
+                    () => IndexedStack(
+                      index: controller.currentNavIndex.value,
+                      children: controller.currentRole.value == UserRole.user
+                          ? userPages
+                          : ownerPages,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          // Mobile Layout: Use the Bottom Navigation Bar
+          return Column(
+            children: [
+              Expanded(
+                child: Obx(
+                  () => IndexedStack(
+                    index: controller.currentNavIndex.value,
+                    children: controller.currentRole.value == UserRole.user
+                        ? userPages
+                        : ownerPages,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      bottomNavigationBar: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth > 800) {
+            return const SizedBox.shrink(); // Hide bottom nav on web
+          }
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(blurRadius: 20, color: Colors.black.withOpacity(.1)),
+              ],
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 15.0,
+                  vertical: 8,
+                ),
+                child: Obx(
+                  () => GNav(
+                    rippleColor: Colors.grey[300]!,
+                    hoverColor: Colors.grey[100]!,
+                    gap: 4,
+                    activeColor: AppColors.primary,
+                    iconSize: 22,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    duration: const Duration(milliseconds: 400),
+                    tabBackgroundColor: AppColors.primaryLight,
+                    color: AppColors.textSecondary,
+                    tabs: controller.currentRole.value == UserRole.user
+                        ? userTabs
+                        : ownerTabs,
+                    selectedIndex: controller.currentNavIndex.value,
+                    onTabChange: (index) {
+                      controller.changeNavIndex(index);
+                    },
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

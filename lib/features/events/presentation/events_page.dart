@@ -15,6 +15,12 @@ class EventsPage extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('All Events'), centerTitle: true),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Get.toNamed('/create-match'),
+        label: const Text('Organize Match'),
+        icon: const Icon(Icons.add),
+        backgroundColor: AppColors.primary,
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
