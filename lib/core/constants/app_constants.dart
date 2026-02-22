@@ -12,4 +12,8 @@ class AppConstants {
   static const double borderRadius = 12.0;
   static const double cardRadius = 16.0;
   static const double buttonRadius = 12.0;
+
+  // Assets
+  static const String appIcon = 'assets/app_icon.jpeg';
+  static const String appLogo = 'assets/app-logo.png';
 }

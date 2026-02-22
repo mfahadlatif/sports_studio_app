@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/favorites/controller/favorites_controller.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class GroundCardWide extends StatelessWidget {
   final dynamic ground;
@@ -18,23 +19,15 @@ class GroundCardWide extends StatelessWidget {
     final complex = ground['complex'] ?? {};
     final address = complex['address'] ?? 'Main Boulevard, Gulberg, Lahore';
 
-    String imageUrl =
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
     final images = ground['images'] as List<dynamic>?;
+    String? rawUrl;
     if (images != null && images.isNotEmpty) {
-      imageUrl = images[0];
+      rawUrl = images[0];
+    } else if (ground['image_path'] != null) {
+      rawUrl = ground['image_path'];
     }
 
-    if (imageUrl.contains('localhost')) {
-      imageUrl = imageUrl.replaceAll(
-        'localhost/cricket-oasis-bookings/backend/public',
-        'lightcoral-goose-424965.hostingersite.com/backend/public',
-      );
-      imageUrl = imageUrl.replaceAll(
-        'http://localhost',
-        'https://lightcoral-goose-424965.hostingersite.com',
-      );
-    }
+    final imageUrl = UrlHelper.sanitizeUrl(rawUrl);
 
     return GestureDetector(
       onTap: () => Get.toNamed('/ground-detail', arguments: ground),

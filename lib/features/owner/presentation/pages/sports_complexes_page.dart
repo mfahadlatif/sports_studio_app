@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/widgets/app_shimmer.dart';
 
 class SportsComplexesPage extends StatefulWidget {
   const SportsComplexesPage({super.key});
@@ -121,7 +123,11 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? ListView.builder(
+                    padding: const EdgeInsets.all(AppSpacing.m),
+                    itemCount: 5,
+                    itemBuilder: (_, __) => AppShimmer.card(),
+                  )
                 : Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 1000),
@@ -189,16 +195,30 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
               padding: const EdgeInsets.all(AppSpacing.m),
               child: Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(
-                      Icons.business_outlined,
-                      color: AppColors.primary,
-                      size: 22,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: CachedNetworkImage(
+                      imageUrl: _complexImageUrl(complex),
+                      width: 44,
+                      height: 44,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: AppColors.primaryLight,
+                        width: 44,
+                        height: 44,
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.business_outlined,
+                          color: AppColors.primary,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.m),
@@ -305,6 +325,29 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
         ),
       ),
     );
+  }
+
+  String _complexImageUrl(dynamic complex) {
+    String url =
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
+    if (complex['images'] != null && (complex['images'] as List).isNotEmpty) {
+      url = complex['images'][0];
+    } else if (complex['image_path'] != null) {
+      url = complex['image_path'];
+    }
+
+    if (url.contains('localhost')) {
+      url = url
+          .replaceAll(
+            'localhost/cricket-oasis-bookings/backend/public',
+            'lightcoral-goose-424965.hostingersite.com/backend/public',
+          )
+          .replaceAll(
+            'http://localhost',
+            'https://lightcoral-goose-424965.hostingersite.com',
+          );
+    }
+    return url;
   }
 
   Widget _emptyState() => Center(

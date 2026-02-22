@@ -12,6 +12,7 @@ import 'package:sports_studio/features/onboarding/presentation/pages/onboarding_
 import 'package:sports_studio/features/events/presentation/event_detail_page.dart';
 import 'package:sports_studio/features/events/presentation/create_match_page.dart';
 import 'package:sports_studio/features/profile/presentation/setting_detail_page.dart';
+import 'package:sports_studio/features/profile/controller/profile_controller.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
 import 'package:sports_studio/features/booking/presentation/pages/payment_page.dart';
 // User features
@@ -25,17 +26,36 @@ import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page
 import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
+import 'package:sports_studio/features/favorites/controller/favorites_controller.dart';
 import 'package:sports_studio/features/contact/presentation/contact_page.dart';
 
-void main() {
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Register LandingController permanently so all child widgets can Get.find() it
+
+  const storage = FlutterSecureStorage();
+  final String? hasSeenOnboarding = await storage.read(
+    key: 'has_seen_onboarding',
+  );
+  final String? authToken = await storage.read(key: 'auth_token');
+
+  String initialRoute = '/onboarding';
+  if (hasSeenOnboarding == 'true') {
+    initialRoute = authToken != null ? '/' : '/auth';
+  }
+
+  // Register Controllers permanently so all child widgets can Get.find() them
   Get.put(LandingController(), permanent: true);
-  runApp(const SportsStudioApp());
+  Get.put(FavoritesController(), permanent: true);
+  Get.put(ProfileController(), permanent: true);
+
+  runApp(SportsStudioApp(initialRoute: initialRoute));
 }
 
 class SportsStudioApp extends StatelessWidget {
-  const SportsStudioApp({super.key});
+  final String initialRoute;
+  const SportsStudioApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +63,7 @@ class SportsStudioApp extends StatelessWidget {
       title: 'Sports Studio',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: '/onboarding',
+      initialRoute: initialRoute,
       getPages: [
         // ── Core ──────────────────────────────────────────────
         GetPage(

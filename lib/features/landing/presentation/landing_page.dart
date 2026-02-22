@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/features/landing/presentation/widgets/home_view.dart';
 import 'package:sports_studio/features/grounds/presentation/grounds_page.dart';
@@ -58,12 +59,20 @@ class LandingPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Obx(
-          () => Text(
-            controller.currentRole.value == UserRole.user
-                ? 'Sports Studio'
-                : 'Owner Dashboard',
-            style: AppTextStyles.h3,
-          ),
+          () => controller.currentRole.value == UserRole.user
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      AppConstants.appLogo,
+                      height: 32,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Sports Studio', style: AppTextStyles.h3),
+                  ],
+                )
+              : Text('Owner Dashboard', style: AppTextStyles.h3),
         ),
         backgroundColor: Colors.white,
         elevation: 0,

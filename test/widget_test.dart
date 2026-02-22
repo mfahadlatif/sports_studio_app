@@ -13,7 +13,7 @@ import 'package:sports_studio/main.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const SportsStudioApp());
+    await tester.pumpWidget(const SportsStudioApp(initialRoute: '/onboarding'));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

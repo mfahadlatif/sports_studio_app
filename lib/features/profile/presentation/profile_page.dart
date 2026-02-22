@@ -119,6 +119,25 @@ class ProfilePage extends StatelessWidget {
                     ],
                   ),
                 ),
+                const SizedBox(height: AppSpacing.l),
+                // Branding Footer
+                Column(
+                  children: [
+                    Image.asset(
+                      AppConstants.appLogo,
+                      height: 30,
+                      fit: BoxFit.contain,
+                      // color: AppColors.textMuted.withOpacity(0.5),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Version 1.0.0',
+                      style: AppTextStyles.label.copyWith(
+                        color: AppColors.textMuted.withOpacity(0.5),
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 40),
               ],
             ),
@@ -164,10 +183,16 @@ class ProfilePage extends StatelessWidget {
                     backgroundImage: user['avatar'] != null
                         ? NetworkImage(
                             user['avatar'].toString().contains('localhost')
-                                ? user['avatar'].toString().replaceAll(
-                                    'localhost',
-                                    'lightcoral-goose-424965.hostingersite.com',
-                                  )
+                                ? user['avatar']
+                                      .toString()
+                                      .replaceAll(
+                                        'localhost/cricket-oasis-bookings/backend/public',
+                                        'lightcoral-goose-424965.hostingersite.com/backend/public',
+                                      )
+                                      .replaceAll(
+                                        'http://localhost',
+                                        'https://lightcoral-goose-424965.hostingersite.com',
+                                      )
                                 : user['avatar'].toString(),
                           )
                         : null,

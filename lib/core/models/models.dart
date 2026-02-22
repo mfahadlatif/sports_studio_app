@@ -3,12 +3,14 @@ class Complex {
   final String name;
   final String address;
   final String description;
+  final List<String>? images;
 
   Complex({
     required this.id,
     required this.name,
     required this.address,
     required this.description,
+    this.images,
   });
 
   factory Complex.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class Complex {
       name: json['name'] ?? '',
       address: json['address'] ?? '',
       description: json['description'] ?? '',
+      images: json['images'] != null ? List<String>.from(json['images']) : null,
     );
   }
 }

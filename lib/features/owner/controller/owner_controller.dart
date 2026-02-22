@@ -6,16 +6,22 @@ class OwnerController extends GetxController {
 
   // Analytics Data
   final RxDouble totalRevenue = 0.0.obs;
+  final RxInt totalComplexes = 0.obs;
   final RxInt totalBookings = 0.obs;
   final RxInt totalGrounds = 0.obs;
   final RxDouble monthlyRevenue = 0.0.obs;
 
   final RxList<dynamic> recentBookings = <dynamic>[].obs;
+  final RxList<dynamic> complexes = <dynamic>[].obs;
 
   @override
   void onInit() {
     super.onInit();
-    fetchStats();
+    fetchDashboard();
+  }
+
+  Future<void> fetchDashboard() async {
+    await Future.wait([fetchStats(), fetchComplexes()]);
   }
 
   Future<void> fetchStats() async {
@@ -26,6 +32,8 @@ class OwnerController extends GetxController {
         final data = response.data;
         totalRevenue.value =
             double.tryParse(data['total_revenue']?.toString() ?? '0') ?? 0.0;
+        totalComplexes.value =
+            int.tryParse(data['total_complexes']?.toString() ?? '0') ?? 0;
         totalBookings.value =
             int.tryParse(data['total_bookings']?.toString() ?? '0') ?? 0;
         totalGrounds.value =
@@ -40,6 +48,17 @@ class OwnerController extends GetxController {
       print('Failed to fetch owner stats: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> fetchComplexes() async {
+    try {
+      final response = await ApiClient().dio.get('/complexes');
+      if (response.statusCode == 200) {
+        complexes.value = response.data['data'] ?? [];
+      }
+    } catch (e) {
+      print('Failed to fetch owner complexes: $e');
     }
   }
 }

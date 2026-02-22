@@ -5,6 +5,8 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/widgets/app_shimmer.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class ComplexDetailPage extends StatefulWidget {
   const ComplexDetailPage({super.key});
@@ -79,7 +81,19 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? SingleChildScrollView(
+              child: Column(
+                children: [
+                  AppShimmer.detailHeader(),
+                  Padding(
+                    padding: const EdgeInsets.all(AppSpacing.m),
+                    child: Column(
+                      children: List.generate(3, (index) => AppShimmer.card()),
+                    ),
+                  ),
+                ],
+              ),
+            )
           : _complex == null
           ? _buildNotFound()
           : _buildContent(),
@@ -90,6 +104,48 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     appBar: AppBar(title: const Text('Complex Detail')),
     body: const Center(child: Text('Complex not found')),
   );
+
+  Widget _buildCarousel() {
+    List<String> images = [];
+    if (_complex != null) {
+      if (_complex['images'] != null &&
+          (_complex['images'] as List).isNotEmpty) {
+        images = List<String>.from(_complex['images']);
+      } else if (_complex['image_path'] != null) {
+        images.add(_complex['image_path']);
+      }
+    }
+
+    if (images.isEmpty) {
+      return Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [AppColors.secondary, AppColors.primary],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+      );
+    }
+
+    // URL Sanitization
+    List<String> sanitized = images
+        .map((url) => UrlHelper.sanitizeUrl(url))
+        .toList();
+
+    return PageView.builder(
+      itemCount: sanitized.length,
+      itemBuilder: (context, index) {
+        return CachedNetworkImage(
+          imageUrl: sanitized[index],
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(color: Colors.grey[200]),
+          errorWidget: (context, url, error) =>
+              const Icon(Icons.broken_image, color: Colors.white),
+        );
+      },
+    );
+  }
 
   Widget _buildContent() {
     final name = _complex['name'] ?? 'Complex';
@@ -138,15 +194,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
             background: Stack(
               fit: StackFit.expand,
               children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.secondary, AppColors.primary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                ),
+                _buildCarousel(),
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -390,17 +438,12 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     final status = ground['status'] ?? 'active';
     final isActive = status == 'active' || status == 1 || status == true;
 
-    String imageUrl = '';
     final images = ground['images'] as List?;
+    String? rawUrl;
     if (images != null && images.isNotEmpty) {
-      imageUrl = images[0].toString();
-      if (imageUrl.contains('localhost')) {
-        imageUrl = imageUrl.replaceAll(
-          'localhost/cricket-oasis-bookings/backend/public',
-          'lightcoral-goose-424965.hostingersite.com/backend/public',
-        );
-      }
+      rawUrl = images[0].toString();
     }
+    final imageUrl = UrlHelper.sanitizeUrl(rawUrl);
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.m),

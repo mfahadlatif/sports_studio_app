@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/onboarding/controller/onboarding_controller.dart';
 
 class OnboardingPage extends StatelessWidget {
@@ -38,14 +39,24 @@ class OnboardingPage extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: controller.skip,
-                child: const Text(
-                  'Skip',
-                  style: TextStyle(color: AppColors.textMuted),
-                ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Image.asset(
+                    AppConstants.appLogo,
+                    height: 40,
+                    fit: BoxFit.contain,
+                  ),
+                  TextButton(
+                    onPressed: controller.skip,
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(color: AppColors.primary),
+                    ),
+                  ),
+                ],
               ),
             ),
             Expanded(

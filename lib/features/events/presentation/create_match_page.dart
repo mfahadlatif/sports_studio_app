@@ -5,6 +5,10 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/features/profile/controller/profile_controller.dart';
+import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class CreateMatchPage extends StatefulWidget {
   const CreateMatchPage({super.key});
@@ -33,6 +37,32 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     'Volleyball',
   ];
 
+  List<dynamic> _grounds = [];
+  dynamic _selectedGround;
+  bool _isLoadingGrounds = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGrounds();
+  }
+
+  Future<void> _fetchGrounds() async {
+    setState(() => _isLoadingGrounds = true);
+    try {
+      final res = await ApiClient().dio.get('/public/grounds');
+      if (res.statusCode == 200) {
+        setState(() {
+          _grounds = List<dynamic>.from(res.data['data'] ?? []);
+        });
+      }
+    } catch (e) {
+      print('Error fetching grounds: $e');
+    } finally {
+      setState(() => _isLoadingGrounds = false);
+    }
+  }
+
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -57,6 +87,29 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       return;
     }
 
+    if (_selectedGround == null) {
+      Get.snackbar('Error', 'Please select a ground');
+      return;
+    }
+
+    // Check Phone Verification
+    final profileController = Get.find<ProfileController>();
+    final isVerified =
+        profileController.userProfile['is_phone_verified'] ?? false;
+
+    if (!isVerified) {
+      Get.dialog(
+        PhoneVerificationDialog(
+          initialPhone:
+              profileController.userProfile['phone']?.toString() ?? '',
+          onVerified: () {
+            // Profile refreshed, user can retry
+          },
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -64,14 +117,15 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}:00';
 
       final data = {
-        'title': _titleCtrl.text,
+        'name': _titleCtrl.text,
         'description': _descCtrl.text,
-        'date': dateStr,
-        'time': timeStr,
-        'sport_type': _selectedSport.toLowerCase(),
-        'player_limit': int.tryParse(_limitCtrl.text) ?? 22,
-        'entry_fee': double.tryParse(_feeCtrl.text) ?? 0,
-        'status': 'open',
+        'start_time': '$dateStr $timeStr',
+        'game_id': 1, // Default game ID for now
+        'ground_id': _selectedGround['id'],
+        'registration_fee': double.tryParse(_feeCtrl.text) ?? 0,
+        'max_participants': int.tryParse(_limitCtrl.text) ?? 22,
+        'status': 'published',
+        'event_type': 'public',
       };
 
       final res = await ApiClient().dio.post('/events', data: data);
@@ -104,6 +158,12 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                const SizedBox(height: AppSpacing.l),
+                _sectionHeader('Select Ground *', Icons.map_outlined),
+                const SizedBox(height: AppSpacing.m),
+                _buildGroundSelector(),
+
+                const SizedBox(height: AppSpacing.l),
                 _sectionHeader('Match Details', Icons.sports_outlined),
                 const SizedBox(height: AppSpacing.m),
 
@@ -229,6 +289,93 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildGroundSelector() {
+    if (_isLoadingGrounds) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_grounds.isEmpty) {
+      return const Text('No grounds available');
+    }
+
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _grounds.length,
+        itemBuilder: (context, index) {
+          final ground = _grounds[index];
+          final isSelected =
+              _selectedGround != null && _selectedGround['id'] == ground['id'];
+
+          final images = ground['images'] as List?;
+          final imageUrl = UrlHelper.sanitizeUrl(
+            images != null && images.isNotEmpty ? images[0] : null,
+          );
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedGround = ground),
+            child: Container(
+              width: 160,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected ? AppColors.primary : AppColors.border,
+                  width: isSelected ? 2 : 1,
+                ),
+                color: isSelected
+                    ? AppColors.primary.withOpacity(0.05)
+                    : Colors.white,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(14),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      height: 60,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => Container(
+                        color: Colors.grey[200],
+                        child: const Icon(Icons.image),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          ground['name'] ?? 'Ground',
+                          style: AppTextStyles.label.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          'Rs. ${ground['price_per_hour']}/hr',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }

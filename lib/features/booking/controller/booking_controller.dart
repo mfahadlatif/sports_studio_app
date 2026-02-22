@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/features/profile/controller/profile_controller.dart';
+import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 
 class BookingController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
@@ -52,6 +54,24 @@ class BookingController extends GetxController {
       return;
     }
 
+    // Check Phone Verification
+    final profileController = Get.find<ProfileController>();
+    final isVerified =
+        profileController.userProfile['is_phone_verified'] ?? false;
+
+    if (!isVerified) {
+      Get.dialog(
+        PhoneVerificationDialog(
+          initialPhone:
+              profileController.userProfile['phone']?.toString() ?? '',
+          onVerified: () {
+            // Verification successful, user can now retry booking
+          },
+        ),
+      );
+      return;
+    }
+
     isBooking.value = true;
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate.value);
@@ -77,7 +97,6 @@ class BookingController extends GetxController {
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final bookingId = response.data['id'];
-        // Redirect to the Secure Payment Checkout with 20-Minute Lock Phase
         Get.offAllNamed(
           '/payment',
           arguments: {'bookingId': bookingId, 'totalPrice': totalPrice},

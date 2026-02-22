@@ -7,6 +7,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:dio/dio.dart' as dio_form;
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class AddEditGroundPage extends StatefulWidget {
   const AddEditGroundPage({super.key});
@@ -400,12 +401,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                     _existingGround['images'] != null &&
                     (_existingGround['images'] as List).isNotEmpty
               ? Image.network(
-                  _existingGround['images'][0].toString().contains('localhost')
-                      ? _existingGround['images'][0].toString().replaceAll(
-                          'localhost/cricket-oasis-bookings/backend/public',
-                          'lightcoral-goose-424965.hostingersite.com/backend/public',
-                        )
-                      : _existingGround['images'][0].toString(),
+                  UrlHelper.sanitizeUrl(_existingGround['images'][0]),
                   fit: BoxFit.cover,
                 )
               : Column(

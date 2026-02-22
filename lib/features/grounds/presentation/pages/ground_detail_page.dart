@@ -5,6 +5,8 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/favorites/controller/favorites_controller.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class GroundDetailPage extends StatelessWidget {
   const GroundDetailPage({super.key});
@@ -79,24 +81,24 @@ class GroundDetailPage extends StatelessWidget {
   }
 
   Widget _buildSliverAppBar(dynamic ground) {
-    String imageUrl =
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
+    List<String> images = [];
     if (ground != null &&
         ground['images'] != null &&
         (ground['images'] as List).isNotEmpty) {
-      imageUrl = ground['images'][0];
-      if (imageUrl.contains('localhost')) {
-        imageUrl = imageUrl
-            .replaceAll(
-              'localhost/cricket-oasis-bookings/backend/public',
-              'lightcoral-goose-424965.hostingersite.com/backend/public',
-            )
-            .replaceAll(
-              'http://localhost',
-              'https://lightcoral-goose-424965.hostingersite.com',
-            );
-      }
+      images = List<String>.from(ground['images']);
     }
+
+    // Default image if no gallery
+    if (images.isEmpty) {
+      images.add(
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800',
+      );
+    }
+
+    // URL Sanitization Utility
+    List<String> sanitizedImages = images
+        .map((url) => UrlHelper.sanitizeUrl(url))
+        .toList();
 
     return SliverAppBar(
       expandedHeight: 350,
@@ -107,11 +109,47 @@ class GroundDetailPage extends StatelessWidget {
         background: Stack(
           fit: StackFit.expand,
           children: [
-            CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(color: Colors.grey[200]),
+            PageView.builder(
+              itemCount: sanitizedImages.length,
+              itemBuilder: (context, index) {
+                return CachedNetworkImage(
+                  imageUrl: sanitizedImages[index],
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) =>
+                      Container(color: Colors.grey[200]),
+                  errorWidget: (context, url, error) => Container(
+                    color: Colors.grey[300],
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 50,
+                      color: Colors.grey,
+                    ),
+                  ),
+                );
+              },
             ),
+            // Carousel Indicator Layer (Optional but nice)
+            if (sanitizedImages.length > 1)
+              Positioned(
+                bottom: 20,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    sanitizedImages.length,
+                    (index) => Container(
+                      width: 8,
+                      height: 8,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             // Gradient Overlay
             const DecoratedBox(
               decoration: BoxDecoration(
@@ -131,7 +169,9 @@ class GroundDetailPage extends StatelessWidget {
   Widget _buildTitleSection(dynamic ground) {
     final name = ground?['name'] ?? 'Premium Arena';
     final type = ground?['type'] ?? 'Cricket';
-    final location = ground?['location'] ?? 'Lahore, Pakistan';
+    final complex = ground?['complex'] ?? {};
+    final location =
+        ground?['location'] ?? complex['address'] ?? 'Lahore, Pakistan';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,10 +211,14 @@ class GroundDetailPage extends StatelessWidget {
           children: [
             const Icon(Icons.location_on, size: 18, color: AppColors.primary),
             const SizedBox(width: 4),
-            Text(
-              location,
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textMuted,
+            Expanded(
+              child: Text(
+                location,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textMuted,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -289,49 +333,56 @@ class GroundDetailPage extends StatelessWidget {
   }
 
   Widget _buildLocationMap(dynamic ground) {
+    final complex = ground?['complex'] ?? {};
+    final lat =
+        double.tryParse(complex['latitude']?.toString() ?? '') ?? 31.5204;
+    final lng =
+        double.tryParse(complex['longitude']?.toString() ?? '') ?? 74.3587;
+    final position = LatLng(lat, lng);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Location', style: AppTextStyles.h2),
         const SizedBox(height: AppSpacing.m),
         Container(
-          height: 180,
+          height: 220,
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            image: const DecorationImage(
-              image: CachedNetworkImageProvider(
-                'https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?q=80&w=800',
-              ),
-              fit: BoxFit.cover,
+            border: Border.all(color: AppColors.border.withOpacity(0.5)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(target: position, zoom: 15),
+              markers: {
+                Marker(
+                  markerId: const MarkerId('ground_location'),
+                  position: position,
+                  infoWindow: InfoWindow(
+                    title: ground?['name'] ?? 'Sports Arena',
+                    snippet: complex['address'] ?? '',
+                  ),
+                ),
+              },
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              scrollGesturesEnabled: false, // Static-like but interactive tap
+              tiltGesturesEnabled: false,
+              rotateGesturesEnabled: false,
             ),
           ),
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 10)],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.directions,
-                    size: 18,
-                    color: AppColors.primary,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Get Directions',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        ),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton.icon(
+            onPressed: () {
+              // TODO: Open external maps
+            },
+            icon: const Icon(Icons.directions_outlined, size: 20),
+            label: const Text('Get Directions'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
           ),
         ),
       ],

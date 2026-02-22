@@ -6,6 +6,9 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 
+import 'package:sports_studio/features/profile/controller/profile_controller.dart';
+import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({super.key});
 
@@ -16,6 +19,33 @@ class EventDetailPage extends StatefulWidget {
 class _EventDetailPageState extends State<EventDetailPage> {
   bool _isJoining = false;
   bool _hasJoined = false;
+  List<dynamic> _participants = [];
+  bool _isLoadingParticipants = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchParticipants();
+  }
+
+  Future<void> _fetchParticipants() async {
+    final event = Get.arguments;
+    if (event == null || event['id'] == null) return;
+
+    setState(() => _isLoadingParticipants = true);
+    try {
+      final res = await ApiClient().dio.get(
+        '/events/${event['id']}/participants',
+      );
+      if (res.statusCode == 200) {
+        setState(() => _participants = res.data ?? []);
+      }
+    } catch (e) {
+      print('Error fetching participants: $e');
+    } finally {
+      setState(() => _isLoadingParticipants = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,20 +65,36 @@ class _EventDetailPageState extends State<EventDetailPage> {
     final isFull =
         maxParticipants > 0 && currentParticipants >= maxParticipants;
 
-    String imageUrl =
-        'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800';
+    List<String> images = [];
     if (event != null &&
         event['images'] != null &&
         (event['images'] as List).isNotEmpty) {
-      imageUrl = event['images'][0];
+      images = List<String>.from(event['images']);
+    } else if (event != null && event['event_path'] != null) {
+      images.add(event['event_path']);
     }
-    // Fix localhost URLs
-    if (imageUrl.contains('localhost')) {
-      imageUrl = imageUrl.replaceAll(
-        'http://localhost',
-        'https://lightcoral-goose-424965.hostingersite.com',
+
+    if (images.isEmpty) {
+      images.add(
+        'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800',
       );
     }
+
+    // URL Sanitization Utility
+    List<String> sanitizedImages = images.map((url) {
+      if (url.contains('localhost')) {
+        return url
+            .replaceAll(
+              'localhost/cricket-oasis-bookings/backend/public',
+              'lightcoral-goose-424965.hostingersite.com/backend/public',
+            )
+            .replaceAll(
+              'http://localhost',
+              'https://lightcoral-goose-424965.hostingersite.com',
+            );
+      }
+      return url;
+    }).toList();
 
     return Scaffold(
       body: Stack(
@@ -60,18 +106,52 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Hero Image
+                    // Hero Image Carousel
                     Hero(
                       tag: 'event_image_${event?['id'] ?? ''}',
-                      child: Container(
-                        height: 280,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          image: DecorationImage(
-                            image: CachedNetworkImageProvider(imageUrl),
-                            fit: BoxFit.cover,
+                      child: Stack(
+                        children: [
+                          SizedBox(
+                            height: 280,
+                            width: double.infinity,
+                            child: PageView.builder(
+                              itemCount: sanitizedImages.length,
+                              itemBuilder: (context, index) {
+                                return CachedNetworkImage(
+                                  imageUrl: sanitizedImages[index],
+                                  fit: BoxFit.cover,
+                                  placeholder: (context, url) =>
+                                      Container(color: Colors.grey[200]),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(Icons.broken_image),
+                                );
+                              },
+                            ),
                           ),
-                        ),
+                          if (sanitizedImages.length > 1)
+                            Positioned(
+                              bottom: 16,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  sanitizedImages.length,
+                                  (index) => Container(
+                                    width: 8,
+                                    height: 2,
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.8),
+                                      borderRadius: BorderRadius.circular(1),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
 
@@ -178,6 +258,75 @@ class _EventDetailPageState extends State<EventDetailPage> {
                           const Divider(),
                           const SizedBox(height: AppSpacing.m),
 
+                          // Participants Section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Participants', style: AppTextStyles.h3),
+                              if (_participants.isNotEmpty)
+                                TextButton(
+                                  onPressed: _showInviteDialog,
+                                  child: const Text('Invite More'),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.s),
+                          _isLoadingParticipants
+                              ? const Center(child: CircularProgressIndicator())
+                              : _participants.isEmpty
+                              ? Text(
+                                  'No participants yet. Be the first to join!',
+                                  style: AppTextStyles.bodySmall,
+                                )
+                              : SizedBox(
+                                  height: 60,
+                                  child: ListView.builder(
+                                    scrollDirection: Axis.horizontal,
+                                    itemCount: _participants.length,
+                                    itemBuilder: (context, index) {
+                                      final p = _participants[index];
+                                      final user = p['user'] ?? {};
+                                      final avatar = user['avatar'];
+                                      return Padding(
+                                        padding: const EdgeInsets.only(
+                                          right: 12,
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 20,
+                                              backgroundColor:
+                                                  AppColors.primaryLight,
+                                              backgroundImage: avatar != null
+                                                  ? NetworkImage(avatar)
+                                                  : null,
+                                              child: avatar == null
+                                                  ? const Icon(
+                                                      Icons.person,
+                                                      size: 20,
+                                                    )
+                                                  : null,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              (user['name']?.toString() ??
+                                                      'User')
+                                                  .split(' ')[0],
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+
+                          const SizedBox(height: AppSpacing.l),
+                          const Divider(),
+                          const SizedBox(height: AppSpacing.m),
+
                           // About Section
                           Text('About this Event', style: AppTextStyles.h3),
                           const SizedBox(height: AppSpacing.m),
@@ -268,6 +417,24 @@ class _EventDetailPageState extends State<EventDetailPage> {
       return;
     }
 
+    // Check Phone Verification
+    final profileController = Get.find<ProfileController>();
+    final isVerified =
+        profileController.userProfile['is_phone_verified'] ?? false;
+
+    if (!isVerified) {
+      Get.dialog(
+        PhoneVerificationDialog(
+          initialPhone:
+              profileController.userProfile['phone']?.toString() ?? '',
+          onVerified: () {
+            // Profile refreshed, user can retry joining
+          },
+        ),
+      );
+      return;
+    }
+
     setState(() => _isJoining = true);
 
     try {
@@ -299,5 +466,53 @@ class _EventDetailPageState extends State<EventDetailPage> {
     } finally {
       setState(() => _isJoining = false);
     }
+  }
+
+  void _showInviteDialog() {
+    final inviteCtrl = TextEditingController();
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Invite Players', style: AppTextStyles.h2),
+            const SizedBox(height: AppSpacing.m),
+            TextField(
+              controller: inviteCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Enter Friend\'s Email',
+                prefixIcon: Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.all(Radius.circular(16)),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.l),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed: () {
+                  if (inviteCtrl.text.isNotEmpty) {
+                    Get.back();
+                    Get.snackbar(
+                      'Success',
+                      'Invitation sent to ${inviteCtrl.text}',
+                    );
+                  }
+                },
+                child: const Text('Send Invitation'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+          ],
+        ),
+      ),
+    );
   }
 }

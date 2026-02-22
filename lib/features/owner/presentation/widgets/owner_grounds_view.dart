@@ -194,6 +194,21 @@ class OwnerGroundsView extends StatelessWidget {
   }
 
   Widget _buildComplexTile(Complex complex) {
+    String imageUrl = (complex.images != null && complex.images!.isNotEmpty)
+        ? complex.images![0]
+        : 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
+    if (imageUrl.contains('localhost')) {
+      imageUrl = imageUrl
+          .replaceAll(
+            'localhost/cricket-oasis-bookings/backend/public',
+            'lightcoral-goose-424965.hostingersite.com/backend/public',
+          )
+          .replaceAll(
+            'http://localhost',
+            'https://lightcoral-goose-424965.hostingersite.com',
+          );
+    }
+
     return GestureDetector(
       onTap: () =>
           Get.toNamed('/complex-detail', arguments: {'id': complex.id}),
@@ -212,16 +227,27 @@ class OwnerGroundsView extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.business_outlined,
-                color: AppColors.primary,
-                size: 20,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                width: 40,
+                height: 40,
+                fit: BoxFit.cover,
+                placeholder: (context, url) =>
+                    Container(color: AppColors.primaryLight),
+                errorWidget: (context, url, error) => Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.business_outlined,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.m),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sports_studio/widgets/app_shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
@@ -8,6 +9,7 @@ import 'package:sports_studio/widgets/section_header.dart';
 import 'package:sports_studio/features/landing/controller/home_controller.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart'
     as sports_landing;
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class GroundsPreviewSection extends StatelessWidget {
   const GroundsPreviewSection({super.key});
@@ -31,7 +33,12 @@ class GroundsPreviewSection extends StatelessWidget {
           height: 280,
           child: Obx(() {
             if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                scrollDirection: Axis.horizontal,
+                itemCount: 3,
+                itemBuilder: (_, __) => AppShimmer.groundCard(),
+              );
             }
 
             if (controller.premiumGrounds.isEmpty) {
@@ -66,26 +73,15 @@ class GroundCard extends StatelessWidget {
     final complex = ground['complex'] ?? {};
     final address = complex['address'] ?? 'Lahore, Pakistan';
 
-    // Default placeholder
-    String imageUrl =
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
     final images = ground['images'] as List<dynamic>?;
+    String? rawUrl;
     if (images != null && images.isNotEmpty) {
-      imageUrl = images[0];
+      rawUrl = images[0];
+    } else if (ground['image_path'] != null) {
+      rawUrl = ground['image_path'];
     }
 
-    // Fix localhost urls from backend if testing
-    if (imageUrl.contains('localhost')) {
-      imageUrl = imageUrl.replaceAll(
-        'localhost/cricket-oasis-bookings/backend/public',
-        'lightcoral-goose-424965.hostingersite.com/backend/public',
-      );
-      // Just basic fix in case we have http://localhost/... instead of real hostinger server
-      imageUrl = imageUrl.replaceAll(
-        'http://localhost',
-        'https://lightcoral-goose-424965.hostingersite.com',
-      );
-    }
+    final imageUrl = UrlHelper.sanitizeUrl(rawUrl);
 
     return GestureDetector(
       onTap: () => Get.toNamed('/ground-detail', arguments: ground),

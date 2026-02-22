@@ -20,10 +20,47 @@ class _PaymentPageState extends State<PaymentPage> {
   bool _isLoading = false;
   String _selectedMethod = 'card'; // Default to Safepay (card)
 
+  final _promoCtrl = TextEditingController();
+  dynamic _appliedPromo;
+  double _discountPercentage = 0;
+  bool _isPromoLoading = false;
+
   @override
   void initState() {
     super.initState();
     _startTimer();
+  }
+
+  Future<void> _applyPromo() async {
+    if (_promoCtrl.text.isEmpty) return;
+
+    setState(() => _isPromoLoading = true);
+    try {
+      final res = await ApiClient().dio.get('/public/deals');
+      if (res.statusCode == 200) {
+        final deals = res.data ?? [];
+        final deal = (deals as List).firstWhereOrNull(
+          (d) =>
+              d['code'].toString().toLowerCase() ==
+              _promoCtrl.text.toLowerCase(),
+        );
+
+        if (deal != null) {
+          setState(() {
+            _appliedPromo = deal;
+            _discountPercentage =
+                double.tryParse(deal['discount_percentage'].toString()) ?? 0;
+          });
+          Get.snackbar('Success', 'Promo code applied: ${deal['title']}');
+        } else {
+          Get.snackbar('Error', 'Invalid promo code');
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to validate promo code');
+    } finally {
+      setState(() => _isPromoLoading = false);
+    }
   }
 
   void _startTimer() {
@@ -55,21 +92,28 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Future<void> _handlePayment() async {
+    final args = Get.arguments;
+    final double subtotal = (args != null && args is Map)
+        ? (double.tryParse(args['totalPrice'].toString()) ?? 1000.0)
+        : 1000.0;
+
+    final discount = subtotal * (_discountPercentage / 100);
+    final total = subtotal - discount;
+
     if (_selectedMethod == 'cod') {
-      _confirmBooking(paymentMethod: 'cash', paymentStatus: 'unpaid');
+      _confirmBooking(
+        paymentMethod: 'cash',
+        paymentStatus: 'unpaid',
+        totalPaid: total,
+      );
     } else {
-      _startSafepayCheckout();
+      _startSafepayCheckout(total);
     }
   }
 
-  Future<void> _startSafepayCheckout() async {
+  Future<void> _startSafepayCheckout(double amount) async {
     setState(() => _isLoading = true);
     try {
-      final args = Get.arguments;
-      final double amount = (args != null && args is Map)
-          ? (double.tryParse(args['totalPrice'].toString()) ?? 1000.0)
-          : 1000.0;
-
       // 1. Initialize Safepay on Backend
       final response = await ApiClient().dio.post(
         '/safepay/init',
@@ -92,7 +136,11 @@ class _PaymentPageState extends State<PaymentPage> {
             () => SafepayWebViewPage(url: checkoutUrl),
           );
           if (result == true) {
-            _confirmBooking(paymentMethod: 'safepay', paymentStatus: 'paid');
+            _confirmBooking(
+              paymentMethod: 'safepay',
+              paymentStatus: 'paid',
+              totalPaid: amount,
+            );
           } else {
             setState(() => _isLoading = false);
             Get.snackbar(
@@ -106,13 +154,14 @@ class _PaymentPageState extends State<PaymentPage> {
       }
     } catch (e) {
       setState(() => _isLoading = false);
-      Get.snackbar('Error', 'Payment initiation failed: $e');
+      Get.snackbar('Error', 'Payment failed: $e');
     }
   }
 
   Future<void> _confirmBooking({
     required String paymentMethod,
     required String paymentStatus,
+    required double totalPaid,
   }) async {
     setState(() => _isLoading = true);
     try {
@@ -123,27 +172,27 @@ class _PaymentPageState extends State<PaymentPage> {
 
       if (bookingId == null) throw 'Invalid Booking ID';
 
-      final response = await ApiClient().dio.put(
+      await ApiClient().dio.put(
         '/bookings/$bookingId',
         data: {
           'status': 'pending',
           'payment_status': paymentStatus,
           'payment_method': paymentMethod,
+          'total_price': totalPaid,
+          'coupon_id': _appliedPromo != null ? _appliedPromo['id'] : null,
         },
       );
 
-      if (response.statusCode == 200) {
-        Get.snackbar(
-          'Success',
-          'Booking confirmed successfully!',
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-        );
-        Get.offAllNamed('/');
-      }
+      Get.snackbar(
+        'Success',
+        'Booking confirmed successfully!',
+        backgroundColor: Colors.green.withOpacity(0.1),
+        colorText: Colors.green,
+      );
+      Get.offAllNamed('/');
     } catch (e) {
       setState(() => _isLoading = false);
-      Get.snackbar('Error', 'Failed to confirm booking: $e');
+      Get.snackbar('Error', 'Failed to confirm: $e');
     }
   }
 
@@ -161,7 +210,15 @@ class _PaymentPageState extends State<PaymentPage> {
             child: Column(
               children: [
                 _buildTimerSection(isExpiringSoon),
-                const SizedBox(height: AppSpacing.xxl),
+                const SizedBox(height: AppSpacing.l),
+
+                // Promo Code Section
+                _buildPromoSection(),
+
+                const SizedBox(height: AppSpacing.l),
+                _buildPriceSummary(),
+
+                const SizedBox(height: AppSpacing.l),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text('Payment Method', style: AppTextStyles.h2),
@@ -271,6 +328,111 @@ class _PaymentPageState extends State<PaymentPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPromoSection() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _promoCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Enter Promo Code',
+                border: InputBorder.none,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _isPromoLoading ? null : _applyPromo,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.secondary,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+            ),
+            child: _isPromoLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceSummary() {
+    final args = Get.arguments;
+    final double subtotal = (args != null && args is Map)
+        ? (double.tryParse(args['totalPrice'].toString()) ?? 1000.0)
+        : 1000.0;
+
+    final discount = subtotal * (_discountPercentage / 100);
+    final total = subtotal - discount;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.l),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          _summaryRow('Subtotal', 'Rs. ${subtotal.toStringAsFixed(0)}'),
+          if (discount > 0) ...[
+            const SizedBox(height: 8),
+            _summaryRow(
+              'Discount (${_discountPercentage.toStringAsFixed(0)}%)',
+              '- Rs. ${discount.toStringAsFixed(0)}',
+              isDiscount: true,
+            ),
+          ],
+          const Divider(height: 24),
+          _summaryRow(
+            'Total Amount',
+            'Rs. ${total.toStringAsFixed(0)}',
+            isTotal: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryRow(
+    String label,
+    String value, {
+    bool isDiscount = false,
+    bool isTotal = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: isTotal
+              ? AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold)
+              : AppTextStyles.bodyMedium,
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: isDiscount ? Colors.green : AppColors.textPrimary,
+            fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+            fontSize: isTotal ? 18 : 14,
+          ),
+        ),
+      ],
     );
   }
 

@@ -5,10 +5,14 @@ import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 class AuthController extends GetxController {
   final RxBool isLogin = true.obs;
   final RxBool isLoading = false.obs;
+  final RxBool isGoogleLoading = false.obs;
+  final RxBool isAppleLoading = false.obs;
   final RxBool obscurePassword = true.obs;
   final RxBool obscureConfirmPassword = true.obs;
   final Rx<UserRole> selectedRole = UserRole.user.obs;
@@ -225,6 +229,121 @@ class AuthController extends GetxController {
       );
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> loginWithGoogle() async {
+    isGoogleLoading.value = true;
+    try {
+      print('--- GOOGLE LOGIN START ---');
+      const String serverClientId =
+          '945595614098-805nscipvooqrdl7ilut986h82nlg5me.apps.googleusercontent.com';
+
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: serverClientId,
+      );
+
+      // Force account picker by signing out first
+      if (await googleSignIn.isSignedIn()) {
+        await googleSignIn.signOut();
+      }
+
+      print('Attempting Google Sign-In...');
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        print('Google Sign-In cancelled by user.');
+        return;
+      }
+
+      print('Google User found: ${googleUser.email}');
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final String? idToken = googleAuth.idToken;
+
+      if (idToken != null) {
+        print('ID Token obtained. Sending to backend...');
+        final roleString = selectedRole.value == UserRole.owner
+            ? 'owner'
+            : 'user';
+        final response = await ApiClient().dio.post(
+          '/login/google',
+          data: {'id_token': idToken, 'role': roleString},
+        );
+
+        print('Backend Response: ${response.statusCode}');
+        if (response.statusCode == 200) {
+          final data = response.data;
+          final token = data['access_token'];
+          if (token != null) {
+            const storage = FlutterSecureStorage();
+            await storage.write(key: 'auth_token', value: token);
+          }
+
+          UserRole userRole = UserRole.user;
+          final roleString =
+              data['user']?['role']?.toString().toLowerCase() ?? 'user';
+          if (roleString == 'owner' || roleString == 'admin') {
+            userRole = UserRole.owner;
+          }
+
+          _navigateToHome(userRole);
+        }
+      }
+    } catch (e) {
+      print('Google Login Exception: $e');
+      Get.snackbar('Google Login Failed', e.toString());
+    } finally {
+      isGoogleLoading.value = false;
+    }
+  }
+
+  Future<void> loginWithApple() async {
+    isAppleLoading.value = true;
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      // Send to backend
+      final roleString = selectedRole.value == UserRole.owner
+          ? 'owner'
+          : 'user';
+      final response = await ApiClient().dio.post(
+        '/login/apple',
+        data: {
+          'id_token': credential.identityToken,
+          'name': '${credential.givenName ?? ""} ${credential.familyName ?? ""}'
+              .trim(),
+          'email': credential.email,
+          'role': roleString,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = response.data;
+        final token = data['access_token'];
+        if (token != null) {
+          const storage = FlutterSecureStorage();
+          await storage.write(key: 'auth_token', value: token);
+        }
+
+        UserRole userRole = UserRole.user;
+        final roleString =
+            data['user']?['role']?.toString().toLowerCase() ?? 'user';
+        if (roleString == 'owner' || roleString == 'admin') {
+          userRole = UserRole.owner;
+        }
+
+        _navigateToHome(userRole);
+      }
+    } catch (e) {
+      Get.snackbar('Apple Login Failed', e.toString());
+    } finally {
+      isAppleLoading.value = false;
     }
   }
 

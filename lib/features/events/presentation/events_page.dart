@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:sports_studio/widgets/app_shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
@@ -26,7 +27,15 @@ class EventsPage extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 800),
           child: Obx(() {
             if (controller.isLoading.value) {
-              return const Center(child: CircularProgressIndicator());
+              return ListView.builder(
+                padding: const EdgeInsets.all(AppSpacing.m),
+                itemCount: 4,
+                itemBuilder: (_, __) => Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.m),
+                  child:
+                      AppShimmer.groundCard(), // using groundCard as it matches event card layout
+                ),
+              );
             }
 
             if (controller.eventsList.isEmpty) {
@@ -72,17 +81,20 @@ class EventsPage extends StatelessWidget {
         'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800';
     if (event['images'] != null && (event['images'] as List).isNotEmpty) {
       imageUrl = event['images'][0];
+    } else if (event['event_path'] != null) {
+      imageUrl = event['event_path'];
     }
 
     if (imageUrl.contains('localhost')) {
-      imageUrl = imageUrl.replaceAll(
-        'localhost/cricket-oasis-bookings/backend/public',
-        'lightcoral-goose-424965.hostingersite.com/backend/public',
-      );
-      imageUrl = imageUrl.replaceAll(
-        'http://localhost',
-        'https://lightcoral-goose-424965.hostingersite.com',
-      );
+      imageUrl = imageUrl
+          .replaceAll(
+            'localhost/cricket-oasis-bookings/backend/public',
+            'lightcoral-goose-424965.hostingersite.com/backend/public',
+          )
+          .replaceAll(
+            'http://localhost',
+            'https://lightcoral-goose-424965.hostingersite.com',
+          );
     }
 
     return GestureDetector(

@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class OwnerGroundDetailPage extends StatefulWidget {
   const OwnerGroundDetailPage({super.key});
@@ -131,28 +132,67 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
   }
 
   Widget _buildAppBar() {
-    String imageUrl =
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
-    if (_ground['images'] != null && (_ground['images'] as List).isNotEmpty) {
-      imageUrl = _ground['images'][0].toString();
-      if (imageUrl.contains('localhost')) {
-        imageUrl = imageUrl.replaceAll(
-          'localhost/cricket-oasis-bookings/backend/public',
-          'lightcoral-goose-424965.hostingersite.com/backend/public',
-        );
-      }
+    List<String> images = [];
+    if (_ground != null &&
+        _ground['images'] != null &&
+        (_ground['images'] as List).isNotEmpty) {
+      images = List<String>.from(_ground['images']);
     }
+
+    if (images.isEmpty) {
+      images.add(
+        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800',
+      );
+    }
+
+    // URL Sanitization Utility
+    List<String> sanitizedImages = images
+        .map((url) => UrlHelper.sanitizeUrl(url))
+        .toList();
 
     return SliverAppBar(
       expandedHeight: 250,
       pinned: true,
       backgroundColor: AppColors.primary,
       flexibleSpace: FlexibleSpaceBar(
-        background: CachedNetworkImage(
-          imageUrl: imageUrl,
-          fit: BoxFit.cover,
-          placeholder: (context, url) => Container(color: Colors.grey[200]),
-          errorWidget: (context, url, error) => _placeholderIcon(),
+        background: Stack(
+          fit: StackFit.expand,
+          children: [
+            PageView.builder(
+              itemCount: sanitizedImages.length,
+              itemBuilder: (context, index) {
+                return CachedNetworkImage(
+                  imageUrl: sanitizedImages[index],
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) =>
+                      Container(color: Colors.grey[200]),
+                  errorWidget: (context, url, error) => _placeholderIcon(),
+                );
+              },
+            ),
+            // Optional Carousel Indicators
+            if (sanitizedImages.length > 1)
+              Positioned(
+                bottom: 16,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(
+                    sanitizedImages.length,
+                    (index) => Container(
+                      width: 6,
+                      height: 6,
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
       actions: [

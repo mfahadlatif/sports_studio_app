@@ -32,6 +32,10 @@
 	<string>Sports Studio needs access to your microphone for video recording.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Sports Studio needs access to your photo library to select a profile picture.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Sports Studio needs access to your location to show nearby grounds.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Sports Studio needs access to your location to show nearby grounds.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

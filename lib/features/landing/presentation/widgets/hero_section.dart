@@ -35,9 +35,21 @@ class HeroSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.primary.withOpacity(0.3)),
             ),
-            child: Text(
-              'WELCOME TO SPORTS STUDIO',
-              style: AppTextStyles.label.copyWith(color: AppColors.primary),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  AppConstants.appIcon,
+                  height: 16,
+                  width: 16,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'WELCOME TO SPORTS STUDIO',
+                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.m),

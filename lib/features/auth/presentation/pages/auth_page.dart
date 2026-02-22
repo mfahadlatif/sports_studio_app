@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -30,15 +31,22 @@ class AuthPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
+                    height: 80,
+                    width: 80,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.sports_soccer,
-                      color: AppColors.primary,
-                      size: 40,
+                    child: Image.asset(
+                      AppConstants.appLogo,
+                      fit: BoxFit.contain,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.m),
@@ -79,7 +87,7 @@ class AuthPage extends StatelessWidget {
                     children: [
                       _buildAuthForm(controller),
                       const SizedBox(height: AppSpacing.l),
-                      _buildSocialAuth(),
+                      _buildSocialAuth(controller),
                       const SizedBox(height: AppSpacing.l),
                       _buildToggleAuth(controller),
                       const SizedBox(height: AppSpacing.xxl),
@@ -112,76 +120,75 @@ class AuthPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          if (!controller.isLogin.value) ...[
-            // Role Selection
-            Row(
-              children: [
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => controller.selectedRole.value = UserRole.user,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
+          // Role Selection (Applied to Registration and Social Login)
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => controller.selectedRole.value = UserRole.user,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: controller.selectedRole.value == UserRole.user
+                          ? AppColors.primary
+                          : AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: controller.selectedRole.value == UserRole.user
                             ? AppColors.primary
-                            : AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: controller.selectedRole.value == UserRole.user
-                              ? AppColors.primary
-                              : AppColors.border,
-                        ),
+                            : AppColors.border,
                       ),
-                      child: Center(
-                        child: Text(
-                          'Player',
-                          style: TextStyle(
-                            color:
-                                controller.selectedRole.value == UserRole.user
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Player',
+                        style: TextStyle(
+                          color: controller.selectedRole.value == UserRole.user
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => controller.selectedRole.value = UserRole.owner,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => controller.selectedRole.value = UserRole.owner,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                      color: controller.selectedRole.value == UserRole.owner
+                          ? AppColors.primary
+                          : AppColors.background,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
                         color: controller.selectedRole.value == UserRole.owner
                             ? AppColors.primary
-                            : AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: controller.selectedRole.value == UserRole.owner
-                              ? AppColors.primary
-                              : AppColors.border,
-                        ),
+                            : AppColors.border,
                       ),
-                      child: Center(
-                        child: Text(
-                          'Ground Owner',
-                          style: TextStyle(
-                            color:
-                                controller.selectedRole.value == UserRole.owner
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Ground Owner',
+                        style: TextStyle(
+                          color: controller.selectedRole.value == UserRole.owner
+                              ? Colors.white
+                              : AppColors.textPrimary,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.m),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          if (!controller.isLogin.value) ...[
             TextField(
               controller: controller.nameController,
               decoration: const InputDecoration(
@@ -307,7 +314,7 @@ class AuthPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSocialAuth() {
+  Widget _buildSocialAuth(AuthController controller) {
     return Column(
       children: [
         Row(
@@ -321,37 +328,87 @@ class AuthPage extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSpacing.l),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _socialButton(Icons.g_mobiledata, 'Google', Colors.red),
-            const SizedBox(width: AppSpacing.m),
-            _socialButton(Icons.apple, 'Apple', Colors.black),
-          ],
+        const SizedBox(height: AppSpacing.l),
+        Obx(
+          () => Column(
+            children: [
+              if (Platform.isIOS) ...[
+                _socialButton(
+                  Icons.g_mobiledata,
+                  'Continue with Google',
+                  Colors.red,
+                  onTap: controller.loginWithGoogle,
+                  isFullWidth: true,
+                  isLoading: controller.isGoogleLoading.value,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _socialButton(
+                  Icons.apple,
+                  'Continue with Apple',
+                  Colors.black,
+                  onTap: controller.loginWithApple,
+                  isFullWidth: true,
+                  isLoading: controller.isAppleLoading.value,
+                ),
+              ] else
+                _socialButton(
+                  Icons.g_mobiledata,
+                  'Continue with Google',
+                  Colors.red,
+                  onTap: controller.loginWithGoogle,
+                  isFullWidth: true,
+                  isLoading: controller.isGoogleLoading.value,
+                ),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _socialButton(IconData icon, String label, Color color) {
-    return Container(
+  Widget _socialButton(
+    IconData icon,
+    String label,
+    Color color, {
+    required VoidCallback onTap,
+    bool isFullWidth = false,
+    bool isLoading = false,
+  }) {
+    final button = Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.border),
         borderRadius: BorderRadius.circular(16),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: AppTextStyles.bodySmall.copyWith(
-              fontWeight: FontWeight.bold,
+      child: isLoading
+          ? const SizedBox(
+              height: 28,
+              width: 28,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Row(
+              mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon, color: color, size: 28),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: isFullWidth ? 16 : 14,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
+    );
+
+    return InkWell(
+      onTap: isLoading ? null : onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: isFullWidth
+          ? SizedBox(width: double.infinity, child: button)
+          : button,
     );
   }
 
