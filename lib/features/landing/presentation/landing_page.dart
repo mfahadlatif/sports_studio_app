@@ -5,16 +5,18 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/features/landing/presentation/widgets/home_view.dart';
-import 'package:sports_studio/features/grounds/presentation/grounds_page.dart';
-import 'package:sports_studio/features/events/presentation/events_page.dart';
-import 'package:sports_studio/features/contact/presentation/contact_page.dart';
+import 'package:sports_studio/features/user/presentation/widgets/home_view.dart';
+import 'package:sports_studio/features/user/presentation/pages/grounds_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/events_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_grounds_view.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_settings_view.dart';
-import 'package:sports_studio/features/profile/presentation/profile_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/profile_page.dart';
+import 'package:sports_studio/features/admin/presentation/widgets/admin_dashboard_view.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -40,6 +42,14 @@ class LandingPage extends StatelessWidget {
       const ProfilePage(),
     ];
 
+    final List<Widget> adminPages = [
+      const AdminDashboardView(),
+      const AdminUsersPage(),
+      const Center(child: Text('Complex Management')),
+      const Center(child: Text('Global Reports')),
+      const ProfilePage(),
+    ];
+
     final List<GButton> userTabs = const [
       GButton(icon: Icons.home_outlined, text: 'Home'),
       GButton(icon: Icons.sports_soccer_outlined, text: 'Grounds'),
@@ -56,24 +66,37 @@ class LandingPage extends StatelessWidget {
       GButton(icon: Icons.person_outline, text: 'Profile'),
     ];
 
+    final List<GButton> adminTabs = const [
+      GButton(icon: Icons.admin_panel_settings_outlined, text: 'Admin'),
+      GButton(icon: Icons.people_outline, text: 'Users'),
+      GButton(icon: Icons.business_outlined, text: 'Complexes'),
+      GButton(icon: Icons.analytics_outlined, text: 'Reports'),
+      GButton(icon: Icons.person_outline, text: 'Profile'),
+    ];
+
     return Scaffold(
       appBar: AppBar(
-        title: Obx(
-          () => controller.currentRole.value == UserRole.user
-              ? Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Image.asset(
-                      AppConstants.appLogo,
-                      height: 32,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Sports Studio', style: AppTextStyles.h3),
-                  ],
-                )
-              : Text('Owner Dashboard', style: AppTextStyles.h3),
-        ),
+        title: Obx(() {
+          final role = controller.currentRole.value;
+          if (role == UserRole.user) {
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset(
+                  AppConstants.appLogo,
+                  height: 32,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 8),
+                Text('Sports Studio', style: AppTextStyles.h3),
+              ],
+            );
+          } else if (role == UserRole.owner) {
+            return Text('Owner Dashboard', style: AppTextStyles.h3);
+          } else {
+            return Text('Admin Control Panel', style: AppTextStyles.h3);
+          }
+        }),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -101,7 +124,9 @@ class LandingPage extends StatelessWidget {
                     destinations:
                         (controller.currentRole.value == UserRole.user
                                 ? userTabs
-                                : ownerTabs)
+                                : controller.currentRole.value == UserRole.owner
+                                ? ownerTabs
+                                : adminTabs)
                             .map(
                               (tab) => NavigationRailDestination(
                                 icon: Icon(tab.icon),
@@ -118,7 +143,9 @@ class LandingPage extends StatelessWidget {
                       index: controller.currentNavIndex.value,
                       children: controller.currentRole.value == UserRole.user
                           ? userPages
-                          : ownerPages,
+                          : controller.currentRole.value == UserRole.owner
+                          ? ownerPages
+                          : adminPages,
                     ),
                   ),
                 ),
@@ -135,7 +162,9 @@ class LandingPage extends StatelessWidget {
                     index: controller.currentNavIndex.value,
                     children: controller.currentRole.value == UserRole.user
                         ? userPages
-                        : ownerPages,
+                        : controller.currentRole.value == UserRole.owner
+                        ? ownerPages
+                        : adminPages,
                   ),
                 ),
               ),
@@ -177,7 +206,9 @@ class LandingPage extends StatelessWidget {
                     color: AppColors.textSecondary,
                     tabs: controller.currentRole.value == UserRole.user
                         ? userTabs
-                        : ownerTabs,
+                        : controller.currentRole.value == UserRole.owner
+                        ? ownerTabs
+                        : adminTabs,
                     selectedIndex: controller.currentNavIndex.value,
                     onTabChange: (index) {
                       controller.changeNavIndex(index);

@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/features/profile/controller/profile_controller.dart';
+import 'package:sports_studio/core/theme/app_colors.dart';
+import 'package:sports_studio/features/user/controller/profile_controller.dart';
+import 'package:dio/dio.dart' as dio_lib;
 
 class PhoneVerificationController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -28,7 +30,12 @@ class PhoneVerificationController extends GetxController {
     }
   }
 
-  Future<void> requestVerification(String phone) async {
+  Future<bool> requestVerification(String phone) async {
+    if (phone.isEmpty) {
+      Get.snackbar('Error', 'Please enter a valid phone number');
+      return false;
+    }
+
     isLoading.value = true;
     try {
       final response = await ApiClient().dio.post(
@@ -37,26 +44,46 @@ class PhoneVerificationController extends GetxController {
       );
       if (response.statusCode == 200) {
         phoneNumber.value = phone;
-        // In a real app, this would trigger an SMS
-        Get.snackbar('Success', 'Verification code sent to $phone (Mocked)');
+        String msg = response.data['message'] ?? 'Verification code sent';
+
+        // Show OTP in snackbar for easy testing if available in response
+        // if (response.data['otp'] != null && response.data['otp'] != '****') {
+        //   // msg += ". Code: ${response.data['otp']}";
+        // }
+
+        Get.snackbar(
+          'Success',
+          msg,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.primary.withOpacity(0.1),
+          colorText: AppColors.primary,
+        );
+        return true;
       }
+      return false;
     } catch (e) {
-      Get.snackbar('Error', 'Failed to request verification');
+      print('Request Verification Error: $e');
+      Get.snackbar(
+        'Error',
+        'Failed to request verification. Please try again later.',
+      );
+      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<void> verifyPhone(String phone, String code) async {
+  Future<bool> verifyPhone(String phone, String code) async {
+    if (code.isEmpty) {
+      Get.snackbar('Error', 'Please enter the verification code');
+      return false;
+    }
+
     isLoading.value = true;
     try {
-      // For MVP/Demo, we just send a success flag
       final response = await ApiClient().dio.post(
         '/verify-phone',
-        data: {
-          'phone': phone,
-          'verified': true, // Mocked verification success
-        },
+        data: {'phone': phone, 'code': code},
       );
 
       if (response.statusCode == 200) {
@@ -65,10 +92,25 @@ class PhoneVerificationController extends GetxController {
         final profileController = Get.find<ProfileController>();
         await profileController.fetchProfile();
 
-        Get.snackbar('Success', 'Phone verified successfully');
+        Get.snackbar(
+          'Success',
+          'Phone verified successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: AppColors.primary.withOpacity(0.1),
+          colorText: AppColors.primary,
+        );
+        return true;
       }
+      return false;
     } catch (e) {
-      Get.snackbar('Error', 'Verification failed');
+      String errorMsg = 'Verification failed';
+      if (e is dio_lib.DioException &&
+          e.response != null &&
+          e.response?.data != null) {
+        errorMsg = e.response?.data['message'] ?? errorMsg;
+      }
+      Get.snackbar('Error', errorMsg);
+      return false;
     } finally {
       isLoading.value = false;
     }

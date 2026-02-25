@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 
 class AppShimmer extends StatelessWidget {

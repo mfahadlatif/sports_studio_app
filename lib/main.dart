@@ -3,22 +3,22 @@ import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_theme.dart';
 import 'package:sports_studio/features/landing/presentation/landing_page.dart';
 import 'package:sports_studio/features/auth/presentation/pages/auth_page.dart';
-import 'package:sports_studio/features/grounds/presentation/pages/ground_detail_page.dart';
-import 'package:sports_studio/features/booking/presentation/pages/booking_slot_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/ground_detail_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/booking_slot_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/complex_detail_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/owner_ground_detail_page.dart';
-import 'package:sports_studio/features/onboarding/presentation/pages/onboarding_page.dart';
-import 'package:sports_studio/features/events/presentation/event_detail_page.dart';
-import 'package:sports_studio/features/events/presentation/create_match_page.dart';
-import 'package:sports_studio/features/profile/presentation/setting_detail_page.dart';
-import 'package:sports_studio/features/profile/controller/profile_controller.dart';
+import 'package:sports_studio/features/user/presentation/pages/onboarding_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
+import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
-import 'package:sports_studio/features/booking/presentation/pages/payment_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
 // User features
-import 'package:sports_studio/features/deals/presentation/deals_page.dart';
-import 'package:sports_studio/features/notifications/presentation/notifications_page.dart';
-import 'package:sports_studio/features/favorites/presentation/favorites_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
 // Owner features
 import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
@@ -26,8 +26,10 @@ import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page
 import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/features/favorites/controller/favorites_controller.dart';
-import 'package:sports_studio/features/contact/presentation/contact_page.dart';
+import 'package:sports_studio/features/user/controller/favorites_controller.dart';
+import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
+import 'package:sports_studio/core/constants/user_roles.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -46,9 +48,21 @@ void main() async {
   }
 
   // Register Controllers permanently so all child widgets can Get.find() them
-  Get.put(LandingController(), permanent: true);
+  final landingController = Get.put(LandingController(), permanent: true);
   Get.put(FavoritesController(), permanent: true);
   Get.put(ProfileController(), permanent: true);
+
+  // Restore Role from storage
+  final String? savedRole = await storage.read(key: 'user_role');
+  if (savedRole != null) {
+    if (savedRole == UserRole.owner.name) {
+      landingController.currentRole.value = UserRole.owner;
+    } else if (savedRole == UserRole.admin.name) {
+      landingController.currentRole.value = UserRole.admin;
+    } else {
+      landingController.currentRole.value = UserRole.user;
+    }
+  }
 
   runApp(SportsStudioApp(initialRoute: initialRoute));
 }
@@ -170,6 +184,27 @@ class SportsStudioApp extends StatelessWidget {
         ),
         GetPage(
           name: '/review-moderation',
+          page: () => const ReviewModerationPage(),
+          transition: Transition.rightToLeft,
+        ),
+        // ── Admin Feature Routes ──────────────────────────────
+        GetPage(
+          name: '/admin/users',
+          page: () => const AdminUsersPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/admin/complexes',
+          page: () => const SportsComplexesPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/admin/bookings',
+          page: () => const OwnerBookingsView(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/admin/reviews',
           page: () => const ReviewModerationPage(),
           transition: Transition.rightToLeft,
         ),

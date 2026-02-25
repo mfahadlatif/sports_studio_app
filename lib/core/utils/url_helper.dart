@@ -16,12 +16,12 @@ class UrlHelper {
 
     // Handle localhost URLs
     if (url.contains('localhost')) {
-      return url
-          .replaceAll(
-            'localhost/cricket-oasis-bookings/backend/public',
-            '$domain/backend/public/storage',
-          )
-          .replaceAll('http://localhost', 'https://$domain');
+      final storageIndex = url.indexOf('/storage/');
+      if (storageIndex != -1) {
+        final relativePath = url.substring(storageIndex + 9);
+        return '$baseAssetUrl/$relativePath';
+      }
+      return url.replaceAll('http://localhost', 'https://$domain');
     }
 
     return url;

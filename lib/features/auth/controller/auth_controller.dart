@@ -74,9 +74,15 @@ class AuthController extends GetxController {
         UserRole userRole = UserRole.user;
         final roleString =
             data['user']?['role']?.toString().toLowerCase() ?? 'user';
-        if (roleString == 'owner' || roleString == 'admin') {
+        if (roleString == 'owner') {
           userRole = UserRole.owner;
+        } else if (roleString == 'admin') {
+          userRole = UserRole.admin;
         }
+
+        // Save role to storage
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'user_role', value: userRole.name);
 
         print('Navigating to home with role: $userRole');
         Get.snackbar(
@@ -188,11 +194,18 @@ class AuthController extends GetxController {
             ?.toString()
             .toLowerCase();
         if (actualRoleString != null) {
-          userRole =
-              (actualRoleString == 'owner' || actualRoleString == 'admin')
-              ? UserRole.owner
-              : UserRole.user;
+          if (actualRoleString == 'owner') {
+            userRole = UserRole.owner;
+          } else if (actualRoleString == 'admin') {
+            userRole = UserRole.admin;
+          } else {
+            userRole = UserRole.user;
+          }
         }
+
+        // Save role to storage
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'user_role', value: userRole.name);
 
         Get.snackbar(
           'Success',
@@ -283,9 +296,15 @@ class AuthController extends GetxController {
           UserRole userRole = UserRole.user;
           final roleString =
               data['user']?['role']?.toString().toLowerCase() ?? 'user';
-          if (roleString == 'owner' || roleString == 'admin') {
+          if (roleString == 'owner') {
             userRole = UserRole.owner;
+          } else if (roleString == 'admin') {
+            userRole = UserRole.admin;
           }
+
+          // Save role to storage
+          const storage = FlutterSecureStorage();
+          await storage.write(key: 'user_role', value: userRole.name);
 
           _navigateToHome(userRole);
         }
@@ -334,9 +353,15 @@ class AuthController extends GetxController {
         UserRole userRole = UserRole.user;
         final roleString =
             data['user']?['role']?.toString().toLowerCase() ?? 'user';
-        if (roleString == 'owner' || roleString == 'admin') {
+        if (roleString == 'owner') {
           userRole = UserRole.owner;
+        } else if (roleString == 'admin') {
+          userRole = UserRole.admin;
         }
+
+        // Save role to storage
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'user_role', value: userRole.name);
 
         _navigateToHome(userRole);
       }

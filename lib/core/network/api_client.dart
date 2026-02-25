@@ -2,8 +2,15 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
+  // Production URL
+  // static const String baseUrl = 'https://lightcoral-goose-424965.hostingersite.com/backend/public/api';
+
+  // Localhost for Android Emulator (10.0.2.2) or iOS Simulator (localhost)
+  // static const String baseUrl = 'http://10.0.2.2/cricket-oasis-bookings/backend/public/api';
+
+  // Current Active URL (Localhost)
   static const String baseUrl =
-      'https://lightcoral-goose-424965.hostingersite.com/backend/public/api';
+      'http://10.0.2.2/cricket-oasis-bookings/backend/public/api';
   final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 

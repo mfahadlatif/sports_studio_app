@@ -90,10 +90,13 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                     onPressed: controller.isLoading.value
                         ? null
                         : () async {
-                            await controller.requestVerification(
-                              phoneController.text.trim(),
-                            );
-                            setState(() => showOtpField = true);
+                            final success = await controller
+                                .requestVerification(
+                                  phoneController.text.trim(),
+                                );
+                            if (success) {
+                              setState(() => showOtpField = true);
+                            }
                           },
                     child: controller.isLoading.value
                         ? const SizedBox(
@@ -148,11 +151,11 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                         onPressed: controller.isLoading.value
                             ? null
                             : () async {
-                                await controller.verifyPhone(
+                                final success = await controller.verifyPhone(
                                   phoneController.text.trim(),
                                   otpController.text.trim(),
                                 );
-                                if (controller.isVerified.value) {
+                                if (success) {
                                   widget.onVerified();
                                   Get.back();
                                 }
