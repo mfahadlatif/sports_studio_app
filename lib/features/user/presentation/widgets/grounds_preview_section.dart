@@ -20,14 +20,18 @@ class GroundsPreviewSection extends StatelessWidget {
 
     return Column(
       children: [
-        SectionHeader(
-          title: 'Premium Grounds',
-          subtitle: 'Choose from our top-rated sports arenas',
-          onActionPressed: () {
-            final landingController =
-                Get.find<sports_landing.LandingController>();
-            landingController.changeNavIndex(1); // switch to Grounds Tab
-          },
+        Obx(
+          () => SectionHeader(
+            title: controller.selectedCategory.value == 'All'
+                ? 'Premium Grounds'
+                : '${controller.selectedCategory.value} Grounds',
+            subtitle: 'Choose from our top-rated sports arenas',
+            onActionPressed: () {
+              final landingController =
+                  Get.find<sports_landing.LandingController>();
+              landingController.changeNavIndex(1); // switch to Grounds Tab
+            },
+          ),
         ),
         SizedBox(
           height: 280,
@@ -41,16 +45,36 @@ class GroundsPreviewSection extends StatelessWidget {
               );
             }
 
-            if (controller.premiumGrounds.isEmpty) {
-              return const Center(child: Text('No grounds available.'));
+            if (controller.filteredGrounds.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.l),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.sports_cricket_outlined,
+                        size: 48,
+                        color: Colors.grey[300],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No grounds available for ${controller.selectedCategory.value}.',
+                        style: AppTextStyles.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
 
             return ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
               scrollDirection: Axis.horizontal,
-              itemCount: controller.premiumGrounds.length,
+              itemCount: controller.filteredGrounds.length,
               itemBuilder: (context, index) {
-                final ground = controller.premiumGrounds[index];
+                final ground = controller.filteredGrounds[index];
                 return GroundCard(ground: ground);
               },
             );

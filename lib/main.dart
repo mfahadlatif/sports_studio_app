@@ -19,6 +19,8 @@ import 'package:sports_studio/features/user/presentation/pages/user_bookings_pag
 import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/teams_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
@@ -159,6 +161,16 @@ class SportsStudioApp extends StatelessWidget {
         GetPage(
           name: '/favorites',
           page: () => const FavoritesPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/teams',
+          page: () => const TeamsPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/privacy-policy',
+          page: () => const PrivacyPolicyPage(),
           transition: Transition.rightToLeft,
         ),
         // ── Owner Feature Routes ──────────────────────────────

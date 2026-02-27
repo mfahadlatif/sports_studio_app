@@ -171,7 +171,7 @@ class _BookingCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Sport Icon / Ground Image Placeholder
+                // Sport Icon / Ground Image Placeholder (Web Sync Emojis)
                 Container(
                   width: 60,
                   height: 60,
@@ -179,10 +179,11 @@ class _BookingCard extends StatelessWidget {
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(
-                    Icons.sports_soccer,
-                    color: AppColors.primary,
-                    size: 30,
+                  child: Center(
+                    child: Text(
+                      _getSportEmoji(groundType),
+                      style: const TextStyle(fontSize: 30),
+                    ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.m),
@@ -305,6 +306,20 @@ class _BookingCard extends StatelessWidget {
         controller.updateBookingStatus(booking, 'cancelled');
       },
     );
+  }
+
+  String _getSportEmoji(String type) {
+    final t = type.toLowerCase();
+    if (t.contains('cricket')) return '🏏';
+    if (t.contains('football')) return '⚽';
+    if (t.contains('soccer')) return '⚽';
+    if (t.contains('tennis')) return '🎾';
+    if (t.contains('padel')) return '🎾';
+    if (t.contains('volleyball')) return '🏐';
+    if (t.contains('hockey')) return '🏑';
+    if (t.contains('basketball')) return '🏀';
+    if (t.contains('badminton')) return '🏸';
+    return '🏆';
   }
 }
 

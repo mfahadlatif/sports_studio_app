@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
@@ -8,7 +9,7 @@ import 'package:sports_studio/features/landing/controller/landing_controller.dar
 import 'package:sports_studio/features/user/presentation/widgets/home_view.dart';
 import 'package:sports_studio/features/user/presentation/pages/grounds_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/events_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/teams_page.dart'; // Changed from contact_page.dart to teams_page.dart
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_grounds_view.dart';
@@ -30,7 +31,7 @@ class LandingPage extends StatelessWidget {
       const HomeView(),
       const GroundsPage(),
       const EventsPage(),
-      const ContactPage(),
+      const TeamsPage(), // Changed from ContactPage to TeamsPage
       const ProfilePage(),
     ];
 
@@ -54,7 +55,10 @@ class LandingPage extends StatelessWidget {
       GButton(icon: Icons.home_outlined, text: 'Home'),
       GButton(icon: Icons.sports_soccer_outlined, text: 'Grounds'),
       GButton(icon: Icons.event_outlined, text: 'Events'),
-      GButton(icon: Icons.contact_support_outlined, text: 'Contact'),
+      GButton(
+        icon: Icons.groups_outlined,
+        text: 'Community',
+      ), // Changed text from 'Community'
       GButton(icon: Icons.person_outline, text: 'Profile'),
     ];
 
@@ -177,42 +181,53 @@ class LandingPage extends StatelessWidget {
           if (constraints.maxWidth > 800) {
             return const SizedBox.shrink(); // Hide bottom nav on web
           }
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(blurRadius: 20, color: Colors.black.withOpacity(.1)),
-              ],
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 15.0,
-                  vertical: 8,
-                ),
-                child: Obx(
-                  () => GNav(
-                    rippleColor: Colors.grey[300]!,
-                    hoverColor: Colors.grey[100]!,
-                    gap: 4,
-                    activeColor: AppColors.primary,
-                    iconSize: 22,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          return ClipRRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.8),
+                  boxShadow: [
+                    BoxShadow(
+                      blurRadius: 20,
+                      color: Colors.black.withOpacity(.1),
                     ),
-                    duration: const Duration(milliseconds: 400),
-                    tabBackgroundColor: AppColors.primaryLight,
-                    color: AppColors.textSecondary,
-                    tabs: controller.currentRole.value == UserRole.user
-                        ? userTabs
-                        : controller.currentRole.value == UserRole.owner
-                        ? ownerTabs
-                        : adminTabs,
-                    selectedIndex: controller.currentNavIndex.value,
-                    onTabChange: (index) {
-                      controller.changeNavIndex(index);
-                    },
+                  ],
+                  border: Border(
+                    top: BorderSide(color: Colors.white.withOpacity(0.2)),
+                  ),
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 15.0,
+                      vertical: 8,
+                    ),
+                    child: Obx(
+                      () => GNav(
+                        rippleColor: AppColors.primary.withOpacity(0.1),
+                        hoverColor: AppColors.primary.withOpacity(0.05),
+                        gap: 8,
+                        activeColor: AppColors.primary,
+                        iconSize: 24,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        duration: const Duration(milliseconds: 400),
+                        tabBackgroundColor: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.textSecondary,
+                        tabs: controller.currentRole.value == UserRole.user
+                            ? userTabs
+                            : controller.currentRole.value == UserRole.owner
+                            ? ownerTabs
+                            : adminTabs,
+                        selectedIndex: controller.currentNavIndex.value,
+                        onTabChange: (index) {
+                          controller.changeNavIndex(index);
+                        },
+                      ),
+                    ),
                   ),
                 ),
               ),

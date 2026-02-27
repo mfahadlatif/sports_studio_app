@@ -8,12 +8,46 @@ import 'package:sports_studio/features/user/controller/favorites_controller.dart
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class GroundDetailPage extends StatelessWidget {
+import 'package:sports_studio/features/user/controller/ground_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+class GroundDetailPage extends StatefulWidget {
   const GroundDetailPage({super.key});
 
   @override
+  State<GroundDetailPage> createState() => _GroundDetailPageState();
+}
+
+class _GroundDetailPageState extends State<GroundDetailPage> {
+  final controller = Get.put(GroundController());
+  final arguments = Get.arguments as Map<String, dynamic>?;
+
+  @override
+  void initState() {
+    super.initState();
+    final ground = arguments?['ground'] as Map<String, dynamic>?;
+    if (ground != null && ground['id'] != null) {
+      controller.fetchReviews(ground['id']);
+    }
+  }
+
+  void _openMaps(double lat, double lng) async {
+    final url = 'google.navigation:q=$lat,$lng';
+    final appleUrl = 'http://maps.apple.com/?daddr=$lat,$lng';
+
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else if (await canLaunchUrl(Uri.parse(appleUrl))) {
+      await launchUrl(Uri.parse(appleUrl));
+    } else {
+      Get.snackbar('Error', 'Could not open maps');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final ground = Get.arguments;
+    // Re-use existing local variables from widget access
+    final ground = arguments?['ground'] as Map<String, dynamic>?;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -228,6 +262,7 @@ class GroundDetailPage extends StatelessWidget {
   }
 
   Widget _buildQuickStats(dynamic ground) {
+    final dimensions = ground?['dimensions'] ?? 'Standard';
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
@@ -238,7 +273,7 @@ class GroundDetailPage extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statItem(Icons.aspect_ratio, 'Area', '80x80 ft'),
+          _statItem(Icons.aspect_ratio, 'Area', dimensions),
           _statItem(
             Icons.people_outline,
             'Capacity',
@@ -272,43 +307,60 @@ class GroundDetailPage extends StatelessWidget {
   }
 
   Widget _buildAmenities(dynamic ground) {
+    final List<dynamic> groundAmenities = ground?['amenities'] ?? [];
+
+    // Config matching owner side
+    final Map<String, Map<String, String>> config = {
+      'water': {'name': 'Water', 'icon': '🚰'},
+      'washroom': {'name': 'Washroom', 'icon': '🚻'},
+      'changing': {'name': 'Changing', 'icon': '👕'},
+      'dugout': {'name': 'Dugout', 'icon': '⛺'},
+      'balls': {'name': 'Balls', 'icon': '🎾'},
+      'bats': {'name': 'Bats', 'icon': '🏏'},
+      'parking': {'name': 'Parking', 'icon': '🚗'},
+      'first_aid': {'name': 'First Aid', 'icon': '🏥'},
+      'lighting': {'name': 'Lights', 'icon': '💡'},
+    };
+
+    if (groundAmenities.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Field Amenities', style: AppTextStyles.h2),
         const SizedBox(height: AppSpacing.m),
         Wrap(
-          spacing: 20,
-          runSpacing: 20,
-          children: [
-            _amenityIcon(Icons.directions_car, 'Free Parking'),
-            _amenityIcon(Icons.water_drop, 'Chilled Water'),
-            _amenityIcon(Icons.restaurant, 'Refreshments'),
-            _amenityIcon(Icons.medical_services, 'First Aid'),
-            if (ground?['has_lighting'] == 1)
-              _amenityIcon(Icons.flood, 'Flood Lights'),
-            _amenityIcon(Icons.meeting_room, 'Changing Room'),
-          ],
+          spacing: 12,
+          runSpacing: 12,
+          children: groundAmenities.map((id) {
+            final item =
+                config[id.toString()] ?? {'name': id.toString(), 'icon': '✨'};
+            return _amenityChip(item['icon']!, item['name']!);
+          }).toList(),
         ),
       ],
     );
   }
 
-  Widget _amenityIcon(IconData icon, String label) {
-    return SizedBox(
-      width: 100,
-      child: Column(
+  Widget _amenityChip(String icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight.withOpacity(0.5),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: AppColors.primary),
+          Text(icon, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
-          Text(label, textAlign: TextAlign.center, style: AppTextStyles.label),
         ],
       ),
     );
@@ -378,7 +430,9 @@ class GroundDetailPage extends StatelessWidget {
         Center(
           child: TextButton.icon(
             onPressed: () {
-              // TODO: Open external maps
+              if (lat != 0 && lng != 0) {
+                _openMaps(lat, lng);
+              }
             },
             icon: const Icon(Icons.directions_outlined, size: 20),
             label: const Text('Get Directions'),
@@ -397,19 +451,42 @@ class GroundDetailPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Player Reviews', style: AppTextStyles.h2),
-            TextButton(onPressed: () {}, child: const Text('View All')),
+            Obx(
+              () => Text(
+                '${controller.reviews.length} total',
+                style: AppTextStyles.bodySmall,
+              ),
+            ),
           ],
         ),
-        _reviewCard(
-          'Hamza Khan',
-          '5.0',
-          'Best turf in the city! The bounce is very consistent.',
-        ),
-        _reviewCard(
-          'Zain Ahmed',
-          '4.0',
-          'Great lighting for night matches, but parking was a bit tight.',
-        ),
+        Obx(() {
+          if (controller.isLoadingReviews.value) {
+            return const Padding(
+              padding: EdgeInsets.all(20),
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            );
+          }
+
+          if (controller.reviews.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Text(
+                'No reviews yet. Be the first to rate!',
+                style: AppTextStyles.bodySmall,
+              ),
+            );
+          }
+
+          return Column(
+            children: controller.reviews.take(3).map((r) {
+              return _reviewCard(
+                r['user']?['name'] ?? 'User',
+                r['rating']?.toString() ?? '5.0',
+                r['comment'] ?? '',
+              );
+            }).toList(),
+          );
+        }),
       ],
     );
   }

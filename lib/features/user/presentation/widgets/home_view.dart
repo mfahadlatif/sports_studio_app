@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'hero_section.dart';
 import 'grounds_preview_section.dart';
@@ -8,6 +9,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/widgets/section_header.dart';
+import 'package:sports_studio/features/user/controller/home_controller.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -91,6 +93,13 @@ class HomeView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.l),
+
+                // Sport Categories (Web Sync)
+                _sectionHeader('Explore by Sport', Icons.sports_cricket),
+                const SizedBox(height: AppSpacing.m),
+                _buildCategorySelector(),
+                const SizedBox(height: AppSpacing.l),
+
                 const GroundsPreviewSection(),
                 const SizedBox(height: AppSpacing.l),
 
@@ -265,38 +274,52 @@ class HomeView extends StatelessWidget {
   }
 
   Widget _buildFeatureCard(IconData icon, String title) {
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: AppSpacing.m, bottom: AppSpacing.s),
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primaryLight,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: AppColors.primary, size: 28),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+        child: Container(
+          width: 140,
+          margin: const EdgeInsets.only(
+            right: AppSpacing.m,
+            bottom: AppSpacing.s,
           ),
-          const SizedBox(height: AppSpacing.m),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: AppTextStyles.bodySmall.copyWith(
-              fontWeight: FontWeight.bold,
-            ),
+          padding: const EdgeInsets.all(AppSpacing.m),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.8),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 28),
+              ),
+              const SizedBox(height: AppSpacing.m),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -399,6 +422,89 @@ class HomeView extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, IconData icon) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+    child: Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
+        const SizedBox(width: 8),
+        Expanded(child: Divider(color: AppColors.primary.withOpacity(0.2))),
+      ],
+    ),
+  );
+
+  Widget _buildCategorySelector() {
+    final controller = Get.put(HomeController());
+    final List<Map<String, String>> categories = [
+      {'name': 'All', 'icon': '🌐'},
+      {'name': 'Cricket', 'icon': '🏏'},
+      {'name': 'Football', 'icon': '⚽'},
+      {'name': 'Tennis', 'icon': '🎾'},
+      {'name': 'Padel', 'icon': '🎾'},
+      {'name': 'Volleyball', 'icon': '🏐'},
+      {'name': 'Hockey', 'icon': '🏑'},
+      {'name': 'Basketball', 'icon': '🏀'},
+      {'name': 'Badminton', 'icon': '🏸'},
+    ];
+
+    return SizedBox(
+      height: 45,
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final cat = categories[index];
+          return Obx(() {
+            final isSelected = controller.selectedCategory.value == cat['name'];
+            return GestureDetector(
+              onTap: () => controller.updateCategory(cat['name']!),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.only(right: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : AppColors.border,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  children: [
+                    Text(cat['icon']!, style: const TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text(
+                      cat['name']!,
+                      style: TextStyle(
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          });
+        },
       ),
     );
   }

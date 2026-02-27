@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -182,6 +183,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   ],
                                 ),
                               ),
+                              if (event?['event_type'] == 'private')
+                                IconButton(
+                                  onPressed: () => _copyInviteLink(event),
+                                  icon: const Icon(
+                                    Icons.share_outlined,
+                                    color: AppColors.primary,
+                                  ),
+                                  tooltip: 'Share Invite Link',
+                                ),
                               if (event?['status'] != null)
                                 Container(
                                   padding: const EdgeInsets.symmetric(
@@ -481,6 +491,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
     } finally {
       setState(() => _isJoining = false);
     }
+  }
+
+  void _copyInviteLink(dynamic event) {
+    final baseUrl = "https://lightcoral-goose-424965.hostingersite.com/events/";
+    final link = "$baseUrl${event['id']}";
+    Clipboard.setData(ClipboardData(text: link));
+    Get.snackbar(
+      'Link Copied',
+      'Private invite link copied to clipboard.',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: AppColors.primaryLight,
+      colorText: AppColors.primary,
+    );
   }
 
   void _showInviteDialog() {

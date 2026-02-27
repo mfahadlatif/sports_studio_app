@@ -46,24 +46,36 @@ class BookingController extends GetxController {
     }
   }
 
+  final Rxn<dynamic> selectedDeal = Rxn<dynamic>();
+
   Future<void> applyPromoCode(String code) async {
     if (code.isEmpty) return;
     isCheckingPromo.value = true;
     try {
-      final res = await ApiClient().dio.post(
-        '/validate-promo',
-        data: {'code': code},
-      );
+      final res = await ApiClient().dio.get('/public/deals');
       if (res.statusCode == 200) {
-        final amount =
-            double.tryParse(res.data['discount_amount'].toString()) ?? 0.0;
-        discount.value = amount;
-        promoCode.value = code;
-        Get.snackbar(
-          'Success',
-          'Promo code applied!',
-          backgroundColor: const Color(0xFFDCFCE7),
+        final deals = res.data ?? [];
+        final deal = (deals as List).firstWhereOrNull(
+          (d) => d['code'].toString().toLowerCase() == code.toLowerCase(),
         );
+
+        if (deal != null) {
+          selectedDeal.value = deal;
+          final percentage =
+              double.tryParse(deal['discount_percentage'].toString()) ?? 0.0;
+          final amount = subtotal * (percentage / 100);
+          discount.value = amount;
+          promoCode.value = code;
+          Get.snackbar(
+            'Success',
+            'Promo code applied: ${deal['title']}',
+            backgroundColor: const Color(0xFFDCFCE7),
+          );
+        } else {
+          Get.snackbar('Error', 'Invalid or expired promo code');
+          selectedDeal.value = null;
+          discount.value = 0;
+        }
       } else {
         Get.snackbar('Error', 'Invalid or expired promo code');
       }
@@ -142,6 +154,7 @@ class BookingController extends GetxController {
         'end_time': '$formattedDate $endTimeStr:00',
         'total_price': totalPrice,
         'players': players.value,
+        'coupon_id': selectedDeal.value?['id'],
       };
 
       final response = await ApiClient().dio.post('/bookings', data: data);
@@ -150,7 +163,13 @@ class BookingController extends GetxController {
         final bookingId = response.data['id'];
         Get.offAllNamed(
           '/payment',
-          arguments: {'bookingId': bookingId, 'totalPrice': totalPrice},
+          arguments: {
+            'bookingId': bookingId,
+            'totalPrice': totalPrice,
+            'subtotal': subtotal,
+            'discount': discount.value,
+            'deal': selectedDeal.value,
+          },
         );
         selectedSlots.clear();
       } else {

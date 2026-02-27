@@ -23,11 +23,16 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   final _locationCtrl = TextEditingController();
   final _priceCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _dimensionsCtrl = TextEditingController();
 
   String _selectedSport = 'Cricket';
   String _selectedStatus = 'active';
   bool _hasLighting = false;
   bool _isSubmitting = false;
+
+  String _openTime = '06:00';
+  String _closeTime = '23:00';
+  final Set<String> _selectedAmenities = {};
 
   XFile? _pickedImage;
   final ImagePicker _picker = ImagePicker();
@@ -38,15 +43,24 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   int? _complexId;
   String _complexName = '';
 
-  final List<String> _sportTypes = [
-    'Cricket',
-    'Football',
-    'Tennis',
-    'Badminton',
-    'Basketball',
-    'Volleyball',
-    'Squash',
-    'Other',
+  final List<Map<String, String>> _groundAmenitiesConfig = [
+    {'id': 'water', 'name': 'Water', 'icon': '🚰'},
+    {'id': 'washroom', 'name': 'Washroom', 'icon': '🚻'},
+    {'id': 'changing', 'name': 'Changing', 'icon': '👕'},
+    {'id': 'dugout', 'name': 'Dugout', 'icon': '⛺'},
+    {'id': 'balls', 'name': 'Balls', 'icon': '🎾'},
+    {'id': 'bats', 'name': 'Bats', 'icon': '🏏'},
+  ];
+
+  final List<Map<String, String>> _sportConfigs = [
+    {'name': 'Cricket', 'icon': '🏏'},
+    {'name': 'Football', 'icon': '⚽'},
+    {'name': 'Tennis', 'icon': '🎾'},
+    {'name': 'Padel', 'icon': '🎾'},
+    {'name': 'Volleyball', 'icon': '🏐'},
+    {'name': 'Hockey', 'icon': '🏑'},
+    {'name': 'Basketball', 'icon': '🏀'},
+    {'name': 'Badminton', 'icon': '🏸'},
   ];
 
   @override
@@ -70,17 +84,26 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     _locationCtrl.text = g['location'] ?? '';
     _priceCtrl.text = (g['price_per_hour'] ?? '').toString();
     _descCtrl.text = g['description'] ?? '';
+    _dimensionsCtrl.text = g['dimensions'] ?? '';
     _selectedSport = _normalizeType(g['type'] ?? 'Cricket');
     _selectedStatus = g['status'] ?? 'active';
     _hasLighting = g['has_lighting'] == true || g['has_lighting'] == 1;
+    _openTime = g['open_time'] ?? '06:00';
+    _closeTime = g['close_time'] ?? '23:00';
+
+    if (g['amenities'] != null) {
+      if (g['amenities'] is List) {
+        _selectedAmenities.addAll((g['amenities'] as List).cast<String>());
+      }
+    }
   }
 
   String _normalizeType(String raw) {
     final lower = raw.toLowerCase();
-    return _sportTypes.firstWhere(
-      (s) => s.toLowerCase() == lower,
-      orElse: () => 'Other',
-    );
+    for (var s in _sportConfigs) {
+      if (s['name']!.toLowerCase() == lower) return s['name']!;
+    }
+    return 'Cricket';
   }
 
   Future<void> _submit() async {
@@ -96,9 +119,13 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         'location': _locationCtrl.text,
         'price_per_hour': double.tryParse(_priceCtrl.text) ?? 0,
         'description': _descCtrl.text,
+        'dimensions': _dimensionsCtrl.text,
+        'open_time': _openTime,
+        'close_time': _closeTime,
         'type': _selectedSport.toLowerCase(),
         'status': _selectedStatus,
         'has_lighting': _hasLighting ? 1 : 0,
+        'amenities': _selectedAmenities.toList(),
         if (_complexId != null) 'complex_id': _complexId,
       };
 
@@ -137,7 +164,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     } catch (e) {
       Get.snackbar('Error', 'Something went wrong: $e');
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -226,7 +253,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 ),
                 const SizedBox(height: AppSpacing.m),
 
-                _lbl('Location / Area'),
+                _lbl('Location / Area (e.g. Field 1)'),
                 _textField(
                   _locationCtrl,
                   'e.g. Gulberg III, Lahore',
@@ -234,8 +261,16 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 ),
                 const SizedBox(height: AppSpacing.m),
 
-                _lbl('Sport Type'),
-                _sportDropdown(),
+                _lbl('Ground Dimensions (Optional)'),
+                _textField(
+                  _dimensionsCtrl,
+                  'e.g. 100 x 120 ft',
+                  Icons.square_foot_outlined,
+                ),
+                const SizedBox(height: AppSpacing.m),
+
+                _lbl('Sport Selection'),
+                _buildSportGrid(),
                 const SizedBox(height: AppSpacing.m),
 
                 _lbl('Price per Hour (Rs.) *'),
@@ -245,7 +280,18 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                   Icons.payments_outlined,
                   keyboardType: TextInputType.number,
                 ),
+                const SizedBox(height: AppSpacing.l),
 
+                // ── Operating Hours ────────────────────────────────
+                _sectionHeader('Operating Hours', Icons.access_time),
+                const SizedBox(height: AppSpacing.m),
+                _buildTimeSection(),
+                const SizedBox(height: AppSpacing.l),
+
+                // ── Amenities ──────────────────────────────────────
+                _sectionHeader('Ground Amenities', Icons.auto_awesome),
+                const SizedBox(height: AppSpacing.m),
+                _buildAmenitiesGrid(),
                 const SizedBox(height: AppSpacing.l),
 
                 // ── Configuration Section ───────────────────────────
@@ -352,6 +398,61 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     );
   }
 
+  Widget _buildSportGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 4,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 0.9,
+      ),
+      itemCount: _sportConfigs.length,
+      itemBuilder: (context, index) {
+        final sport = _sportConfigs[index];
+        final isSelected = _selectedSport == sport['name'];
+        return GestureDetector(
+          onTap: () => setState(() => _selectedSport = sport['name']!),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected ? AppColors.primary : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.border,
+              ),
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ]
+                  : null,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(sport['icon']!, style: const TextStyle(fontSize: 24)),
+                const SizedBox(height: 4),
+                Text(
+                  sport['name']!,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : AppColors.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildImagePicker() {
     return GestureDetector(
       onTap: _pickImage,
@@ -441,30 +542,137 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     ),
   );
 
-  Widget _sportDropdown() => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: DropdownButtonFormField<String>(
-      value: _selectedSport,
-      decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.sports_outlined),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        filled: true,
-        fillColor: Colors.white,
+  Widget _buildTimeSection() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
       ),
-      items: _sportTypes
-          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-          .toList(),
-      onChanged: (v) {
-        if (v != null) setState(() => _selectedSport = v);
+      child: Row(
+        children: [
+          Expanded(
+            child: _timeField(
+              'Opening Time',
+              _openTime,
+              (t) => setState(() => _openTime = t),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.m),
+          Expanded(
+            child: _timeField(
+              'Closing Time',
+              _closeTime,
+              (t) => setState(() => _closeTime = t),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _timeField(String label, String value, Function(String) onSelect) {
+    return InkWell(
+      onTap: () async {
+        final TimeOfDay? picked = await showTimePicker(
+          context: context,
+          initialTime: TimeOfDay(
+            hour: int.parse(value.split(':')[0]),
+            minute: int.parse(value.split(':')[1]),
+          ),
+        );
+        if (picked != null) {
+          final h = picked.hour.toString().padLeft(2, '0');
+          final m = picked.minute.toString().padLeft(2, '0');
+          onSelect('$h:$m');
+        }
       },
-    ),
-  );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.access_time, size: 16, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text(
+                value,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAmenitiesGrid() {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _groundAmenitiesConfig.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 2.2,
+      ),
+      itemBuilder: (context, index) {
+        final amenity = _groundAmenitiesConfig[index];
+        final id = amenity['id']!;
+        final isSelected = _selectedAmenities.contains(id);
+
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              if (isSelected)
+                _selectedAmenities.remove(id);
+              else
+                _selectedAmenities.add(id);
+            });
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppColors.primary.withOpacity(0.1)
+                  : Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : AppColors.border,
+                width: isSelected ? 1.5 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(amenity['icon']!, style: const TextStyle(fontSize: 14)),
+                const SizedBox(width: 6),
+                Text(
+                  amenity['name']!,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
+                    color: isSelected
+                        ? AppColors.primary
+                        : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _statusDropdown() => Container(
     decoration: BoxDecoration(
@@ -498,6 +706,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     _locationCtrl.dispose();
     _priceCtrl.dispose();
     _descCtrl.dispose();
+    _dimensionsCtrl.dispose();
     super.dispose();
   }
 }

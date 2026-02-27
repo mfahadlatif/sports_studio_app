@@ -114,21 +114,23 @@ class _ContactPageState extends State<ContactPage> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.l),
-                      AppButton(
-                        label: 'Send Message',
-                        isLoading: _controller.isLoading.value,
-                        onPressed: () async {
-                          final success = await _controller.submitContactForm(
-                            name: _nameController.text,
-                            email: _emailController.text,
-                            message: _messageController.text,
-                          );
-                          if (success) {
-                            _nameController.clear();
-                            _emailController.clear();
-                            _messageController.clear();
-                          }
-                        },
+                      Obx(
+                        () => AppButton(
+                          label: 'Send Message',
+                          isLoading: _controller.isLoading.value,
+                          onPressed: () async {
+                            final success = await _controller.submitContactForm(
+                              name: _nameController.text,
+                              email: _emailController.text,
+                              message: _messageController.text,
+                            );
+                            if (success) {
+                              _nameController.clear();
+                              _emailController.clear();
+                              _messageController.clear();
+                            }
+                          },
+                        ),
                       ),
                     ],
                   ),

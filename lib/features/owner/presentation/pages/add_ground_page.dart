@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -28,7 +29,7 @@ class AddGroundPage extends StatelessWidget {
 
                 _sectionHeader('Ground Media', Icons.image_outlined),
                 const SizedBox(height: AppSpacing.m),
-                _buildImagePicker(),
+                _buildImagePicker(controller),
                 const SizedBox(height: AppSpacing.l),
 
                 _sectionHeader('Ground Details', Icons.info_outline),
@@ -68,20 +69,62 @@ class AddGroundPage extends StatelessWidget {
                 ], controller),
                 const SizedBox(height: AppSpacing.l),
 
-                _sectionHeader('Description', Icons.description_outlined),
+                _sectionHeader('Physical Metrics', Icons.straighten_outlined),
                 const SizedBox(height: AppSpacing.m),
-                TextField(
-                  controller: controller.descriptionController,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText: 'Describe your ground, facilities, etc...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _lbl('Length (m)'),
+                          _textField(
+                            'e.g. 100',
+                            Icons.height,
+                            keyboardType: TextInputType.number,
+                            textController: controller.lengthController,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(width: AppSpacing.m),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _lbl('Width (m)'),
+                          _textField(
+                            'e.g. 70',
+                            Icons.width_full_outlined,
+                            keyboardType: TextInputType.number,
+                            textController: controller.widthController,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.l),
+
+                _sectionHeader('Amenities', Icons.checklist_outlined),
+                const SizedBox(height: AppSpacing.m),
+                _buildAmenitiesSelection(controller),
+                const SizedBox(height: AppSpacing.l),
+
+                _sectionHeader('Rules & Policies', Icons.gavel_outlined),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Ground Rules'),
+                _textField(
+                  'e.g. No non-marking shoes...',
+                  Icons.rule_outlined,
+                  textController: controller.rulesController,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Cancellation Policy'),
+                _textField(
+                  'e.g. Full refund before 24h...',
+                  Icons.policy_outlined,
+                  textController: controller.cancellationPolicyController,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
 
@@ -92,6 +135,31 @@ class AddGroundPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAmenitiesSelection(AddGroundController controller) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: controller.amenitiesList.entries.map((entry) {
+        return Obx(() {
+          final isSelected = controller.selectedAmenities.contains(entry.key);
+          return FilterChip(
+            label: Text('${entry.value} ${entry.key}'),
+            selected: isSelected,
+            onSelected: (selected) {
+              if (selected) {
+                controller.selectedAmenities.add(entry.key);
+              } else {
+                controller.selectedAmenities.remove(entry.key);
+              }
+            },
+            selectedColor: AppColors.primary.withOpacity(0.2),
+            checkmarkColor: AppColors.primary,
+          );
+        });
+      }).toList(),
     );
   }
 
@@ -118,30 +186,93 @@ class AddGroundPage extends StatelessWidget {
     );
   }
 
-  Widget _buildImagePicker() {
-    return Container(
-      height: 180,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border, width: 1),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildImagePicker(AddGroundController controller) {
+    return Obx(
+      () => Column(
         children: [
-          Icon(
-            Icons.add_photo_alternate_outlined,
-            size: 40,
-            color: AppColors.primary.withOpacity(0.5),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add Ground Images',
-            style: AppTextStyles.bodyMedium.copyWith(
-              color: AppColors.textMuted,
+          GestureDetector(
+            onTap: () => controller.pickImages(),
+            child: Container(
+              height: 120,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.border.withOpacity(0.5)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.02),
+                    blurRadius: 10,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.add_photo_alternate_outlined,
+                    size: 32,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Add Ground Images',
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+          if (controller.pickedImages.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 100,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: controller.pickedImages.length,
+                itemBuilder: (context, index) {
+                  return Stack(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 12),
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          image: DecorationImage(
+                            image: FileImage(controller.pickedImages[index]),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 16,
+                        child: GestureDetector(
+                          onTap: () => controller.removeImage(index),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );

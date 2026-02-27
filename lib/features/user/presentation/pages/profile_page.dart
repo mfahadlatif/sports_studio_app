@@ -59,6 +59,13 @@ class ProfilePage extends StatelessWidget {
                         color: Colors.red,
                       ),
                       _buildOption(
+                        icon: Icons.groups_outlined,
+                        title: 'My Teams',
+                        subtitle: 'Manage your rosters and community',
+                        onTap: () => Get.toNamed('/teams'),
+                        color: Colors.purple,
+                      ),
+                      _buildOption(
                         icon: Icons.local_offer_outlined,
                         title: 'Active Promo Codes',
                         subtitle: 'Exclusive deals just for you',
@@ -98,6 +105,13 @@ class ProfilePage extends StatelessWidget {
                         subtitle: 'Manage alerts and push notifications',
                         onTap: () => Get.toNamed('/notifications'),
                         color: Colors.amber,
+                      ),
+                      _buildOption(
+                        icon: Icons.policy_outlined,
+                        title: 'Privacy Policy',
+                        subtitle: 'How we handle your data',
+                        onTap: () => Get.toNamed('/privacy-policy'),
+                        color: Colors.blueGrey,
                       ),
 
                       const Padding(

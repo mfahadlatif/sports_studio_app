@@ -261,7 +261,7 @@ class _GroundsPageState extends State<GroundsPage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.75,
+        height: MediaQuery.of(context).size.height * 0.85,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -283,7 +283,13 @@ class _GroundsPageState extends State<GroundsPage>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Filters', style: AppTextStyles.h2),
-                  TextButton(onPressed: () {}, child: const Text('Reset All')),
+                  TextButton(
+                    onPressed: () => controller.resetFilters(),
+                    child: Text(
+                      'Reset All',
+                      style: TextStyle(color: Colors.red[400]),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -291,36 +297,57 @@ class _GroundsPageState extends State<GroundsPage>
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
                 children: [
-                  _filterSection('Price Range (per hour)', [
-                    RangeSlider(
-                      values: const RangeValues(1000, 10000),
-                      min: 0,
-                      max: 20000,
-                      divisions: 20,
-                      activeColor: AppColors.primary,
-                      labels: const RangeLabels('1k', '10k'),
-                      onChanged: (v) {},
-                    ),
-                  ]),
-                  _filterSection('Amenities', [
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _filterChip('Parking', true),
-                        _filterChip('Changing Rooms', false),
-                        _filterChip('Cafe', true),
-                        _filterChip('First Aid', false),
-                        _filterChip('Night Lights', true),
-                      ],
-                    ),
-                  ]),
-                  _filterSection('Sort By', [
-                    _sortTile('Price: Low to High', false),
-                    _sortTile('Price: High to Low', false),
-                    _sortTile('Rating: High to Low', true),
-                    _sortTile('Distance: Nearest', false),
-                  ]),
+                  Obx(
+                    () => _filterSection('Price Range (per hour)', [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Rs. ${controller.priceRange.value.start.round()}',
+                              style: AppTextStyles.label,
+                            ),
+                            Text(
+                              'Rs. ${controller.priceRange.value.end.round()}',
+                              style: AppTextStyles.label,
+                            ),
+                          ],
+                        ),
+                      ),
+                      RangeSlider(
+                        values: controller.priceRange.value,
+                        min: 0,
+                        max: 20000,
+                        divisions: 20,
+                        activeColor: AppColors.primary,
+                        inactiveColor: AppColors.primaryLight,
+                        onChanged: (v) => controller.updatePriceRange(v),
+                      ),
+                    ]),
+                  ),
+                  Obx(
+                    () => _filterSection('Amenities', [
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _filterChip('water', 'Water 🚰', controller),
+                          _filterChip('washroom', 'Washroom 🚻', controller),
+                          _filterChip('changing', 'Changing 👕', controller),
+                          _filterChip('parking', 'Parking 🚗', controller),
+                          _filterChip('lighting', 'Lights 💡', controller),
+                        ],
+                      ),
+                    ]),
+                  ),
+                  Obx(
+                    () => _filterSection('Sort By', [
+                      _sortTile('Rating: High to Low', controller),
+                      _sortTile('Price: Low to High', controller),
+                      _sortTile('Price: High to Low', controller),
+                    ]),
+                  ),
                 ],
               ),
             ),
@@ -331,7 +358,16 @@ class _GroundsPageState extends State<GroundsPage>
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () => Get.back(),
-                  child: const Text('Apply Filters'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Apply Filters',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),
@@ -353,34 +389,54 @@ class _GroundsPageState extends State<GroundsPage>
     );
   }
 
-  Widget _filterChip(String label, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primaryLight : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isSelected ? AppColors.primary : AppColors.border,
+  Widget _filterChip(String id, String label, HomeController controller) {
+    final isSelected = controller.selectedAmenities.contains(id);
+    return GestureDetector(
+      onTap: () => controller.toggleAmenity(id),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.2),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? AppColors.primary : AppColors.textPrimary,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppColors.textPrimary,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ),
     );
   }
 
-  Widget _sortTile(String title, bool isSelected) {
+  Widget _sortTile(String title, HomeController controller) {
+    final isSelected = controller.sortBy.value == title;
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      title: Text(title, style: AppTextStyles.bodyMedium),
+      title: Text(
+        title,
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
       trailing: isSelected
           ? const Icon(Icons.check_circle, color: AppColors.primary)
           : null,
-      onTap: () {},
+      onTap: () => controller.updateSort(title),
     );
   }
 }
