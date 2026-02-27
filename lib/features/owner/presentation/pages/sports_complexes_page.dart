@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_shimmer.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class SportsComplexesPage extends StatefulWidget {
   const SportsComplexesPage({super.key});
@@ -511,27 +512,10 @@ class _ComplexFormSheetState extends State<_ComplexFormSheet> {
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isSaving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: _isSaving
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : Text(
-                          _isEdit ? 'Update Complex' : 'Create Complex',
-                          style: AppTextStyles.bodyLarge.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
+              AppButton(
+                label: _isEdit ? 'Update Complex' : 'Create Complex',
+                onPressed: _save,
+                isLoading: _isSaving,
               ),
             ],
           ),

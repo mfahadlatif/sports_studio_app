@@ -7,6 +7,10 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sports_studio/widgets/app_button.dart';
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart' as dio_form;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 
@@ -20,13 +24,24 @@ class CreateMatchPage extends StatefulWidget {
 class _CreateMatchPageState extends State<CreateMatchPage> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _locationCtrl = TextEditingController();
   final _feeCtrl = TextEditingController();
   final _limitCtrl = TextEditingController(text: '22');
 
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
+  TimeOfDay _selectedEndTime = const TimeOfDay(hour: 20, minute: 0);
   String _selectedSport = 'Cricket';
+  String _eventType = 'public';
+  final _rulesCtrl = TextEditingController();
+  final _safetyCtrl = TextEditingController();
+
+  // Basic schedule support
+  List<Map<String, TextEditingController>> _scheduleControllers = [];
   bool _isSubmitting = false;
+
+  XFile? _pickedImage;
+  final ImagePicker _picker = ImagePicker();
 
   final List<String> _sportTypes = [
     'Cricket',
@@ -45,6 +60,23 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   void initState() {
     super.initState();
     _fetchGrounds();
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    _locationCtrl.dispose();
+    _feeCtrl.dispose();
+    _limitCtrl.dispose();
+    _rulesCtrl.dispose();
+    _safetyCtrl.dispose();
+    for (var s in _scheduleControllers) {
+      s['time']?.dispose();
+      s['title']?.dispose();
+      s['desc']?.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _fetchGrounds() async {
@@ -73,12 +105,27 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
-  Future<void> _selectTime() async {
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() => _pickedImage = image);
+    }
+  }
+
+  Future<void> _selectTime(bool isStart) async {
     final picked = await showTimePicker(
       context: context,
-      initialTime: _selectedTime,
+      initialTime: isStart ? _selectedTime : _selectedEndTime,
     );
-    if (picked != null) setState(() => _selectedTime = picked);
+    if (picked != null) {
+      setState(() {
+        if (isStart) {
+          _selectedTime = picked;
+        } else {
+          _selectedEndTime = picked;
+        }
+      });
+    }
   }
 
   Future<void> _submit() async {
@@ -115,20 +162,51 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
       final timeStr =
           '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}:00';
+      final endTimeStr =
+          '${_selectedEndTime.hour.toString().padLeft(2, '0')}:${_selectedEndTime.minute.toString().padLeft(2, '0')}:00';
 
-      final data = {
+      final scheduleData = _scheduleControllers
+          .map(
+            (s) => {
+              'time': s['time']?.text ?? '',
+              'title': s['title']?.text ?? '',
+              'description': s['desc']?.text ?? '',
+            },
+          )
+          .toList();
+
+      final Map<String, dynamic> dataMap = {
         'name': _titleCtrl.text,
         'description': _descCtrl.text,
+        'location': _locationCtrl.text,
         'start_time': '$dateStr $timeStr',
-        'game_id': 1, // Default game ID for now
+        'end_time': '$dateStr $endTimeStr',
+        'game_id': 1, // Default game ID
         'ground_id': _selectedGround['id'],
         'registration_fee': double.tryParse(_feeCtrl.text) ?? 0,
         'max_participants': int.tryParse(_limitCtrl.text) ?? 22,
+        'rules': _rulesCtrl.text,
+        'safety_policy': _safetyCtrl.text,
+        'schedule': scheduleData.isEmpty ? '[]' : scheduleData.toString(),
         'status': 'published',
-        'event_type': 'public',
+        'event_type': _eventType,
       };
 
-      final res = await ApiClient().dio.post('/events', data: data);
+      dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
+
+      if (_pickedImage != null) {
+        formData.files.add(
+          MapEntry(
+            'images[]',
+            await dio_form.MultipartFile.fromFile(
+              _pickedImage!.path,
+              filename: _pickedImage!.name,
+            ),
+          ),
+        );
+      }
+
+      final res = await ApiClient().dio.post('/events', data: formData);
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         Get.snackbar(
@@ -149,37 +227,114 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(title: const Text('Organize Match'), centerTitle: true),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 700),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.m),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildHeader(),
+                const SizedBox(height: AppSpacing.xl),
+
+                _sectionHeader('Event Details', Icons.event_outlined),
+                const SizedBox(height: AppSpacing.m),
+
+                _lbl('Event Title *'),
+                _textField(
+                  _titleCtrl,
+                  'e.g. Sunday Morning Friendly',
+                  Icons.title,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Description'),
+                TextField(
+                  controller: _descCtrl,
+                  maxLines: 4,
+                  decoration: InputDecoration(
+                    hintText:
+                        'Add match description and what players can expect...',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Location (Optional)'),
+                _textField(
+                  _locationCtrl,
+                  'e.g. Central Park (Leave empty to use Ground location)',
+                  Icons.location_on_outlined,
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+                _sectionHeader(
+                  'Select Sport',
+                  Icons.sports_basketball_outlined,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _sportDropdown(),
+
+                const SizedBox(height: AppSpacing.l),
+                _sectionHeader('Event Privacy', Icons.security_outlined),
+                const SizedBox(height: AppSpacing.s),
+                Row(
+                  children: [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: const Text(
+                          'Public',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        subtitle: const Text(
+                          'Visible to everyone',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                        value: 'public',
+                        groupValue: _eventType,
+                        onChanged: (v) => setState(() => _eventType = v!),
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.primary,
+                      ),
+                    ),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: const Text(
+                          'Private',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        subtitle: const Text(
+                          'Hidden, invite only',
+                          style: TextStyle(fontSize: 10),
+                        ),
+                        value: 'private',
+                        groupValue: _eventType,
+                        onChanged: (v) => setState(() => _eventType = v!),
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+                _sectionHeader('Event Images', Icons.image_outlined),
+                const SizedBox(height: AppSpacing.m),
+                _buildImagePicker(),
+
                 const SizedBox(height: AppSpacing.l),
                 _sectionHeader('Select Ground *', Icons.map_outlined),
                 const SizedBox(height: AppSpacing.m),
                 _buildGroundSelector(),
 
                 const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Match Details', Icons.sports_outlined),
-                const SizedBox(height: AppSpacing.m),
-
-                _lbl('Match Title *'),
-                _textField(
-                  _titleCtrl,
-                  'e.g. Sunday Morning Friendly',
-                  Icons.title,
-                ),
-
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Sport Category'),
-                _sportDropdown(),
-
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Schedule', Icons.calendar_today_outlined),
+                _sectionHeader('Date & Time', Icons.calendar_today_outlined),
                 const SizedBox(height: AppSpacing.m),
 
                 Row(
@@ -192,20 +347,32 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                         _selectDate,
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.m),
+                    const SizedBox(width: AppSpacing.s),
                     Expanded(
                       child: _pickerTile(
-                        'Time',
+                        'Start',
                         _selectedTime.format(context),
                         Icons.access_time,
-                        _selectTime,
+                        () => _selectTime(true),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s),
+                    Expanded(
+                      child: _pickerTile(
+                        'End',
+                        _selectedEndTime.format(context),
+                        Icons.access_time_filled,
+                        () => _selectTime(false),
                       ),
                     ),
                   ],
                 ),
 
                 const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Participation', Icons.people_outline),
+                _sectionHeader(
+                  'Registration Settings',
+                  Icons.settings_outlined,
+                ),
                 const SizedBox(height: AppSpacing.m),
 
                 Row(
@@ -229,7 +396,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _lbl('Entry Fee (Optional)'),
+                          _lbl('Registration Fee'),
                           _textField(
                             _feeCtrl,
                             '0.00',
@@ -242,15 +409,64 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                   ],
                 ),
 
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Description', Icons.description_outlined),
                 const SizedBox(height: AppSpacing.m),
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.m),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        color: AppColors.primary,
+                        size: 24,
+                      ),
+                      const SizedBox(width: AppSpacing.s),
+                      Expanded(
+                        child: Text(
+                          'Earnings Notice: A 3% platform fee will be deducted for any paid events.',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+                _sectionHeader(
+                  'Rules & Safety',
+                  Icons.health_and_safety_outlined,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Event Rules'),
                 TextField(
-                  controller: _descCtrl,
-                  maxLines: 4,
+                  controller: _rulesCtrl,
+                  maxLines: 3,
                   decoration: InputDecoration(
                     hintText:
-                        'Add match rules, requirements or any other info...',
+                        'e.g. No metal spikes allowed. Bring your own kit...',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Safety Policy'),
+                TextField(
+                  controller: _safetyCtrl,
+                  maxLines: 3,
+                  decoration: InputDecoration(
+                    hintText: 'e.g. First aid available on site...',
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -260,34 +476,108 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                   ),
                 ),
 
+                const SizedBox(height: AppSpacing.l),
+                _sectionHeader(
+                  'Event Agenda (Optional)',
+                  Icons.view_timeline_outlined,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                ...List.generate(
+                  _scheduleControllers.length,
+                  (idx) => _buildScheduleRow(idx),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _scheduleControllers.add({
+                        'time': TextEditingController(),
+                        'title': TextEditingController(),
+                        'desc': TextEditingController(),
+                      });
+                    });
+                  },
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Add Agenda Item'),
+                ),
+
                 const SizedBox(height: AppSpacing.xxl),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: _isSubmitting
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : Text(
-                            'Organize Now',
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
+                AppButton(
+                  label: 'Organize Match',
+                  onPressed: _submit,
+                  isLoading: _isSubmitting,
                 ),
                 const SizedBox(height: AppSpacing.xxl),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Host a Match',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Invite other players to join your game at your favorite ground.',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildImagePicker() {
+    return GestureDetector(
+      onTap: _pickImage,
+      child: Container(
+        width: double.infinity,
+        height: 140,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: _pickedImage != null
+              ? Image.file(File(_pickedImage!.path), fit: BoxFit.cover)
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_photo_alternate_outlined,
+                      size: 40,
+                      color: AppColors.primary.withOpacity(0.5),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Click to upload an event image',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                    Text(
+                      'This image will be displayed on the event card',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textMuted,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
@@ -343,9 +633,19 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       height: 60,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[100],
+                        child: const Center(
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
                       errorWidget: (_, __, ___) => Container(
                         color: Colors.grey[200],
-                        child: const Icon(Icons.image),
+                        child: const Icon(Icons.image_outlined, size: 20),
                       ),
                     ),
                   ),
@@ -358,6 +658,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                           ground['name'] ?? 'Ground',
                           style: AppTextStyles.label.copyWith(
                             fontWeight: FontWeight.bold,
+                            fontSize: 11,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -366,6 +667,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                           'Rs. ${ground['price_per_hour']}/hr',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.primary,
+                            fontSize: 10,
                           ),
                         ),
                       ],
@@ -424,7 +726,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       borderRadius: BorderRadius.circular(14),
     ),
     child: DropdownButtonFormField<String>(
-      initialValue: _selectedSport,
+      value: _selectedSport,
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.sports_outlined),
         border: OutlineInputBorder(
@@ -469,6 +771,56 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleRow(int index) {
+    final s = _scheduleControllers[index];
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.m),
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Item ${index + 1}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                onPressed: () {
+                  setState(() {
+                    _scheduleControllers.removeAt(index);
+                  });
+                },
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              Expanded(
+                flex: 1,
+                child: _textField(s['time']!, 'Time', Icons.access_time),
+              ),
+              const SizedBox(width: AppSpacing.m),
+              Expanded(
+                flex: 2,
+                child: _textField(s['title']!, 'Title', Icons.title),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.m),
+          _textField(s['desc']!, 'Description', Icons.description_outlined),
         ],
       ),
     );

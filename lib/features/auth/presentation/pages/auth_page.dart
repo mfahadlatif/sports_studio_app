@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/auth/controller/auth_controller.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
@@ -120,73 +121,78 @@ class AuthPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.xl),
-          // Role Selection (Applied to Registration and Social Login)
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => controller.selectedRole.value = UserRole.user,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: controller.selectedRole.value == UserRole.user
-                          ? AppColors.primary
-                          : AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
+          if (!controller.isLogin.value) ...[
+            _lbl('Register as:'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => controller.selectedRole.value = UserRole.user,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
                         color: controller.selectedRole.value == UserRole.user
                             ? AppColors.primary
-                            : AppColors.border,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Player',
-                        style: TextStyle(
+                            : AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
                           color: controller.selectedRole.value == UserRole.user
-                              ? Colors.white
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
+                              ? AppColors.primary
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Player',
+                          style: TextStyle(
+                            color:
+                                controller.selectedRole.value == UserRole.user
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => controller.selectedRole.value = UserRole.owner,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      color: controller.selectedRole.value == UserRole.owner
-                          ? AppColors.primary
-                          : AppColors.background,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => controller.selectedRole.value = UserRole.owner,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
                         color: controller.selectedRole.value == UserRole.owner
                             ? AppColors.primary
-                            : AppColors.border,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Ground Owner',
-                        style: TextStyle(
+                            : AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
                           color: controller.selectedRole.value == UserRole.owner
-                              ? Colors.white
-                              : AppColors.textPrimary,
-                          fontWeight: FontWeight.bold,
+                              ? AppColors.primary
+                              : AppColors.border,
+                        ),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Ground Owner',
+                          style: TextStyle(
+                            color:
+                                controller.selectedRole.value == UserRole.owner
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.m),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.m),
+          ],
 
           if (!controller.isLogin.value) ...[
             TextField(
@@ -282,32 +288,12 @@ class AuthPage extends StatelessWidget {
             ),
           ],
           const SizedBox(height: AppSpacing.l),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              onPressed: controller.isLoading.value
-                  ? null
-                  : (controller.isLogin.value
-                        ? controller.login
-                        : controller.register),
-              child: controller.isLoading.value
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(
-                      controller.isLogin.value ? 'Login' : 'Sign Up',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-            ),
+          AppButton(
+            label: controller.isLogin.value ? 'Login' : 'Sign Up',
+            onPressed: controller.isLogin.value
+                ? controller.login
+                : controller.register,
+            isLoading: controller.isLoading.value,
           ),
         ],
       ),
@@ -434,6 +420,19 @@ class AuthPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _lbl(String text) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Text(
+        text,
+        style: AppTextStyles.label.copyWith(
+          fontWeight: FontWeight.bold,
+          color: AppColors.textPrimary,
+        ),
       ),
     );
   }

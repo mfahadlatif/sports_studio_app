@@ -135,6 +135,20 @@ class OwnerDashboardView extends StatelessWidget {
                       Colors.amber,
                       () => Get.toNamed('/review-moderation'),
                     ),
+                    _buildManagementCard(
+                      'Add Complex',
+                      Icons.add_business_outlined,
+                      AppColors.primary,
+                      () => Get.toNamed(
+                        '/add-complex',
+                      ), // Assuming this route exists
+                    ),
+                    _buildManagementCard(
+                      'Add Ground',
+                      Icons.add_location_alt_outlined,
+                      Colors.orange,
+                      () => Get.toNamed('/add-ground'),
+                    ),
                   ],
                 ),
               ),

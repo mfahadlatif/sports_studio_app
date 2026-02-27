@@ -110,52 +110,120 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         padding: const EdgeInsets.all(AppSpacing.l),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('User Details', style: AppTextStyles.h2),
-            const SizedBox(height: 16),
-            _detailRow('Name', user['name']),
-            _detailRow('Email', user['email']),
-            _detailRow('Phone', user['phone'] ?? 'N/A'),
-            _detailRow('Role', user['role']?.toString().toUpperCase()),
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Get.back(),
-                    child: const Text('Close'),
-                  ),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: AppSpacing.l),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                    ),
-                    onPressed: () {
-                      Get.back();
-                      Get.snackbar(
-                        'Action',
-                        'Ban/Deactivate feature coming soon',
-                      );
-                    },
-                    child: const Text(
-                      'Restrict User',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
+              ),
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('User Details', style: AppTextStyles.h2),
+                IconButton(
+                  onPressed: () => _confirmDelete(user),
+                  icon: const Icon(Icons.delete_outline, color: Colors.red),
                 ),
               ],
             ),
+            const SizedBox(height: AppSpacing.m),
+            _detailRow('Name', user['name']),
+            _detailRow('Email', user['email']),
+            _detailRow('Phone', user['phone'] ?? 'N/A'),
+            const SizedBox(height: AppSpacing.m),
+            const Text(
+              'Manage Role',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: ['user', 'owner', 'admin'].map((role) {
+                  final isCurrent = user['role'] == role;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(role.toUpperCase()),
+                      selected: isCurrent,
+                      onSelected: (selected) {
+                        if (selected && !isCurrent) {
+                          Get.back();
+                          _updateRole(user, role);
+                        }
+                      },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xl),
           ],
         ),
       ),
     );
+  }
+
+  void _confirmDelete(dynamic user) {
+    Get.defaultDialog(
+      title: 'Restrict User',
+      middleText:
+          'Are you sure you want to ban ${user['name']}? This will revoke all access.',
+      textConfirm: 'Ban User',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: Colors.red,
+      onConfirm: () {
+        Get.back();
+        Get.back(); // close bottom sheet
+        _deleteUser(user);
+      },
+    );
+  }
+
+  Future<void> _deleteUser(dynamic user) async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiClient().dio.delete('/admin/users/${user['id']}');
+      if (res.statusCode == 200) {
+        Get.snackbar('Success', 'User has been restricted');
+        _fetchUsers();
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to restrict user');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateRole(dynamic user, String newRole) async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiClient().dio.post(
+        '/admin/users/${user['id']}/role',
+        data: {'role': newRole},
+      );
+      if (res.statusCode == 200) {
+        Get.snackbar(
+          'Success',
+          'User role updated to ${newRole.toUpperCase()}',
+        );
+        _fetchUsers();
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update role');
+      setState(() => _isLoading = false);
+    }
   }
 
   Widget _detailRow(String lbl, String? val) {

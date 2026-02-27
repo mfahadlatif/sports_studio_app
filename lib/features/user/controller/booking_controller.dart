@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sports_studio/core/network/api_client.dart';
@@ -8,6 +9,8 @@ class BookingController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
   final RxList<String> selectedSlots = <String>[].obs;
   final RxBool isBooking = false.obs;
+  final RxInt players = 2.obs;
+  final double serviceFee = 2.0;
 
   final RxList<String> availableSlots = <String>[
     '09:00 AM',
@@ -26,6 +29,10 @@ class BookingController extends GetxController {
     '10:00 PM',
   ].obs;
 
+  final RxString promoCode = ''.obs;
+  final RxDouble discount = 0.0.obs;
+  final RxBool isCheckingPromo = false.obs;
+
   void selectDate(DateTime date) {
     selectedDate.value = date;
     selectedSlots.clear();
@@ -39,12 +46,57 @@ class BookingController extends GetxController {
     }
   }
 
-  double get totalPrice {
+  Future<void> applyPromoCode(String code) async {
+    if (code.isEmpty) return;
+    isCheckingPromo.value = true;
+    try {
+      final res = await ApiClient().dio.post(
+        '/validate-promo',
+        data: {'code': code},
+      );
+      if (res.statusCode == 200) {
+        final amount =
+            double.tryParse(res.data['discount_amount'].toString()) ?? 0.0;
+        discount.value = amount;
+        promoCode.value = code;
+        Get.snackbar(
+          'Success',
+          'Promo code applied!',
+          backgroundColor: const Color(0xFFDCFCE7),
+        );
+      } else {
+        Get.snackbar('Error', 'Invalid or expired promo code');
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Could not validate promo code');
+    } finally {
+      isCheckingPromo.value = false;
+    }
+  }
+
+  double get subtotal {
     final ground = Get.arguments;
     final price = ground != null
-        ? double.tryParse(ground['price_per_hour'].toString()) ?? 3000.0
-        : 3000.0;
+        ? double.tryParse(ground['price_per_hour'].toString()) ?? 100.0
+        : 100.0;
     return selectedSlots.length * price;
+  }
+
+  double get totalPrice {
+    final total = subtotal + serviceFee;
+    return (total - discount.value).clamp(0, double.infinity);
+  }
+
+  void incrementPlayers(int max) {
+    if (players.value < max) {
+      players.value++;
+    }
+  }
+
+  void decrementPlayers() {
+    if (players.value > 1) {
+      players.value--;
+    }
   }
 
   Future<void> createBooking() async {
@@ -75,10 +127,10 @@ class BookingController extends GetxController {
     isBooking.value = true;
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate.value);
-      final startTime = DateFormat(
+      final startTimeStr = DateFormat(
         'HH:mm',
       ).format(DateFormat('hh:mm a').parse(selectedSlots.first));
-      final endTime = DateFormat('HH:mm').format(
+      final endTimeStr = DateFormat('HH:mm').format(
         DateFormat(
           'hh:mm a',
         ).parse(selectedSlots.last).add(const Duration(hours: 1)),
@@ -86,11 +138,10 @@ class BookingController extends GetxController {
 
       final data = {
         'ground_id': ground['id'],
-        'date': formattedDate,
-        'start_time': startTime,
-        'end_time': endTime,
-        'total_amount': totalPrice,
-        'status': 'pending',
+        'start_time': '$formattedDate $startTimeStr:00',
+        'end_time': '$formattedDate $endTimeStr:00',
+        'total_price': totalPrice,
+        'players': players.value,
       };
 
       final response = await ApiClient().dio.post('/bookings', data: data);

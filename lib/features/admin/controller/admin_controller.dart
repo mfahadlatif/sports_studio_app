@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 
@@ -77,20 +78,34 @@ class AdminController extends GetxController {
           'Success',
           response.data['message'] ?? 'Storage link fixed successfully',
           snackPosition: SnackPosition.BOTTOM,
-        );
-      } else {
-        Get.snackbar(
-          'Error',
-          'Failed to fix storage link',
-          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFDCFCE7),
         );
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to connect to server: $e',
-        snackPosition: SnackPosition.BOTTOM,
+      Get.snackbar('Error', 'Failed to fix storage link');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> cleanupData(String type) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiClient().dio.post(
+        '/admin/cleanup',
+        data: {'type': type},
       );
+      if (response.statusCode == 200) {
+        Get.snackbar(
+          'Cleanup Successful',
+          response.data['message'] ?? 'Database optimized successfully',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: const Color(0xFFDCFCE7),
+        );
+        fetchAdminDashboard();
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Cleanup failed: $e');
     } finally {
       isLoading.value = false;
     }

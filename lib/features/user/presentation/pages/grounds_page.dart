@@ -86,7 +86,17 @@ class _GroundsPageState extends State<GroundsPage>
             child: Column(
               children: [
                 const SizedBox(height: AppSpacing.m),
-                _buildPremiumSearchBar(controller),
+                _buildPremiumSearchBar(
+                  'Search arenas...',
+                  Icons.search_outlined,
+                  controller,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _buildPremiumSearchBar(
+                  'Location...',
+                  Icons.map_outlined,
+                  controller,
+                ),
                 const SizedBox(height: AppSpacing.m),
                 _buildFastFilters(controller),
                 const SizedBox(height: AppSpacing.m),
@@ -148,7 +158,11 @@ class _GroundsPageState extends State<GroundsPage>
     );
   }
 
-  Widget _buildPremiumSearchBar(HomeController controller) {
+  Widget _buildPremiumSearchBar(
+    String hint,
+    IconData icon,
+    HomeController controller,
+  ) {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 900),
@@ -168,11 +182,11 @@ class _GroundsPageState extends State<GroundsPage>
           child: TextField(
             onChanged: (val) => controller.updateSearchQuery(val),
             decoration: InputDecoration(
-              hintText: 'Search by ground name or location...',
+              hintText: hint,
               hintStyle: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textMuted,
               ),
-              prefixIcon: const Icon(Icons.search, color: AppColors.primary),
+              prefixIcon: Icon(icon, color: AppColors.primary),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 15),
             ),

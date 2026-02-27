@@ -13,53 +13,78 @@ class AddGroundPage extends StatelessWidget {
     final controller = Get.put(AddGroundController());
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Add New Ground')),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(title: const Text('Add New Ground'), centerTitle: true),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(maxWidth: 700),
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.m),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildHeader(),
+                const SizedBox(height: AppSpacing.xl),
+
+                _sectionHeader('Ground Media', Icons.image_outlined),
+                const SizedBox(height: AppSpacing.m),
                 _buildImagePicker(),
                 const SizedBox(height: AppSpacing.l),
-                _buildTextField(
-                  'Ground Name',
-                  'Enter ground name',
+
+                _sectionHeader('Ground Details', Icons.info_outline),
+                const SizedBox(height: AppSpacing.m),
+
+                _lbl('Ground Name *'),
+                _textField(
+                  'e.g. Center Pitch 1',
                   Icons.sports_soccer,
                   textController: controller.nameController,
                 ),
                 const SizedBox(height: AppSpacing.m),
-                _buildTextField(
-                  'Location',
-                  'City, Area',
+
+                _lbl('Location / Area *'),
+                _textField(
+                  'e.g. Gulberg, Lahore',
                   Icons.location_on_outlined,
                   textController: controller.locationController,
                 ),
                 const SizedBox(height: AppSpacing.m),
-                _buildTextField(
-                  'Price per Hour',
+
+                _lbl('Price per Hour (Rs.) *'),
+                _textField(
                   'e.g. 3000',
                   Icons.payments_outlined,
                   keyboardType: TextInputType.number,
                   textController: controller.priceController,
                 ),
                 const SizedBox(height: AppSpacing.m),
-                _buildDropdownField('Sport Type', [
+
+                _lbl('Sport Category'),
+                _buildDropdownField([
                   'Cricket',
                   'Football',
                   'Tennis',
                   'Badminton',
                 ], controller),
+                const SizedBox(height: AppSpacing.l),
+
+                _sectionHeader('Description', Icons.description_outlined),
                 const SizedBox(height: AppSpacing.m),
-                _buildTextField(
-                  'Description',
-                  'Tell players about your ground...',
-                  null,
+                TextField(
+                  controller: controller.descriptionController,
                   maxLines: 4,
-                  textController: controller.descriptionController,
+                  decoration: InputDecoration(
+                    hintText: 'Describe your ground, facilities, etc...',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
                 ),
+                const SizedBox(height: AppSpacing.xxl),
+
                 _buildSubmitButton(controller),
                 const SizedBox(height: AppSpacing.xxl),
               ],
@@ -70,26 +95,45 @@ class AddGroundPage extends StatelessWidget {
     );
   }
 
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'List Your Ground',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Add a new sports arena to your complex and start receiving bookings.',
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildImagePicker() {
     return Container(
       height: 180,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.border,
-          width: 2,
-          style: BorderStyle.solid,
-        ),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
+          Icon(
             Icons.add_photo_alternate_outlined,
             size: 40,
-            color: AppColors.textMuted,
+            color: AppColors.primary.withOpacity(0.5),
           ),
           const SizedBox(height: 8),
           Text(
@@ -103,64 +147,70 @@ class AddGroundPage extends StatelessWidget {
     );
   }
 
-  Widget _buildTextField(
-    String label,
+  Widget _sectionHeader(String title, IconData icon) => Row(
+    children: [
+      Icon(icon, size: 18, color: AppColors.primary),
+      const SizedBox(width: 8),
+      Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
+      const SizedBox(width: 8),
+      Expanded(child: Divider(color: AppColors.primary.withOpacity(0.2))),
+    ],
+  );
+
+  Widget _lbl(String t) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      t,
+      style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+    ),
+  );
+
+  Widget _textField(
     String hint,
     IconData? icon, {
     TextInputType? keyboardType,
-    int maxLines = 1,
     TextEditingController? textController,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+    return TextField(
+      controller: textController,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: icon != null ? Icon(icon) : null,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide.none,
         ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: textController,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            prefixIcon: icon != null ? Icon(icon) : null,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildDropdownField(
-    String label,
     List<String> items,
     AddGroundController controller,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 8),
-        Obx(
-          () => DropdownButtonFormField<String>(
-            value: controller.selectedSport.value,
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            items: items
-                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                .toList(),
-            onChanged: (v) {
-              if (v != null) controller.selectedSport.value = v;
-            },
-            hint: const Text('Select Sport'),
+    return Obx(
+      () => DropdownButtonFormField<String>(
+        value: controller.selectedSport.value,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.sports_outlined),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
           ),
+          filled: true,
+          fillColor: Colors.white,
         ),
-      ],
+        items: items
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
+        onChanged: (v) {
+          if (v != null) controller.selectedSport.value = v;
+        },
+        hint: const Text('Select Sport'),
+      ),
     );
   }
 
@@ -173,6 +223,12 @@ class AddGroundPage extends StatelessWidget {
           onPressed: controller.isSubmitting.value
               ? null
               : () => controller.submit(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
           child: controller.isSubmitting.value
               ? const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -185,11 +241,17 @@ class AddGroundPage extends StatelessWidget {
                         strokeWidth: 2,
                       ),
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Text('Publishing...'),
                   ],
                 )
-              : const Text('Publish Ground'),
+              : Text(
+                  'Publish Ground',
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
         ),
       ),
     );

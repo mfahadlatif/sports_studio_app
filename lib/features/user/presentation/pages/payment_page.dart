@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -437,15 +438,10 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Widget _buildPayButton() {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _handlePayment,
-        child: _isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text('Proceed to Payment'),
-      ),
+    return AppButton(
+      label: 'Proceed to Payment',
+      onPressed: _handlePayment,
+      isLoading: _isLoading,
     );
   }
 }

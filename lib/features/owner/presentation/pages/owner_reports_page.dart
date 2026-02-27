@@ -19,6 +19,8 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
   List<dynamic> _revenueTrend = [];
   List<dynamic> _topGames = [];
   List<dynamic> _paymentBreakdown = [];
+  List<dynamic> _durationStats = [];
+  List<dynamic> _dayStats = [];
 
   @override
   void initState() {
@@ -39,6 +41,8 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
           _revenueTrend = data['revenue_trend'] ?? [];
           _topGames = data['top_games'] ?? [];
           _paymentBreakdown = data['payment_breakdown'] ?? [];
+          _durationStats = data['duration_stats'] ?? [];
+          _dayStats = data['day_stats'] ?? [];
         });
       }
     } catch (_) {
@@ -91,6 +95,20 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
             'count': 21,
             'percentage': 37,
           },
+        ];
+        _durationStats = [
+          {'duration': 1, 'count': 32, 'formatted_duration': '1.0 Hr'},
+          {'duration': 2, 'count': 12, 'formatted_duration': '2.0 Hr'},
+          {'duration': 3, 'count': 4, 'formatted_duration': '3.0 Hr'},
+        ];
+        _dayStats = [
+          {'day': 'Mon', 'count': 12},
+          {'day': 'Tue', 'count': 8},
+          {'day': 'Wed', 'count': 15},
+          {'day': 'Thu', 'count': 10},
+          {'day': 'Fri', 'count': 22},
+          {'day': 'Sat', 'count': 28},
+          {'day': 'Sun', 'count': 25},
         ];
       });
     } finally {
@@ -177,7 +195,6 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                       const SizedBox(height: AppSpacing.m),
                       _buildTopGames(),
                       const SizedBox(height: AppSpacing.l),
-
                       // Payment Breakdown
                       _buildSectionTitle(
                         'Payment Methods',
@@ -185,6 +202,24 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                       ),
                       const SizedBox(height: AppSpacing.m),
                       _buildPaymentBreakdown(),
+                      const SizedBox(height: AppSpacing.l),
+
+                      // Duration Stats
+                      _buildSectionTitle(
+                        'Duration Analysis',
+                        Icons.timer_outlined,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      _buildDurationStats(),
+                      const SizedBox(height: AppSpacing.l),
+
+                      // Day Analytics
+                      _buildSectionTitle(
+                        'Peak Days',
+                        Icons.calendar_view_week_outlined,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      _buildDayAnalytics(),
                       const SizedBox(height: AppSpacing.xxl),
                     ],
                   ),
@@ -511,6 +546,143 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                 ),
               ],
             ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildDurationStats() {
+    if (_durationStats.isEmpty) return _noData();
+    final maxCount = _durationStats.isEmpty
+        ? 1
+        : _durationStats
+              .map((e) => (e['count'] as num).toInt())
+              .reduce((a, b) => a > b ? a : b);
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: _durationStats.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: AppSpacing.m,
+        mainAxisSpacing: AppSpacing.m,
+        childAspectRatio: 1.1,
+      ),
+      itemBuilder: (context, index) {
+        final slot = _durationStats[index];
+        final count = (slot['count'] as num).toInt();
+        final isHot = count == maxCount && count > 0;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: isHot ? AppColors.primary.withOpacity(0.05) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isHot ? AppColors.primary : AppColors.border,
+              width: isHot ? 2 : 1,
+            ),
+            boxShadow: [
+              if (!isHot)
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 10,
+                ),
+            ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                slot['formatted_duration'] ?? '${slot['duration']} Hr',
+                style: AppTextStyles.label.copyWith(
+                  color: AppColors.textMuted,
+                  fontSize: 10,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                count.toString(),
+                style: AppTextStyles.h2.copyWith(
+                  color: isHot ? AppColors.primary : AppColors.textPrimary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const Text(
+                'bookings',
+                style: TextStyle(fontSize: 9, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDayAnalytics() {
+    if (_dayStats.isEmpty) return _noData();
+    final maxCount = _dayStats
+        .map((e) => (e['count'] as num).toInt())
+        .reduce((a, b) => a > b ? a : b);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: _dayStats.map((day) {
+          final count = (day['count'] as num).toInt();
+          final heightPct = count / (maxCount > 0 ? maxCount : 1);
+          final isPeak = count == maxCount;
+
+          return Column(
+            children: [
+              Text(
+                day['day'].substring(0, 1),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: 25,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    Container(
+                      height: 80 * heightPct,
+                      decoration: BoxDecoration(
+                        color: isPeak
+                            ? AppColors.primary
+                            : AppColors.primary.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                count.toString(),
+                style: TextStyle(
+                  fontSize: 10,
+                  color: isPeak ? AppColors.primary : AppColors.textMuted,
+                ),
+              ),
+            ],
           );
         }).toList(),
       ),

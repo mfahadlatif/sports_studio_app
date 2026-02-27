@@ -432,6 +432,26 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                             ),
                           ),
                         ),
+                      if (status == 'confirmed' && paymentStatus == 'paid')
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: _isUpdating
+                                ? null
+                                : () => _confirmDialog(
+                                    'Mark this booking as Completed?',
+                                    () => _updateStatus('completed'),
+                                  ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            icon: const Icon(Icons.verified_outlined),
+                            label: const Text('Mark as Completed'),
+                          ),
+                        ),
                     ],
                   ),
                 ),

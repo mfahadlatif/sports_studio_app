@@ -8,6 +8,7 @@ import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class OwnerBookingsView extends StatelessWidget {
   const OwnerBookingsView({super.key});
@@ -669,31 +670,10 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
 
                     // Submit
                     Obx(
-                      () => SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: widget.controller.isActioning.value
-                              ? null
-                              : () => _submit(ctx),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: widget.controller.isActioning.value
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                )
-                              : Text(
-                                  'Create Booking',
-                                  style: AppTextStyles.bodyLarge.copyWith(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
+                      () => AppButton(
+                        label: 'Create Booking',
+                        onPressed: () => _submit(ctx),
+                        isLoading: widget.controller.isActioning.value,
                       ),
                     ),
                     const SizedBox(height: AppSpacing.l),

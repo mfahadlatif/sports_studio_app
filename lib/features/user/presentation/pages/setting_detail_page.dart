@@ -6,6 +6,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class SettingDetailPage extends StatefulWidget {
   const SettingDetailPage({super.key});
@@ -71,49 +72,70 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        title: Text(title, style: AppTextStyles.h3),
-        centerTitle: true,
-        elevation: 0,
-      ),
+      appBar: AppBar(title: Text(title), centerTitle: true),
       body: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 600),
+          constraints: const BoxConstraints(maxWidth: 700),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.l),
+            padding: const EdgeInsets.all(AppSpacing.m),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildHeader(title),
+                const SizedBox(height: AppSpacing.xl),
                 if (isEditProfile)
                   _buildEditProfileForm()
                 else
                   _buildSecurityForm(),
                 const SizedBox(height: 40),
                 Obx(
-                  () => SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: controller.isLoading.value
-                          ? null
-                          : () => isEditProfile
-                                ? _handleUpdateProfile()
-                                : _handleChangePassword(),
-                      child: controller.isLoading.value
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              isEditProfile
-                                  ? 'Save Changes'
-                                  : 'Update Password',
-                            ),
-                    ),
+                  () => AppButton(
+                    label: isEditProfile ? 'Save Changes' : 'Update Password',
+                    onPressed: () => isEditProfile
+                        ? _handleUpdateProfile()
+                        : _handleChangePassword(),
+                    isLoading: controller.isLoading.value,
                   ),
                 ),
+                const SizedBox(height: AppSpacing.xxl),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader(String title) {
+    String subtitle = 'Manage your account settings and preferences.';
+    if (title == 'Edit Profile') {
+      subtitle =
+          'Update your personal information to keep your profile current.';
+    } else if (title.contains('Security')) {
+      subtitle =
+          'Ensure your account'
+          's safety by keeping your password secure.';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          subtitle,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ],
     );
   }
 
@@ -154,10 +176,7 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Change Password',
-          style: AppTextStyles.h3.copyWith(color: AppColors.primary),
-        ),
+        _sectionHeader('Change Password', Icons.lock_outline),
         const SizedBox(height: AppSpacing.m),
         _buildInputField(
           'Current Password',
@@ -183,6 +202,16 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
     );
   }
 
+  Widget _sectionHeader(String title, IconData icon) => Row(
+    children: [
+      Icon(icon, size: 18, color: AppColors.primary),
+      const SizedBox(width: 8),
+      Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
+      const SizedBox(width: 8),
+      Expanded(child: Divider(color: AppColors.primary.withOpacity(0.2))),
+    ],
+  );
+
   Widget _buildInputField(
     String label,
     TextEditingController controller,
@@ -193,11 +222,16 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: AppTextStyles.label.copyWith(color: AppColors.textPrimary),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Text(
+            label,
+            style: AppTextStyles.label.copyWith(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
         TextField(
           controller: controller,
           keyboardType: keyboardType,
@@ -206,13 +240,9 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
             prefixIcon: Icon(icon, color: AppColors.primary),
             filled: true,
             fillColor: Colors.white,
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide.none,
             ),
           ),
         ),
@@ -231,7 +261,12 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
 
   void _handleChangePassword() {
     if (newPasswordController.text != confirmPasswordController.text) {
-      Get.snackbar('Error', 'New passwords do not match');
+      Get.snackbar(
+        'Error',
+        'New passwords do not match',
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+      );
       return;
     }
     controller.changePassword(

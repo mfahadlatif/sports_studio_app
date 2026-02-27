@@ -8,6 +8,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:dio/dio.dart' as dio_form;
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class AddEditGroundPage extends StatefulWidget {
   const AddEditGroundPage({super.key});
@@ -336,41 +337,10 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 const SizedBox(height: AppSpacing.xxl),
 
                 // Submit button
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: _isSubmitting
-                        ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Text('Saving...'),
-                            ],
-                          )
-                        : Text(
-                            _isEdit ? 'Update Ground' : 'Publish Ground',
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
+                AppButton(
+                  label: _isEdit ? 'Update Ground' : 'Publish Ground',
+                  onPressed: _submit,
+                  isLoading: _isSubmitting,
                 ),
 
                 const SizedBox(height: AppSpacing.xxl),

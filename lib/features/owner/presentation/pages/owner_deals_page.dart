@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class OwnerDealsPage extends StatefulWidget {
   const OwnerDealsPage({super.key});
@@ -504,29 +505,10 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isSaving ? null : _save,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: _isSaving
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : Text(
-                                _isEdit ? 'Update Deal' : 'Create Deal',
-                                style: AppTextStyles.bodyLarge.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                      ),
+                    AppButton(
+                      label: _isEdit ? 'Update Deal' : 'Create Deal',
+                      onPressed: _save,
+                      isLoading: _isSaving,
                     ),
                     const SizedBox(height: AppSpacing.l),
                   ],
@@ -539,9 +521,12 @@ class _DealFormSheetState extends State<_DealFormSheet> {
     );
   }
 
-  Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.s),
-    child: Text(text, style: AppTextStyles.label),
+  Widget _label(String t) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      t,
+      style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+    ),
   );
 
   Widget _field(
@@ -556,7 +541,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
       hintText: hint,
       filled: true,
       fillColor: AppColors.background,
-      prefixIcon: icon != null ? Icon(icon) : null,
+      prefixIcon: icon != null ? Icon(icon, color: AppColors.primary) : null,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide.none,

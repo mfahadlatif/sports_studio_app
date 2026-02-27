@@ -165,7 +165,22 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
-                                child: Text(title, style: AppTextStyles.h1),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.emoji_events_outlined,
+                                      color: Colors.amber,
+                                      size: 32,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        title,
+                                        style: AppTextStyles.h1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                               if (event?['status'] != null)
                                 Container(
@@ -193,14 +208,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
                           // Date
                           _infoRow(
-                            Icons.calendar_today,
+                            Icons.calendar_month_outlined,
                             date.toString().length > 10
                                 ? date.toString().substring(0, 10)
                                 : date.toString(),
                           ),
                           const SizedBox(height: AppSpacing.s),
                           // Location
-                          _infoRow(Icons.location_on, location.toString()),
+                          _infoRow(Icons.map_outlined, location.toString()),
                           const SizedBox(height: AppSpacing.s),
                           // Fee
                           _infoRow(

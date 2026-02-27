@@ -4,6 +4,7 @@ import '../../controller/contact_controller.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
@@ -113,37 +114,21 @@ class _ContactPageState extends State<ContactPage> {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.l),
-                      SizedBox(
-                        width: double.infinity,
-                        child: Obx(
-                          () => ElevatedButton(
-                            onPressed: _controller.isLoading.value
-                                ? null
-                                : () async {
-                                    final success = await _controller
-                                        .submitContactForm(
-                                          name: _nameController.text,
-                                          email: _emailController.text,
-                                          message: _messageController.text,
-                                        );
-                                    if (success) {
-                                      _nameController.clear();
-                                      _emailController.clear();
-                                      _messageController.clear();
-                                    }
-                                  },
-                            child: _controller.isLoading.value
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : const Text('Send Message'),
-                          ),
-                        ),
+                      AppButton(
+                        label: 'Send Message',
+                        isLoading: _controller.isLoading.value,
+                        onPressed: () async {
+                          final success = await _controller.submitContactForm(
+                            name: _nameController.text,
+                            email: _emailController.text,
+                            message: _messageController.text,
+                          );
+                          if (success) {
+                            _nameController.clear();
+                            _emailController.clear();
+                            _messageController.clear();
+                          }
+                        },
                       ),
                     ],
                   ),

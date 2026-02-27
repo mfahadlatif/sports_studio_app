@@ -15,16 +15,16 @@ import 'package:sports_studio/features/user/presentation/pages/setting_detail_pa
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
 import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
-// User features
+import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
-// Owner features
 import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
@@ -132,7 +132,7 @@ class SportsStudioApp extends StatelessWidget {
         ),
         GetPage(
           name: '/user-bookings',
-          page: () => const OwnerBookingsView(),
+          page: () => const UserBookingsPage(),
           transition: Transition.rightToLeft,
         ),
         GetPage(
@@ -186,6 +186,11 @@ class SportsStudioApp extends StatelessWidget {
           name: '/review-moderation',
           page: () => const ReviewModerationPage(),
           transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/add-complex',
+          page: () => const AddComplexPage(),
+          transition: Transition.downToUp,
         ),
         // ── Admin Feature Routes ──────────────────────────────
         GetPage(

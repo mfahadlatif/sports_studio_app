@@ -56,11 +56,40 @@ class AdminDashboardView extends StatelessWidget {
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                child: _actionBtn(
-                  'Fix Image Storage Link',
-                  Icons.link_off,
-                  Colors.redAccent,
-                  () => controller.fixStorage(),
+                child: Column(
+                  children: [
+                    _maintenanceItem(
+                      'Fix Image Storage Link',
+                      'Repair broken symbolic links for media visibility',
+                      Icons.link_off,
+                      Colors.redAccent,
+                      () => controller.fixStorage(),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    _maintenanceItem(
+                      'Cleanup Bookings',
+                      'Purge cancelled/expired bookings older than 30 days',
+                      Icons.cleaning_services,
+                      Colors.blueAccent,
+                      () => _confirmAction(
+                        context,
+                        'Run Bookings Cleanup?',
+                        () => controller.cleanupData('bookings'),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    _maintenanceItem(
+                      'Cleanup Events',
+                      'Archive past matches and events older than 6 months',
+                      Icons.archive_outlined,
+                      Colors.orangeAccent,
+                      () => _confirmAction(
+                        context,
+                        'Run Events Cleanup?',
+                        () => controller.cleanupData('events'),
+                      ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -336,6 +365,58 @@ class AdminDashboardView extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _maintenanceItem(
+    String label,
+    String subtitle,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border.withOpacity(0.5)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+        trailing: const Icon(Icons.play_arrow, size: 16),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  void _confirmAction(
+    BuildContext context,
+    String title,
+    VoidCallback onConfirm,
+  ) {
+    Get.defaultDialog(
+      title: 'Confirm Operation',
+      middleText: title,
+      textConfirm: 'Proceed',
+      textCancel: 'Cancel',
+      confirmTextColor: Colors.white,
+      buttonColor: AppColors.primary,
+      onConfirm: () {
+        Get.back();
+        onConfirm();
+      },
     );
   }
 
