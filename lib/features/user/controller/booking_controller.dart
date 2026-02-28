@@ -12,7 +12,10 @@ class BookingController extends GetxController {
   final RxInt players = 2.obs;
   final double serviceFee = 2.0;
 
-  final RxList<String> availableSlots = <String>[
+  final RxList<String> allSlots = <String>[
+    '06:00 AM',
+    '07:00 AM',
+    '08:00 AM',
     '09:00 AM',
     '10:00 AM',
     '11:00 AM',
@@ -29,13 +32,76 @@ class BookingController extends GetxController {
     '10:00 PM',
   ].obs;
 
+  final RxList<String> bookedSlots = <String>[].obs;
+  final RxBool isLoadingSlots = false.obs;
+
   final RxString promoCode = ''.obs;
   final RxDouble discount = 0.0.obs;
   final RxBool isCheckingPromo = false.obs;
 
+  @override
+  void onInit() {
+    super.onInit();
+    final ground = Get.arguments;
+    if (ground != null && ground['id'] != null) {
+      fetchAvailability(ground['id']);
+    }
+  }
+
+  Future<void> fetchAvailability(int groundId) async {
+    isLoadingSlots.value = true;
+    try {
+      final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
+      final response = await ApiClient().dio.get(
+        '/public/grounds/$groundId/bookings?date=$dateStr',
+      );
+
+      final List bookings = response.data ?? [];
+      final List<String> booked = [];
+
+      for (var b in bookings) {
+        try {
+          final start = DateTime.parse(b['start_time']);
+          final end = DateTime.parse(b['end_time']);
+
+          // Identify which of our 1-hour slots overlap with this booking
+          for (var slotStr in allSlots) {
+            final slotTime = DateFormat('hh:mm a').parse(slotStr);
+            // Construct a DateTime for the slot on the selected date
+            final slotStart = DateTime(
+              selectedDate.value.year,
+              selectedDate.value.month,
+              selectedDate.value.day,
+              slotTime.hour,
+              slotTime.minute,
+            );
+            final slotEnd = slotStart.add(const Duration(hours: 1));
+
+            // Overlap check
+            if (slotStart.isBefore(end) && slotEnd.isAfter(start)) {
+              booked.add(slotStr);
+            }
+          }
+        } catch (e) {
+          print('Error parsing booking time: $e');
+        }
+      }
+
+      bookedSlots.value = booked.toSet().toList(); // Unique
+    } catch (e) {
+      print('Error fetching availability: $e');
+    } finally {
+      isLoadingSlots.value = false;
+    }
+  }
+
   void selectDate(DateTime date) {
     selectedDate.value = date;
     selectedSlots.clear();
+    final ground = Get.arguments;
+    if (ground != null && ground['id'] != null) {
+      fetchAvailability(ground['id']);
+    }
   }
 
   void toggleSlot(String slot) {

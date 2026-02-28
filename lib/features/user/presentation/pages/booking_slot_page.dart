@@ -295,7 +295,21 @@ class BookingSlotPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Available Slots', style: AppTextStyles.h3),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Available Slots', style: AppTextStyles.h3),
+              Obx(
+                () => controller.isLoadingSlots.value
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
           const SizedBox(height: AppSpacing.m),
           Expanded(
             child: Obx(
@@ -306,32 +320,41 @@ class BookingSlotPage extends StatelessWidget {
                   mainAxisSpacing: 10,
                   childAspectRatio: 2.2,
                 ),
-                itemCount: controller.availableSlots.length,
+                itemCount: controller.allSlots.length,
                 itemBuilder: (context, index) {
-                  final slot = controller.availableSlots[index];
+                  final slot = controller.allSlots[index];
                   final isSelected = controller.selectedSlots.contains(slot);
+                  final isBooked = controller.bookedSlots.contains(slot);
+
                   return GestureDetector(
-                    onTap: () => controller.toggleSlot(slot),
+                    onTap: isBooked ? null : () => controller.toggleSlot(slot),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : Colors.white,
+                        color: isBooked
+                            ? Colors.grey[300]
+                            : (isSelected ? AppColors.primary : Colors.white),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: isSelected
-                              ? AppColors.primary
-                              : AppColors.border,
+                          color: isBooked
+                              ? Colors.transparent
+                              : (isSelected
+                                    ? AppColors.primary
+                                    : AppColors.border),
                         ),
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        slot,
+                        isBooked ? 'TAKEN' : slot,
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: isSelected
-                              ? Colors.white
-                              : AppColors.textPrimary,
-                          fontWeight: isSelected
+                          color: isBooked
+                              ? AppColors.textMuted
+                              : (isSelected
+                                    ? Colors.white
+                                    : AppColors.textPrimary),
+                          fontWeight: (isSelected || isBooked)
                               ? FontWeight.bold
                               : FontWeight.normal,
+                          fontSize: isBooked ? 10 : null,
                         ),
                       ),
                     ),

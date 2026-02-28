@@ -8,6 +8,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/features/user/controller/profile_controller.dart';
 
 class AuthController extends GetxController {
   final RxBool isLogin = true.obs;
@@ -82,6 +83,12 @@ class AuthController extends GetxController {
         await storage.write(key: 'user_role', value: userRole.name);
 
         print('Navigating to home with role: $userRole');
+
+        // Update profile data immediately
+        if (Get.isRegistered<ProfileController>()) {
+          Get.find<ProfileController>().updateUserData(data['user'] ?? data);
+        }
+
         AppUtils.showSuccess(message: 'Logged in successfully');
         _navigateToHome(userRole);
       }
@@ -109,6 +116,11 @@ class AuthController extends GetxController {
   }
 
   void _navigateToHome(UserRole role) {
+    // Refresh profile data
+    if (Get.isRegistered<ProfileController>()) {
+      Get.find<ProfileController>().fetchProfile();
+    }
+
     // Ensure LandingController is available and set the role
     final landingController = Get.put(LandingController(), permanent: true);
     landingController.currentRole.value = role;
@@ -266,6 +278,11 @@ class AuthController extends GetxController {
           const storage = FlutterSecureStorage();
           await storage.write(key: 'user_role', value: userRole.name);
 
+          // Update profile data immediately
+          if (Get.isRegistered<ProfileController>()) {
+            Get.find<ProfileController>().updateUserData(data['user'] ?? data);
+          }
+
           _navigateToHome(userRole);
         }
       }
@@ -322,6 +339,11 @@ class AuthController extends GetxController {
         // Save role to storage
         const storage = FlutterSecureStorage();
         await storage.write(key: 'user_role', value: userRole.name);
+
+        // Update profile data immediately
+        if (Get.isRegistered<ProfileController>()) {
+          Get.find<ProfileController>().updateUserData(data['user'] ?? data);
+        }
 
         _navigateToHome(userRole);
       }

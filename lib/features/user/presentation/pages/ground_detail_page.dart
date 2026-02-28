@@ -47,6 +47,38 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
         controller.fetchGroundBySlug(args);
       }
     }
+
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _carouselTimer?.cancel();
+    _carouselTimer = Timer.periodic(const Duration(milliseconds: 3500), (
+      timer,
+    ) {
+      if (controller.groundDetails.isNotEmpty) {
+        int next = _currentPage.value + 1;
+        List images = controller.groundDetails['images'] ?? [];
+        if (next >= (images.isEmpty ? 1 : images.length)) {
+          next = 0;
+        }
+
+        if (_pageController.hasClients) {
+          _pageController.animateToPage(
+            next,
+            duration: const Duration(milliseconds: 800),
+            curve: Curves.easeInOutCubic,
+          );
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
 
   void _openMaps(double lat, double lng) async {

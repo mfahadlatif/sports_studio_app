@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:dio/dio.dart' as dio_lib;
 
 class PhoneVerificationController extends GetxController {
@@ -46,26 +46,15 @@ class PhoneVerificationController extends GetxController {
         phoneNumber.value = phone;
         String msg = response.data['message'] ?? 'Verification code sent';
 
-        // Show OTP in snackbar for easy testing if available in response
-        // if (response.data['otp'] != null && response.data['otp'] != '****') {
-        //   // msg += ". Code: ${response.data['otp']}";
-        // }
-
-        Get.snackbar(
-          'Success',
-          msg,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppColors.primary.withOpacity(0.1),
-          colorText: AppColors.primary,
-        );
+        AppUtils.showSuccess(title: 'Code Sent', message: msg);
         return true;
       }
       return false;
     } catch (e) {
       print('Request Verification Error: $e');
-      Get.snackbar(
-        'Error',
-        'Failed to request verification. Please try again later.',
+      AppUtils.showError(
+        title: 'Request Failed',
+        message: 'Failed to request verification. Please try again later.',
       );
       return false;
     } finally {
@@ -92,12 +81,9 @@ class PhoneVerificationController extends GetxController {
         final profileController = Get.find<ProfileController>();
         await profileController.fetchProfile();
 
-        Get.snackbar(
-          'Success',
-          'Phone verified successfully',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: AppColors.primary.withOpacity(0.1),
-          colorText: AppColors.primary,
+        AppUtils.showSuccess(
+          title: 'Verified',
+          message: 'Phone verified successfully',
         );
         return true;
       }
@@ -109,7 +95,7 @@ class PhoneVerificationController extends GetxController {
           e.response?.data != null) {
         errorMsg = e.response?.data['message'] ?? errorMsg;
       }
-      Get.snackbar('Error', errorMsg);
+      AppUtils.showError(title: 'Verification Failed', message: errorMsg);
       return false;
     } finally {
       isLoading.value = false;

@@ -1,6 +1,8 @@
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart' as dio_form;
 
 class ProfileController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -17,13 +19,17 @@ class ProfileController extends GetxController {
     try {
       final response = await ApiClient().dio.get('/me');
       if (response.statusCode == 200) {
-        userProfile.value = response.data['user'] ?? response.data;
+        updateUserData(response.data['user'] ?? response.data);
       }
     } catch (e) {
       print('Failed to fetch profile: $e');
     } finally {
       isLoading.value = false;
     }
+  }
+
+  void updateUserData(Map<String, dynamic> data) {
+    userProfile.value = data;
   }
 
   Future<void> updateProfile({
@@ -45,7 +51,7 @@ class ProfileController extends GetxController {
       );
 
       if (response.statusCode == 200) {
-        userProfile.value = response.data['user'];
+        updateUserData(response.data['user'] ?? response.data);
         Get.back();
         AppUtils.showSuccess(message: 'Profile updated successfully');
       }
@@ -81,6 +87,39 @@ class ProfileController extends GetxController {
         message:
             'Failed to change password. Ensure current password is correct.',
       );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> updateAvatar() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+        maxWidth: 500,
+      );
+
+      if (image == null) return;
+
+      isLoading.value = true;
+      dio_form.FormData formData = dio_form.FormData.fromMap({
+        'avatar': await dio_form.MultipartFile.fromFile(
+          image.path,
+          filename: 'avatar.jpg',
+        ),
+      });
+
+      final response = await ApiClient().dio.post('/profile', data: formData);
+
+      if (response.statusCode == 200) {
+        userProfile.value = response.data['user'] ?? response.data;
+        AppUtils.showSuccess(message: 'Profile picture updated');
+      }
+    } catch (e) {
+      print('Avatar update error: $e');
+      AppUtils.showError(message: 'Failed to update profile picture');
     } finally {
       isLoading.value = false;
     }

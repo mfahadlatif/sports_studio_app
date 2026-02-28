@@ -4,6 +4,8 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/auth/controller/phone_verification_controller.dart';
+import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class PhoneVerificationDialog extends StatefulWidget {
   final String initialPhone;
@@ -84,31 +86,24 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.l),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: controller.isLoading.value
-                        ? null
-                        : () async {
-                            final success = await controller
-                                .requestVerification(
-                                  phoneController.text.trim(),
-                                );
-                            if (success) {
-                              setState(() => showOtpField = true);
-                            }
-                          },
-                    child: controller.isLoading.value
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Send Verification Code'),
-                  ),
+                AppButton(
+                  label: 'Send Verification Code',
+                  isLoading: controller.isLoading.value,
+                  onPressed: () async {
+                    if (phoneController.text.trim().isEmpty) {
+                      AppUtils.showWarning(
+                        message: 'Please enter your phone number',
+                      );
+                      return;
+                    }
+                    FocusScope.of(context).unfocus();
+                    final success = await controller.requestVerification(
+                      phoneController.text.trim(),
+                    );
+                    if (success) {
+                      setState(() => showOtpField = true);
+                    }
+                  },
                 ),
               ] else ...[
                 Text('Enter 6-digit Code', style: AppTextStyles.label),
@@ -140,36 +135,39 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextButton(
+                      child: OutlinedButton(
                         onPressed: () => setState(() => showOtpField = false),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
                         child: const Text('Edit Number'),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.m),
                     Expanded(
-                      child: ElevatedButton(
-                        onPressed: controller.isLoading.value
-                            ? null
-                            : () async {
-                                final success = await controller.verifyPhone(
-                                  phoneController.text.trim(),
-                                  otpController.text.trim(),
-                                );
-                                if (success) {
-                                  widget.onVerified();
-                                  Get.back();
-                                }
-                              },
-                        child: controller.isLoading.value
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Text('Verify'),
+                      child: AppButton(
+                        label: 'Verify',
+                        isLoading: controller.isLoading.value,
+                        onPressed: () async {
+                          if (otpController.text.trim().length < 4) {
+                            AppUtils.showWarning(
+                              message: 'Please enter the code sent to you',
+                            );
+                            return;
+                          }
+                          FocusScope.of(context).unfocus();
+                          final success = await controller.verifyPhone(
+                            phoneController.text.trim(),
+                            otpController.text.trim(),
+                          );
+                          if (success) {
+                            widget.onVerified();
+                            Get.back();
+                          }
+                        },
                       ),
                     ),
                   ],

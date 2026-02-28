@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 
 class BookingsController extends GetxController {
@@ -8,6 +9,9 @@ class BookingsController extends GetxController {
   final RxList<dynamic> upcomingBookings = <dynamic>[].obs;
   final RxList<dynamic> pastBookings = <dynamic>[].obs;
   final RxList<dynamic> cancelledBookings = <dynamic>[].obs;
+
+  // New list to hold raw combined data if needed
+  final RxList<dynamic> allData = <dynamic>[].obs;
 
   @override
   void onInit() {
@@ -18,22 +22,95 @@ class BookingsController extends GetxController {
   Future<void> fetchBookings() async {
     isLoading.value = true;
     try {
-      final response = await ApiClient().dio.get('/bookings');
-      if (response.statusCode == 200) {
-        final List data = response.data['data'] ?? [];
-        upcomingBookings.value = data
-            .where(
-              (b) => b['status'] == 'confirmed' || b['status'] == 'pending',
+      final token = await ApiClient().storage.read(key: 'auth_token');
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      };
+
+      // 1. Fetch Ground Bookings
+      final bookingResponse = await ApiClient().dio.get(
+        '/bookings',
+        options: Options(headers: headers),
+      );
+      final List groundBookingsRaw = (bookingResponse.data is Map)
+          ? (bookingResponse.data['data'] ?? [])
+          : (bookingResponse.data ?? []);
+
+      final groundBookings = groundBookingsRaw
+          .map(
+            (b) => {
+              ...b,
+              'type': 'ground',
+              'display_name': b['ground']?['name'] ?? 'Ground',
+              'sport_type': b['ground']?['type'] ?? 'Sports',
+              'start': b['start_time'],
+              'end': b['end_time'],
+              'price': b['total_price'] ?? b['total_amount'] ?? 0,
+            },
+          )
+          .toList();
+
+      // 2. Fetch Event Participations
+      List eventParticipations = [];
+      try {
+        final eventResponse = await ApiClient().dio.get(
+          '/event-participants',
+          options: Options(headers: headers),
+        );
+        final List eventDataRaw = (eventResponse.data is Map)
+            ? (eventResponse.data['data'] ?? [])
+            : (eventResponse.data ?? []);
+
+        eventParticipations = eventDataRaw
+            .map(
+              (p) => {
+                ...p,
+                'type': 'event',
+                'display_name': p['event']?['name'] ?? 'Event',
+                'sport_type': 'Event',
+                'start': p['event']?['start_time'],
+                'end': p['event']?['end_time'],
+                'price': p['event']?['registration_fee'] ?? 0,
+                'status': p['status'] == 'accepted'
+                    ? 'confirmed'
+                    : (p['status'] == 'pending' ? 'pending' : 'cancelled'),
+              },
             )
             .toList();
-        pastBookings.value = data
-            .where((b) => b['status'] == 'completed')
-            .toList();
-        cancelledBookings.value = data
-            .where((b) => b['status'] == 'cancelled')
-            .toList();
+      } catch (e) {
+        print('Error fetching event participations: $e');
       }
+
+      final List combined = [...groundBookings, ...eventParticipations];
+
+      // Sort by date descending
+      combined.sort((a, b) {
+        final dateA = DateTime.tryParse(a['start'] ?? '') ?? DateTime.now();
+        final dateB = DateTime.tryParse(b['start'] ?? '') ?? DateTime.now();
+        return dateB.compareTo(dateA);
+      });
+
+      allData.value = combined;
+
+      upcomingBookings.value = combined.where((b) {
+        final status = b['status']?.toString().toLowerCase();
+        return status == 'confirmed' ||
+            status == 'pending' ||
+            status == 'accepted';
+      }).toList();
+
+      pastBookings.value = combined.where((b) {
+        final status = b['status']?.toString().toLowerCase();
+        return status == 'completed';
+      }).toList();
+
+      cancelledBookings.value = combined.where((b) {
+        final status = b['status']?.toString().toLowerCase();
+        return status == 'cancelled' || status == 'rejected';
+      }).toList();
     } catch (e) {
+      print('Fetch Bookings Error: $e');
       Get.snackbar('Error', 'Failed to fetch bookings');
     } finally {
       isLoading.value = false;

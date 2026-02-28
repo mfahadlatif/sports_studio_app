@@ -10,6 +10,7 @@ class ApiClient {
   // static const String baseUrl = 'http://10.0.2.2/cricket-oasis-bookings/backend/public/api';
   final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  FlutterSecureStorage get storage => _storage;
 
   ApiClient()
     : _dio = Dio(

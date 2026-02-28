@@ -17,7 +17,12 @@ class EventsPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('All Events'), centerTitle: true),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Get.toNamed('/create-match'),
+        onPressed: () async {
+          final result = await Get.toNamed('/create-match');
+          if (result == true) {
+            controller.fetchEvents();
+          }
+        },
         label: const Text('Organize Match'),
         icon: const Icon(Icons.add),
         backgroundColor: AppColors.primary,

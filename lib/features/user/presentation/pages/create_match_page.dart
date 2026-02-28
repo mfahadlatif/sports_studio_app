@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -162,6 +163,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     }
 
     setState(() => _isSubmitting = true);
+    print('Starting match submission...');
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
       final timeStr =
@@ -180,22 +182,23 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           .toList();
 
       final Map<String, dynamic> dataMap = {
-        'name': _titleCtrl.text,
-        'description': _descCtrl.text,
-        'location': _locationCtrl.text,
+        'name': _titleCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
+        'location': _locationCtrl.text.trim(),
         'start_time': '$dateStr $timeStr',
         'end_time': '$dateStr $endTimeStr',
         'game_id': 1, // Default game ID
         'ground_id': _selectedGround['id'],
         'registration_fee': double.tryParse(_feeCtrl.text) ?? 0,
         'max_participants': int.tryParse(_limitCtrl.text) ?? 22,
-        'rules': _rulesCtrl.text,
-        'safety_policy': _safetyCtrl.text,
-        'schedule': scheduleData.isEmpty ? '[]' : scheduleData.toString(),
+        'rules': _rulesCtrl.text.trim(),
+        'safety_policy': _safetyCtrl.text.trim(),
+        'schedule': scheduleData.isEmpty ? '[]' : jsonEncode(scheduleData),
         'status': 'published',
         'event_type': _eventType,
       };
 
+      print('Payload: $dataMap');
       dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
 
       if (_pickedImages.isNotEmpty) {
@@ -212,21 +215,56 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         }
       }
 
+      print('Sending POST request to /events...');
       final res = await ApiClient().dio.post('/events', data: formData);
+      print('Response: ${res.statusCode} - ${res.data}');
 
       if (res.statusCode == 200 || res.statusCode == 201) {
+        Get.closeAllSnackbars();
         Get.snackbar(
           'Success',
           'Match organized successfully!',
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 3),
+          margin: const EdgeInsets.all(16),
         );
-        Get.back(result: true);
+        // Wait longer so user can see the snackbar
+        await Future.delayed(const Duration(seconds: 2));
+        if (mounted) Get.back(result: true);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to create event: $e');
+      print('Submit error: $e');
+      String msg = 'Something went wrong';
+      if (e is dio_form.DioException) {
+        final errorData = e.response?.data;
+        if (errorData is Map) {
+          if (errorData['errors'] != null && errorData['errors'] is Map) {
+            // Extract first validation error
+            final errors = errorData['errors'] as Map;
+            if (errors.isNotEmpty) {
+              msg = errors.values.first[0].toString();
+            }
+          } else {
+            msg = errorData['message'] ?? e.message ?? msg;
+          }
+        } else {
+          msg = e.message ?? msg;
+        }
+      } else {
+        msg = e.toString();
+      }
+      Get.snackbar(
+        'Error',
+        'Failed to create event: $msg',
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red,
+        snackPosition: SnackPosition.TOP,
+        duration: const Duration(seconds: 5),
+      );
     } finally {
-      setState(() => _isSubmitting = false);
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -343,33 +381,36 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                 _sectionHeader('Date & Time', Icons.calendar_today_outlined),
                 const SizedBox(height: AppSpacing.m),
 
-                Row(
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: _pickerTile(
-                        'Date',
-                        DateFormat('MMM dd, yyyy').format(_selectedDate),
-                        Icons.calendar_month,
-                        _selectDate,
-                      ),
+                    _pickerTile(
+                      'Match Date',
+                      DateFormat('EEEE, MMM dd, yyyy').format(_selectedDate),
+                      Icons.calendar_month,
+                      _selectDate,
                     ),
-                    const SizedBox(width: AppSpacing.s),
-                    Expanded(
-                      child: _pickerTile(
-                        'Start',
-                        _selectedTime.format(context),
-                        Icons.access_time,
-                        () => _selectTime(true),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.s),
-                    Expanded(
-                      child: _pickerTile(
-                        'End',
-                        _selectedEndTime.format(context),
-                        Icons.access_time_filled,
-                        () => _selectTime(false),
-                      ),
+                    const SizedBox(height: AppSpacing.m),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _pickerTile(
+                            'Start Time',
+                            _selectedTime.format(context),
+                            Icons.access_time,
+                            () => _selectTime(true),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.m),
+                        Expanded(
+                          child: _pickerTile(
+                            'End Time',
+                            _selectedEndTime.format(context),
+                            Icons.access_time_filled,
+                            () => _selectTime(false),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

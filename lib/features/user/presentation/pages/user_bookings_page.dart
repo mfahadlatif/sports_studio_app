@@ -120,14 +120,36 @@ class _BookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final groundName = booking['ground']?['name'] ?? 'Ground';
-    final groundType = (booking['ground']?['type'] ?? 'Sports')
+    final isEvent = booking['type'] == 'event';
+    final displayName = booking['display_name'] ?? 'Booking';
+    final sportType = (booking['sport_type'] ?? 'Sports')
         .toString()
         .toUpperCase();
-    final date = booking['date'] ?? '';
-    final startTime = booking['start_time'] ?? '';
-    final endTime = booking['end_time'] ?? '';
-    final totalAmount = booking['total_amount'] ?? booking['total_price'] ?? 0;
+
+    // Extract date/time from start/end
+    String dateStr = '';
+    String timeRange = '';
+
+    try {
+      if (booking['start'] != null) {
+        final startDt = DateTime.parse(booking['start']);
+        dateStr = DateFormat('MMM dd, yyyy').format(startDt);
+
+        final startTime = DateFormat('hh:mm a').format(startDt);
+        if (booking['end'] != null) {
+          final endDt = DateTime.parse(booking['end']);
+          final endTime = DateFormat('hh:mm a').format(endDt);
+          timeRange = '$startTime - $endTime';
+        } else {
+          timeRange = startTime;
+        }
+      }
+    } catch (e) {
+      dateStr = booking['date'] ?? 'TBD';
+      timeRange = '${booking['start_time']} - ${booking['end_time']}';
+    }
+
+    final totalAmount = booking['price'] ?? 0;
     final status = booking['status'] ?? 'pending';
     final paymentStatus = booking['payment_status'] ?? 'unpaid';
 
@@ -181,7 +203,7 @@ class _BookingCard extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      _getSportEmoji(groundType),
+                      isEvent ? '🎟️' : _getSportEmoji(sportType),
                       style: const TextStyle(fontSize: 30),
                     ),
                   ),
@@ -204,7 +226,7 @@ class _BookingCard extends StatelessWidget {
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
-                              groundType,
+                              isEvent ? 'EVENT' : sportType,
                               style: AppTextStyles.label.copyWith(
                                 color: AppColors.primary,
                                 fontSize: 10,
@@ -220,7 +242,7 @@ class _BookingCard extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(groundName, style: AppTextStyles.h3),
+                      Text(displayName, style: AppTextStyles.h3),
                       const SizedBox(height: 4),
                       Text(
                         'Booking ID: #${booking['id']}',
@@ -239,15 +261,18 @@ class _BookingCard extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.l),
             child: Row(
               children: [
-                _InfoItem(Icons.calendar_today_outlined, date),
+                _InfoItem(Icons.calendar_today_outlined, dateStr),
                 const SizedBox(width: AppSpacing.l),
-                _InfoItem(Icons.access_time, '$startTime - $endTime'),
+                _InfoItem(Icons.access_time, timeRange),
                 const SizedBox(width: AppSpacing.l),
-                _InfoItem(
-                  Icons.payment_outlined,
-                  paymentStatus.toString().toUpperCase(),
-                  color: paymentStatus == 'paid' ? Colors.green : Colors.orange,
-                ),
+                if (!isEvent)
+                  _InfoItem(
+                    Icons.payment_outlined,
+                    paymentStatus.toString().toUpperCase(),
+                    color: paymentStatus == 'paid'
+                        ? Colors.green
+                        : Colors.orange,
+                  ),
               ],
             ),
           ),
@@ -281,7 +306,7 @@ class _BookingCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (status == 'pending' || status == 'confirmed')
+                if (!isEvent && (status == 'pending' || status == 'confirmed'))
                   _CancelButton(
                     onPressed: () => _confirmCancel(context, booking),
                   ),
