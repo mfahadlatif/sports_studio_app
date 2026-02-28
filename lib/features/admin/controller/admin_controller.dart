@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class AdminController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -74,15 +74,13 @@ class AdminController extends GetxController {
     try {
       final response = await ApiClient().dio.post('/admin/fix-storage');
       if (response.statusCode == 200) {
-        Get.snackbar(
-          'Success',
-          response.data['message'] ?? 'Storage link fixed successfully',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFDCFCE7),
+        AppUtils.showSuccess(
+          message:
+              response.data['message'] ?? 'Storage link fixed successfully',
         );
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fix storage link');
+      AppUtils.showError(message: 'Failed to fix storage link');
     } finally {
       isLoading.value = false;
     }
@@ -96,16 +94,15 @@ class AdminController extends GetxController {
         data: {'type': type},
       );
       if (response.statusCode == 200) {
-        Get.snackbar(
-          'Cleanup Successful',
-          response.data['message'] ?? 'Database optimized successfully',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: const Color(0xFFDCFCE7),
+        AppUtils.showSuccess(
+          title: 'Cleanup Successful',
+          message:
+              response.data['message'] ?? 'Database optimized successfully',
         );
         fetchAdminDashboard();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Cleanup failed: $e');
+      AppUtils.showError(message: 'Cleanup failed: $e');
     } finally {
       isLoading.value = false;
     }

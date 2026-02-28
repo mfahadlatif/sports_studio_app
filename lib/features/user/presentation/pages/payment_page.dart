@@ -9,6 +9,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -66,13 +67,13 @@ class _PaymentPageState extends State<PaymentPage> {
             _discountPercentage =
                 double.tryParse(deal['discount_percentage'].toString()) ?? 0;
           });
-          Get.snackbar('Success', 'Promo code applied: ${deal['title']}');
+          AppUtils.showSuccess(message: 'Promo code applied: ${deal['title']}');
         } else {
-          Get.snackbar('Error', 'Invalid promo code');
+          AppUtils.showError(message: 'Invalid promo code');
         }
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to validate promo code');
+      AppUtils.showError(message: 'Failed to validate promo code');
     } finally {
       setState(() => _isPromoLoading = false);
     }
@@ -166,9 +167,9 @@ class _PaymentPageState extends State<PaymentPage> {
               totalPaid: amount,
             );
           } else {
-            Get.snackbar(
-              'Payment Cancelled',
-              'You cancelled the checkout process.',
+            AppUtils.showInfo(
+              title: 'Payment Cancelled',
+              message: 'You cancelled the checkout process.',
             );
           }
         }
@@ -177,7 +178,7 @@ class _PaymentPageState extends State<PaymentPage> {
       }
     } catch (e) {
       AppLoadingOverlay.hide(context);
-      Get.snackbar('Error', 'Payment failed: $e');
+      AppUtils.showError(message: 'Payment failed: $e');
     }
   }
 
@@ -207,14 +208,11 @@ class _PaymentPageState extends State<PaymentPage> {
       );
 
       AppLoadingOverlay.hide(context);
-      Get.offAllNamed('/landing'); // Changed to /landing as per instruction
-      Get.snackbar('Success', 'Booking confirmed!'); // Simplified snackbar
+      Get.offAllNamed('/landing');
+      AppUtils.showSuccess(message: 'Booking confirmed! Enjoy your match.');
     } catch (e) {
       AppLoadingOverlay.hide(context);
-      Get.snackbar(
-        'Error',
-        'Failed to confirm booking: $e',
-      ); // Updated error message
+      AppUtils.showError(message: 'Failed to confirm booking: $e');
     }
   }
 

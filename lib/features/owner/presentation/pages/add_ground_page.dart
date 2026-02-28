@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -106,8 +105,32 @@ class AddGroundPage extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.l),
 
+                _sectionHeader('Operating Hours', Icons.schedule_outlined),
+                const SizedBox(height: AppSpacing.m),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTimePicker(
+                        context,
+                        'Opening Time',
+                        controller.openingTime,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.m),
+                    Expanded(
+                      child: _buildTimePicker(
+                        context,
+                        'Closing Time',
+                        controller.closingTime,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.l),
+
                 _sectionHeader('Amenities', Icons.checklist_outlined),
                 const SizedBox(height: AppSpacing.m),
+                _lbl('Select amenities available at this specific ground'),
                 _buildAmenitiesSelection(controller),
                 const SizedBox(height: AppSpacing.l),
 
@@ -138,28 +161,119 @@ class AddGroundPage extends StatelessWidget {
     );
   }
 
+  Widget _buildTimePicker(
+    BuildContext context,
+    String label,
+    Rx<TimeOfDay> time,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _lbl(label),
+        Obx(
+          () => InkWell(
+            onTap: () async {
+              final picked = await showTimePicker(
+                context: context,
+                initialTime: time.value,
+              );
+              if (picked != null) time.value = picked;
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border.withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    time.value.format(context),
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAmenitiesSelection(AddGroundController controller) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: controller.amenitiesList.entries.map((entry) {
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 2.2,
+      ),
+      itemCount: controller.amenitiesList.length,
+      itemBuilder: (context, index) {
+        final entry = controller.amenitiesList.entries.elementAt(index);
         return Obx(() {
           final isSelected = controller.selectedAmenities.contains(entry.key);
-          return FilterChip(
-            label: Text('${entry.value} ${entry.key}'),
-            selected: isSelected,
-            onSelected: (selected) {
-              if (selected) {
-                controller.selectedAmenities.add(entry.key);
-              } else {
+          return InkWell(
+            onTap: () {
+              if (isSelected) {
                 controller.selectedAmenities.remove(entry.key);
+              } else {
+                controller.selectedAmenities.add(entry.key);
               }
             },
-            selectedColor: AppColors.primary.withOpacity(0.2),
-            checkmarkColor: AppColors.primary,
+            child: Container(
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : AppColors.border.withOpacity(0.5),
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(entry.value, style: const TextStyle(fontSize: 14)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      entry.key,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected
+                            ? Colors.white
+                            : AppColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
         });
-      }).toList(),
+      },
     );
   }
 

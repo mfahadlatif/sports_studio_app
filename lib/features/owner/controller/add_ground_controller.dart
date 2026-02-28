@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class AddGroundController extends GetxController {
   final nameController = TextEditingController();
@@ -19,6 +21,9 @@ class AddGroundController extends GetxController {
   final RxList<File> pickedImages = <File>[].obs;
   final RxBool isSubmitting = false.obs;
 
+  final Rx<TimeOfDay> openingTime = const TimeOfDay(hour: 6, minute: 0).obs;
+  final Rx<TimeOfDay> closingTime = const TimeOfDay(hour: 23, minute: 0).obs;
+
   final ImagePicker _picker = ImagePicker();
 
   Future<void> pickImages() async {
@@ -34,15 +39,23 @@ class AddGroundController extends GetxController {
     }
   }
 
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
   final Map<String, String> amenitiesList = {
-    'Wifi': '📡',
-    'Parking': '🚗',
-    'Changing Room': '👕',
-    'Showers': '🚿',
+    'Wifi': '📶',
+    'Parking': '🅿️',
+    'Changing Room': '🚿',
+    'Showers': '🧼',
     'Floodlights': '💡',
     'First Aid': '🏥',
     'Drinking Water': '💧',
     'Cafe': '☕',
+    'Lockers': '🔐',
+    'Equipment': '🎯',
   };
 
   @override
@@ -60,7 +73,9 @@ class AddGroundController extends GetxController {
 
   Future<void> submit() async {
     if (nameController.text.isEmpty || priceController.text.isEmpty) {
-      Get.snackbar('Error', 'Please fill required fields (Name and Price)');
+      AppUtils.showError(
+        message: 'Please fill required fields (Name and Price)',
+      );
       return;
     }
 
@@ -68,7 +83,7 @@ class AddGroundController extends GetxController {
     try {
       final groundsController = Get.find<GroundsController>();
 
-      final data = {
+      final Map<String, dynamic> dataMap = {
         'name': nameController.text,
         'location': locationController.text,
         'price_per_hour': double.tryParse(priceController.text) ?? 0,
@@ -80,18 +95,29 @@ class AddGroundController extends GetxController {
         'cancellation_policy': cancellationPolicyController.text,
         'amenities': selectedAmenities.toList(),
         'status': 'active',
+        'opening_time': _formatTime(openingTime.value),
+        'closing_time': _formatTime(closingTime.value),
         'complex_id': groundsController.complexes.isNotEmpty
             ? groundsController.complexes.first.id
             : 1,
       };
 
-      final success = await groundsController.createGround(data);
+      final formData = dio.FormData.fromMap(dataMap);
+
+      // Add Images
+      for (var image in pickedImages) {
+        formData.files.add(
+          MapEntry('images[]', await dio.MultipartFile.fromFile(image.path)),
+        );
+      }
+
+      final success = await groundsController.createGround(formData);
       if (success) {
         Get.back();
-        Get.snackbar('Success', 'Ground published successfully!');
+        AppUtils.showSuccess(message: 'Ground published successfully!');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to publish ground: $e');
+      AppUtils.showError(message: 'Failed to publish ground: $e');
     } finally {
       isSubmitting.value = false;
     }

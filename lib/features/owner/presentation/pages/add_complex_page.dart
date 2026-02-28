@@ -7,6 +7,7 @@ import 'package:sports_studio/core/network/api_client.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as dio_form;
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class AddComplexPage extends StatefulWidget {
   const AddComplexPage({super.key});
@@ -45,12 +46,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
 
   Future<void> _submit() async {
     if (_nameCtrl.text.isEmpty || _addressCtrl.text.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please fill name and address',
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
+      AppUtils.showError(message: 'Please fill name and address');
       return;
     }
 
@@ -85,15 +81,10 @@ class _AddComplexPageState extends State<AddComplexPage> {
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         Get.back(result: true);
-        Get.snackbar(
-          'Success',
-          'Complex created successfully!',
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-        );
+        AppUtils.showSuccess(message: 'Complex created successfully!');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to create complex');
+      AppUtils.showError(message: 'Failed to create complex');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -125,22 +116,22 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 _buildHeader(),
                 const SizedBox(height: AppSpacing.xl),
 
-                _sectionHeader('Basic Details', Icons.business_outlined),
+                _sectionHeader('Basic Information', Icons.info_outline),
                 const SizedBox(height: AppSpacing.m),
 
                 _lbl('Complex Name *'),
                 _textField(
                   _nameCtrl,
-                  'e.g. Model Town Sports Arena',
-                  Icons.business,
+                  'e.g. Elite Sports Complex',
+                  Icons.business_outlined,
                 ),
                 const SizedBox(height: AppSpacing.m),
 
-                _lbl('Location / Address *'),
+                _lbl('Location / Area *'),
                 _textField(
                   _addressCtrl,
-                  'e.g. Phase 5, DHA, Lahore',
-                  Icons.location_on_outlined,
+                  'e.g. Downtown Sports District, Main Road',
+                  Icons.map_outlined,
                 ),
                 const SizedBox(height: AppSpacing.m),
 
@@ -153,7 +144,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                           _lbl('Latitude'),
                           _textField(
                             _latCtrl,
-                            '31.5204',
+                            'e.g. 31.5204',
                             Icons.pin_drop_outlined,
                             keyboardType: TextInputType.number,
                           ),
@@ -168,7 +159,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                           _lbl('Longitude'),
                           _textField(
                             _lngCtrl,
-                            '74.3587',
+                            'e.g. 74.3587',
                             Icons.explore_outlined,
                             keyboardType: TextInputType.number,
                           ),
@@ -177,36 +168,15 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader(
-                  'Status & Visibility',
-                  Icons.visibility_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _buildStatusSection(),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader('Media & Images', Icons.image_outlined),
-                const SizedBox(height: AppSpacing.m),
-                _buildImageSection(),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader('Facilities & Amenities', Icons.auto_awesome),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Select available facilities'),
-                _buildAmenitiesGrid(),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader('About Facility', Icons.description_outlined),
                 const SizedBox(height: AppSpacing.m),
 
                 _lbl('Description'),
                 TextField(
                   controller: _descCtrl,
-                  maxLines: 5,
+                  maxLines: 4,
                   decoration: InputDecoration(
-                    hintText: 'Tell players more about your facility...',
+                    hintText:
+                        'Describe your sports complex, highlights, and special features...',
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -215,6 +185,28 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     ),
                   ),
                 ),
+                const SizedBox(height: AppSpacing.l),
+
+                _sectionHeader('Complex Status', Icons.settings_outlined),
+                const SizedBox(height: AppSpacing.m),
+                _buildStatusSection(),
+                const SizedBox(height: AppSpacing.l),
+
+                _sectionHeader(
+                  'Complex Images & Gallery',
+                  Icons.image_outlined,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _buildImageSection(),
+                const SizedBox(height: AppSpacing.l),
+
+                _sectionHeader(
+                  'Facilities Available',
+                  Icons.apartment_outlined,
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Select all facilities available at your complex'),
+                _buildAmenitiesGrid(),
                 const SizedBox(height: AppSpacing.xxl),
 
                 SizedBox(
@@ -227,6 +219,8 @@ class _AddComplexPageState extends State<AddComplexPage> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 4,
+                      shadowColor: AppColors.primary.withOpacity(0.3),
                     ),
                     child: _isLoading
                         ? const Row(
@@ -241,11 +235,11 @@ class _AddComplexPageState extends State<AddComplexPage> {
                                 ),
                               ),
                               SizedBox(width: 12),
-                              Text('Creating...'),
+                              Text('Saving...'),
                             ],
                           )
                         : Text(
-                            'Register Complex',
+                            'Save & Continue',
                             style: AppTextStyles.bodyLarge.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,

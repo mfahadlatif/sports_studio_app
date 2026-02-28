@@ -7,6 +7,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_shimmer.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class SportsComplexesPage extends StatefulWidget {
   const SportsComplexesPage({super.key});
@@ -58,10 +59,10 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
             setState(
               () => _complexes.removeWhere((c) => c['id'] == complex['id']),
             );
-            Get.snackbar('Deleted', 'Complex removed');
+            AppUtils.showSuccess(message: 'Complex removed successfully');
           }
         } catch (_) {
-          Get.snackbar('Error', 'Failed to delete');
+          AppUtils.showError(message: 'Failed to delete complex');
         }
       },
     );
@@ -253,42 +254,95 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                             ],
                           ),
                         const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(
-                              Icons.sports_cricket_outlined,
-                              size: 13,
-                              color: AppColors.textMuted,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '$groundCount grounds',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
+                            // Ground count
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
-                                vertical: 2,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.layers_outlined,
+                                    size: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '$groundCount Arena${groundCount == 1 ? '' : 's'}',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Status
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
                               decoration: BoxDecoration(
                                 color: isActive
                                     ? Colors.green.withOpacity(0.1)
                                     : Colors.grey.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                isActive ? 'Active' : 'Inactive',
-                                style: AppTextStyles.label.copyWith(
+                                isActive ? 'ACTIVE' : 'INACTIVE',
+                                style: TextStyle(
                                   color: isActive ? Colors.green : Colors.grey,
-                                  fontSize: 10,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
                           ],
                         ),
+                        const SizedBox(height: 8),
+                        // Facilities row
+                        if (complex['amenities'] != null)
+                          Wrap(
+                            spacing: 4,
+                            children:
+                                (complex['amenities'] is List
+                                        ? complex['amenities'] as List
+                                        : [])
+                                    .take(6)
+                                    .map<Widget>(
+                                      (fId) => Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.background,
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.border.withOpacity(
+                                              0.3,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _getFacilityIcon(fId.toString()),
+                                          style: const TextStyle(fontSize: 12),
+                                        ),
+                                      ),
+                                    )
+                                    .toList(),
+                          ),
                       ],
                     ),
                   ),
@@ -371,6 +425,25 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
       ],
     ),
   );
+
+  String _getFacilityIcon(String id) {
+    final configs = [
+      {'id': 'parking', 'icon': '🅿️'},
+      {'id': 'washrooms', 'icon': '🚻'},
+      {'id': 'changing-rooms', 'icon': '🚿'},
+      {'id': 'seating', 'icon': '💺'},
+      {'id': 'lighting', 'icon': '💡'},
+      {'id': 'cafe', 'icon': '☕'},
+      {'id': 'first-aid', 'icon': '🏥'},
+      {'id': 'wifi', 'icon': '📶'},
+      {'id': 'lockers', 'icon': '🔐'},
+      {'id': 'equipment', 'icon': '🎯'},
+    ];
+    return configs.firstWhere(
+      (c) => c['id'] == id,
+      orElse: () => {'id': id, 'icon': '✓'},
+    )['icon']!;
+  }
 }
 
 // ─── Form Sheet ───────────────────────────────────────────────────────────────
@@ -403,7 +476,7 @@ class _ComplexFormSheetState extends State<_ComplexFormSheet> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.isEmpty || _addressCtrl.text.isEmpty) {
-      Get.snackbar('Error', 'Name and address are required');
+      AppUtils.showError(message: 'Name and address are required');
       return;
     }
     setState(() => _isSaving = true);
@@ -420,13 +493,14 @@ class _ComplexFormSheetState extends State<_ComplexFormSheet> {
       if (res.statusCode == 200 || res.statusCode == 201) {
         Get.back();
         widget.onSuccess();
-        Get.snackbar(
-          'Success',
-          _isEdit ? 'Complex updated' : 'Complex created',
+        AppUtils.showSuccess(
+          message: _isEdit
+              ? 'Complex updated successfully!'
+              : 'Complex created successfully!',
         );
       }
     } catch (_) {
-      Get.snackbar('Error', 'Something went wrong');
+      AppUtils.showError(message: 'Something went wrong while saving');
     } finally {
       setState(() => _isSaving = false);
     }

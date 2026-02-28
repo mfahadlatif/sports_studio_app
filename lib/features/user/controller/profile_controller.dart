@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class ProfileController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -46,14 +47,10 @@ class ProfileController extends GetxController {
       if (response.statusCode == 200) {
         userProfile.value = response.data['user'];
         Get.back();
-        Get.snackbar(
-          'Success',
-          'Profile updated successfully',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        AppUtils.showSuccess(message: 'Profile updated successfully');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update profile');
+      AppUtils.showError(message: 'Failed to update profile');
     } finally {
       isLoading.value = false;
     }
@@ -77,16 +74,12 @@ class ProfileController extends GetxController {
 
       if (response.statusCode == 200) {
         Get.back();
-        Get.snackbar(
-          'Success',
-          'Password changed successfully',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        AppUtils.showSuccess(message: 'Password changed successfully');
       }
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Failed to change password. Ensure current password is correct.',
+      AppUtils.showError(
+        message:
+            'Failed to change password. Ensure current password is correct.',
       );
     } finally {
       isLoading.value = false;

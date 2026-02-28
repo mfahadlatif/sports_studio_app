@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class GroundsController extends GetxController {
   final ApiClient _apiClient = ApiClient();
@@ -30,13 +31,13 @@ class GroundsController extends GetxController {
         complexes.value = cData.map((e) => Complex.fromJson(e)).toList();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to fetch grounds info: $e');
+      AppUtils.showError(message: 'Failed to fetch grounds info: $e');
     } finally {
       isLoading.value = false;
     }
   }
 
-  Future<bool> createGround(Map<String, dynamic> data) async {
+  Future<bool> createGround(dynamic data) async {
     isLoading.value = true;
     try {
       final response = await _apiClient.dio.post('/grounds', data: data);
@@ -45,7 +46,7 @@ class GroundsController extends GetxController {
         return true;
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to create ground');
+      AppUtils.showError(message: 'Failed to create ground');
     } finally {
       isLoading.value = false;
     }
@@ -57,12 +58,12 @@ class GroundsController extends GetxController {
       final response = await _apiClient.dio.delete('/grounds/$id');
       if (response.statusCode == 200 || response.statusCode == 204) {
         grounds.removeWhere((g) => g.id == id);
-        Get.snackbar('Success', 'Ground deleted successfully');
+        AppUtils.showSuccess(message: 'Ground deleted successfully');
         return true;
       }
     } catch (e) {
       print('Delete Error: $e');
-      Get.snackbar('Error', 'Failed to delete ground');
+      AppUtils.showError(message: 'Failed to delete ground');
     }
     return false;
   }

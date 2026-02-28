@@ -167,7 +167,7 @@ class GroundCard extends StatelessWidget {
                           const Icon(Icons.star, color: Colors.amber, size: 16),
                           const SizedBox(width: 4),
                           Text(
-                            '4.8',
+                            ground['avg_rating']?.toString() ?? '5.0',
                             style: AppTextStyles.bodySmall.copyWith(
                               fontWeight: FontWeight.bold,
                             ),

@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class BookingController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
@@ -66,21 +66,17 @@ class BookingController extends GetxController {
           final amount = subtotal * (percentage / 100);
           discount.value = amount;
           promoCode.value = code;
-          Get.snackbar(
-            'Success',
-            'Promo code applied: ${deal['title']}',
-            backgroundColor: const Color(0xFFDCFCE7),
-          );
+          AppUtils.showSuccess(message: 'Promo code applied: ${deal['title']}');
         } else {
-          Get.snackbar('Error', 'Invalid or expired promo code');
+          AppUtils.showError(message: 'Invalid or expired promo code');
           selectedDeal.value = null;
           discount.value = 0;
         }
       } else {
-        Get.snackbar('Error', 'Invalid or expired promo code');
+        AppUtils.showError(message: 'Invalid or expired promo code');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Could not validate promo code');
+      AppUtils.showError(message: 'Could not validate promo code');
     } finally {
       isCheckingPromo.value = false;
     }
@@ -114,7 +110,7 @@ class BookingController extends GetxController {
   Future<void> createBooking() async {
     final ground = Get.arguments;
     if (ground == null || ground['id'] == null) {
-      Get.snackbar('Error', 'Ground data is missing.');
+      AppUtils.showError(message: 'Ground data is missing.');
       return;
     }
 
@@ -173,11 +169,11 @@ class BookingController extends GetxController {
         );
         selectedSlots.clear();
       } else {
-        Get.snackbar('Error', 'Failed to create booking.');
+        AppUtils.showError(message: 'Failed to create booking.');
       }
     } catch (e) {
       print('Booking error: $e');
-      Get.snackbar('Error', 'Something went wrong: $e');
+      AppUtils.showError(message: 'Something went wrong while booking.');
     } finally {
       isBooking.value = false;
     }

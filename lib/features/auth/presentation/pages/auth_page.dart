@@ -368,9 +368,14 @@ class AuthPage extends StatelessWidget {
       ),
       child: isLoading
           ? const SizedBox(
-              height: 28,
-              width: 28,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              height: 24,
+              width: 24,
+              child: Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.primary,
+                ),
+              ),
             )
           : Row(
               mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,

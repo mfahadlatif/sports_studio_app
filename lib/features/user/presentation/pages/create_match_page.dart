@@ -40,7 +40,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   List<Map<String, TextEditingController>> _scheduleControllers = [];
   bool _isSubmitting = false;
 
-  XFile? _pickedImage;
+  List<XFile> _pickedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   final List<String> _sportTypes = [
@@ -105,11 +105,15 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
-  Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => _pickedImage = image);
+  Future<void> _pickImages() async {
+    final List<XFile> images = await _picker.pickMultiImage();
+    if (images.isNotEmpty) {
+      setState(() => _pickedImages.addAll(images));
     }
+  }
+
+  void _removeImage(int index) {
+    setState(() => _pickedImages.removeAt(index));
   }
 
   Future<void> _selectTime(bool isStart) async {
@@ -194,16 +198,18 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
 
       dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
 
-      if (_pickedImage != null) {
-        formData.files.add(
-          MapEntry(
-            'images[]',
-            await dio_form.MultipartFile.fromFile(
-              _pickedImage!.path,
-              filename: _pickedImage!.name,
+      if (_pickedImages.isNotEmpty) {
+        for (var i = 0; i < _pickedImages.length; i++) {
+          formData.files.add(
+            MapEntry(
+              'images[]',
+              await dio_form.MultipartFile.fromFile(
+                _pickedImages[i].path,
+                filename: _pickedImages[i].name,
+              ),
             ),
-          ),
-        );
+          );
+        }
       }
 
       final res = await ApiClient().dio.post('/events', data: formData);
@@ -324,7 +330,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                 ),
 
                 const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Event Images', Icons.image_outlined),
+                _sectionHeader('Event Images & Gallery', Icons.image_outlined),
                 const SizedBox(height: AppSpacing.m),
                 _buildImagePicker(),
 
@@ -540,46 +546,92 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   }
 
   Widget _buildImagePicker() {
-    return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
-        width: double.infinity,
-        height: 140,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border),
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _pickImages,
+          child: Container(
+            width: double.infinity,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_photo_alternate_outlined,
+                  size: 40,
+                  color: AppColors.primary.withOpacity(0.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Click to upload event images',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textMuted,
+                  ),
+                ),
+                Text(
+                  'Upload multiple photos of the ground or event',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: _pickedImage != null
-              ? Image.file(File(_pickedImage!.path), fit: BoxFit.cover)
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+        if (_pickedImages.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _pickedImages.length,
+              itemBuilder: (context, index) {
+                return Stack(
                   children: [
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 40,
-                      color: AppColors.primary.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Click to upload an event image',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textMuted,
+                    Container(
+                      margin: const EdgeInsets.only(right: 12),
+                      width: 100,
+                      height: 100,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        image: DecorationImage(
+                          image: FileImage(File(_pickedImages[index].path)),
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
-                    Text(
-                      'This image will be displayed on the event card',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
+                    Positioned(
+                      top: 4,
+                      right: 16,
+                      child: GestureDetector(
+                        onTap: () => _removeImage(index),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
                     ),
                   ],
-                ),
-        ),
-      ),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
     );
   }
 

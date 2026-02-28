@@ -7,6 +7,7 @@ import 'package:sports_studio/core/network/api_client.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class AuthController extends GetxController {
   final RxBool isLogin = true.obs;
@@ -40,11 +41,7 @@ class AuthController extends GetxController {
     final password = passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please fill in all fields',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppUtils.showError(message: 'Please fill in all fields');
       return;
     }
 
@@ -85,11 +82,7 @@ class AuthController extends GetxController {
         await storage.write(key: 'user_role', value: userRole.name);
 
         print('Navigating to home with role: $userRole');
-        Get.snackbar(
-          'Success',
-          'Logged in successfully',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        AppUtils.showSuccess(message: 'Logged in successfully');
         _navigateToHome(userRole);
       }
     } on DioException catch (e) {
@@ -100,24 +93,15 @@ class AuthController extends GetxController {
 
       final errorMessage =
           e.response?.data?['message'] ?? 'Invalid email or password';
-      Get.snackbar(
-        'Login Failed',
-        errorMessage.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
+      AppUtils.showError(
+        title: 'Login Failed',
+        message: errorMessage.toString(),
       );
     } catch (e) {
       print('--- LOGIN UNKNOWN EXCEPTION ---');
       print('Error: $e');
 
-      Get.snackbar(
-        'Login Error',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
+      AppUtils.showError(title: 'Login Error', message: e.toString());
     } finally {
       isLoading.value = false;
       print('--- LOGIN ATTEMPT END ---');
@@ -145,20 +129,12 @@ class AuthController extends GetxController {
         phone.isEmpty ||
         password.isEmpty ||
         confirmPassword.isEmpty) {
-      Get.snackbar(
-        'Error',
-        'Please fill in all fields',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppUtils.showError(message: 'Please fill in all fields');
       return;
     }
 
     if (password != confirmPassword) {
-      Get.snackbar(
-        'Error',
-        'Passwords do not match',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      AppUtils.showError(message: 'Passwords do not match');
       return;
     }
 
@@ -207,11 +183,7 @@ class AuthController extends GetxController {
         const storage = FlutterSecureStorage();
         await storage.write(key: 'user_role', value: userRole.name);
 
-        Get.snackbar(
-          'Success',
-          'Registered successfully',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        AppUtils.showSuccess(message: 'Registered successfully');
         _navigateToHome(userRole);
       }
     } on DioException catch (e) {
@@ -225,21 +197,9 @@ class AuthController extends GetxController {
           }
         }
       }
-      Get.snackbar(
-        'Registration Failed',
-        errorMessage,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
+      AppUtils.showError(title: 'Registration Failed', message: errorMessage);
     } catch (e) {
-      Get.snackbar(
-        'Registration Error',
-        e.toString(),
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
+      AppUtils.showError(title: 'Registration Error', message: e.toString());
     } finally {
       isLoading.value = false;
     }
@@ -311,7 +271,7 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       print('Google Login Exception: $e');
-      Get.snackbar('Google Login Failed', e.toString());
+      AppUtils.showError(title: 'Google Login Failed', message: e.toString());
     } finally {
       isGoogleLoading.value = false;
     }
@@ -366,7 +326,7 @@ class AuthController extends GetxController {
         _navigateToHome(userRole);
       }
     } catch (e) {
-      Get.snackbar('Apple Login Failed', e.toString());
+      AppUtils.showError(title: 'Apple Login Failed', message: e.toString());
     } finally {
       isAppleLoading.value = false;
     }

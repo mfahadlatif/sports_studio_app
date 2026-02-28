@@ -3,7 +3,9 @@ import 'package:sports_studio/core/network/api_client.dart';
 
 class GroundController extends GetxController {
   final RxBool isLoadingReviews = false.obs;
+  final RxBool isLoadingGround = false.obs;
   final RxList<dynamic> reviews = <dynamic>[].obs;
+  final RxMap<String, dynamic> groundDetails = <String, dynamic>{}.obs;
 
   Future<void> fetchReviews(int groundId) async {
     isLoadingReviews.value = true;
@@ -19,6 +21,24 @@ class GroundController extends GetxController {
       print('Error fetching reviews: $e');
     } finally {
       isLoadingReviews.value = false;
+    }
+  }
+
+  Future<void> fetchGroundBySlug(String slug) async {
+    isLoadingGround.value = true;
+    try {
+      final res = await ApiClient().dio.get('/public/grounds/$slug');
+      if (res.statusCode == 200) {
+        groundDetails.value = res.data;
+        // Optionally fetch reviews too if ground details found
+        if (res.data['id'] != null) {
+          fetchReviews(res.data['id']);
+        }
+      }
+    } catch (e) {
+      print('Error fetching ground details: $e');
+    } finally {
+      isLoadingGround.value = false;
     }
   }
 

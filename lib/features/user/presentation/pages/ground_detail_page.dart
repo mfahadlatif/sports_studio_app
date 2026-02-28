@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -20,14 +21,31 @@ class GroundDetailPage extends StatefulWidget {
 
 class _GroundDetailPageState extends State<GroundDetailPage> {
   final controller = Get.put(GroundController());
+  final RxInt _currentPage = 0.obs;
+  final PageController _pageController = PageController();
+  Timer? _carouselTimer;
   final arguments = Get.arguments as Map<String, dynamic>?;
 
   @override
   void initState() {
     super.initState();
-    final ground = arguments?['ground'] as Map<String, dynamic>?;
-    if (ground != null && ground['id'] != null) {
-      controller.fetchReviews(ground['id']);
+    final args = Get.arguments;
+    if (args != null) {
+      if (args is Map<String, dynamic>) {
+        final groundData = args['ground'] ?? args;
+        if (groundData is Map<String, dynamic>) {
+          controller.groundDetails.value = groundData;
+          final id = groundData['id'];
+          if (id != null)
+            controller.fetchReviews(id is int ? id : int.parse(id.toString()));
+
+          final slug = groundData['slug'];
+          if (slug != null) controller.fetchGroundBySlug(slug.toString());
+        }
+      } else if (args is String) {
+        // Assume slug
+        controller.fetchGroundBySlug(args);
+      }
     }
   }
 
@@ -46,80 +64,88 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Re-use existing local variables from widget access
-    final ground = arguments?['ground'] as Map<String, dynamic>?;
+    return Obx(() {
+      final ground = controller.groundDetails;
+      if (controller.isLoadingGround.value && ground.isEmpty) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
-        children: [
-          // Main Scrollable Content
-          CustomScrollView(
-            slivers: [
-              _buildSliverAppBar(ground),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.l),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTitleSection(ground),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildQuickStats(ground),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildAmenities(ground),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildDescription(ground),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildLocationMap(ground),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildReviewsSection(ground),
-                      const SizedBox(
-                        height: 120,
-                      ), // Bottom padding for action bar
-                    ],
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Stack(
+          children: [
+            // Main Scrollable Content
+            CustomScrollView(
+              slivers: [
+                _buildSliverAppBar(ground),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(AppSpacing.l),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTitleSection(ground),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildQuickStats(ground),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildAmenities(ground),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildDescription(ground),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildLocationMap(ground),
+                        const SizedBox(height: AppSpacing.xl),
+                        _buildReviewsSection(ground),
+                        const SizedBox(height: 120),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-
-          // Custom Floating Top Buttons
-          Positioned(
-            top: 40,
-            left: 20,
-            right: 20,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.black.withOpacity(0.3),
-                  child: IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Get.back(),
-                  ),
-                ),
-                _FavoriteButtonDetail(ground: ground),
               ],
             ),
-          ),
 
-          // Bottom Booking Bar
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: _buildBottomBar(ground),
-          ),
-        ],
-      ),
-    );
+            // Custom Floating Top Buttons
+            Positioned(
+              top: 40,
+              left: 20,
+              right: 20,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Colors.black.withOpacity(0.3),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Get.back(),
+                    ),
+                  ),
+                  _FavoriteButtonDetail(ground: ground),
+                ],
+              ),
+            ),
+
+            // Bottom Booking Bar
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: _buildBottomBar(ground),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _buildSliverAppBar(dynamic ground) {
     List<String> images = [];
-    if (ground != null &&
-        ground['images'] != null &&
-        (ground['images'] as List).isNotEmpty) {
-      images = List<String>.from(ground['images']);
+    if (ground != null) {
+      if (ground['images'] != null && (ground['images'] as List).isNotEmpty) {
+        images = List<String>.from(
+          (ground['images'] as List).map(
+            (i) => i is Map ? i['url'] : i.toString(),
+          ),
+        );
+      } else if (ground['image_path'] != null) {
+        images.add(ground['image_path'].toString());
+      }
     }
 
     // Default image if no gallery
@@ -144,7 +170,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
           fit: StackFit.expand,
           children: [
             PageView.builder(
+              controller: _pageController,
               itemCount: sanitizedImages.length,
+              onPageChanged: (index) => _currentPage.value = index,
               itemBuilder: (context, index) {
                 return CachedNetworkImage(
                   imageUrl: sanitizedImages[index],
@@ -162,7 +190,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 );
               },
             ),
-            // Carousel Indicator Layer (Optional but nice)
+            // Page Indicator overlay
             if (sanitizedImages.length > 1)
               Positioned(
                 bottom: 20,
@@ -172,25 +200,41 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     sanitizedImages.length,
-                    (index) => Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white70,
+                    (index) => Obx(
+                      () => Container(
+                        width: _currentPage.value == index ? 12 : 8,
+                        height: 8,
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          color: _currentPage.value == index
+                              ? Colors.white
+                              : Colors.white.withOpacity(0.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 2,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
             // Gradient Overlay
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black26, Colors.transparent, Colors.black54],
+            const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black26,
+                      Colors.transparent,
+                      Colors.black54,
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -232,8 +276,14 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
               children: [
                 const Icon(Icons.star, color: Colors.amber, size: 18),
                 const SizedBox(width: 4),
-                Text('4.9', style: AppTextStyles.h3),
-                Text(' (120 reviews)', style: AppTextStyles.bodySmall),
+                Text(
+                  ground?['avg_rating']?.toString() ?? '5.0',
+                  style: AppTextStyles.h3,
+                ),
+                Text(
+                  ' (${ground?['reviews_count'] ?? 0} reviews)',
+                  style: AppTextStyles.bodySmall,
+                ),
               ],
             ),
           ],
@@ -262,7 +312,6 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   Widget _buildQuickStats(dynamic ground) {
-    final dimensions = ground?['dimensions'] ?? 'Standard';
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
@@ -273,16 +322,27 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statItem(Icons.aspect_ratio, 'Area', dimensions),
+          _statItem(
+            Icons.aspect_ratio,
+            'Area',
+            ground?['dimensions'] ??
+                '${ground?['length'] ?? 100}m x ${ground?['width'] ?? 70}m',
+          ),
           _statItem(
             Icons.people_outline,
             'Capacity',
-            ground?['type'] == 'Cricket' ? '22 Players' : '14 Players',
+            (ground?['type']?.toString().toLowerCase() == 'cricket')
+                ? '22 Players'
+                : '14 Players',
           ),
           _statItem(
             Icons.lightbulb_outline,
             'Lights',
-            ground?['has_lighting'] == 1 ? 'Available' : 'No',
+            (ground?['has_lighting'] == 1 ||
+                    (ground?['amenities'] as List?)?.contains('Lighting') ==
+                        true)
+                ? 'Available'
+                : 'No',
           ),
         ],
       ),
@@ -311,15 +371,15 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
 
     // Config matching owner side
     final Map<String, Map<String, String>> config = {
-      'water': {'name': 'Water', 'icon': '🚰'},
-      'washroom': {'name': 'Washroom', 'icon': '🚻'},
-      'changing': {'name': 'Changing', 'icon': '👕'},
-      'dugout': {'name': 'Dugout', 'icon': '⛺'},
-      'balls': {'name': 'Balls', 'icon': '🎾'},
-      'bats': {'name': 'Bats', 'icon': '🏏'},
-      'parking': {'name': 'Parking', 'icon': '🚗'},
-      'first_aid': {'name': 'First Aid', 'icon': '🏥'},
-      'lighting': {'name': 'Lights', 'icon': '💡'},
+      'Wifi': {'name': 'Wifi', 'icon': '📡'},
+      'Parking': {'name': 'Parking', 'icon': '🚗'},
+      'Changing Room': {'name': 'Changing Room', 'icon': '👕'},
+      'Showers': {'name': 'Showers', 'icon': '🚿'},
+      'Floodlights': {'name': 'Floodlights', 'icon': '💡'},
+      'First Aid': {'name': 'First Aid', 'icon': '🏥'},
+      'Drinking Water': {'name': 'Drinking Water', 'icon': '💧'},
+      'Cafe': {'name': 'Cafe', 'icon': '☕'},
+      'Lighting': {'name': 'Lights', 'icon': '💡'},
     };
 
     if (groundAmenities.isEmpty) {
@@ -374,12 +434,32 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
         const SizedBox(height: AppSpacing.m),
         Text(
           ground?['description'] ??
-              'This international standard sports facility offers a high-performance surface, professional measurement, and top-tier floodlighting. Perfectly suited for both competitive tournaments and casual practice sessions.',
+              'This international standard sports facility offers a high-performance surface, professional measurement, and top-tier floodlighting.',
           style: AppTextStyles.bodyMedium.copyWith(
             height: 1.6,
             color: Colors.grey[700],
           ),
         ),
+        if (ground?['rules'] != null &&
+            ground!['rules'].toString().isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.l),
+          Text('Ground Rules', style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.s),
+          Text(
+            ground!['rules'].toString(),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
+        ],
+        if (ground?['cancellation_policy'] != null &&
+            ground!['cancellation_policy'].toString().isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.l),
+          Text('Cancellation Policy', style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.s),
+          Text(
+            ground!['cancellation_policy'].toString(),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
+        ],
       ],
     );
   }
@@ -550,7 +630,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   Widget _buildBottomBar(dynamic ground) {
-    final price = ground?['price_per_hour'] ?? '3,500';
+    final price = ground?['price_per_hour'] ?? '0';
     return Container(
       padding: const EdgeInsets.all(AppSpacing.l),
       decoration: BoxDecoration(
