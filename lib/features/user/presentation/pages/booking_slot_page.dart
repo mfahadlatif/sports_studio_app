@@ -14,6 +14,12 @@ class BookingSlotPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(BookingController());
 
+    // Set ground and fetch availability after controller is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ground = Get.arguments;
+      controller.setGroundAndFetchAvailability(ground);
+    });
+
     return Scaffold(
       appBar: AppBar(title: const Text('Select Time Slot')),
       body: Center(

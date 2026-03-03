@@ -20,7 +20,7 @@ class EventsPage extends StatelessWidget {
         onPressed: () async {
           final result = await Get.toNamed('/create-match');
           if (result == true) {
-            controller.fetchEvents();
+            controller.fetchPublicEvents();
           }
         },
         label: const Text('Organize Match'),
@@ -31,7 +31,7 @@ class EventsPage extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: Obx(() {
-            if (controller.isLoading.value) {
+            if (controller.isLoadingEvents.value) {
               return ListView.builder(
                 padding: const EdgeInsets.all(AppSpacing.m),
                 itemCount: 4,
@@ -43,7 +43,7 @@ class EventsPage extends StatelessWidget {
               );
             }
 
-            if (controller.eventsList.isEmpty) {
+            if (controller.events.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -65,9 +65,9 @@ class EventsPage extends StatelessWidget {
 
             return ListView.builder(
               padding: const EdgeInsets.all(AppSpacing.m),
-              itemCount: controller.eventsList.length,
+              itemCount: controller.events.length,
               itemBuilder: (context, index) {
-                final event = controller.eventsList[index];
+                final event = controller.events[index];
                 return _buildEventCard(event);
               },
             );

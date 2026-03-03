@@ -1,9 +1,11 @@
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/core/network/api_services.dart';
+import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/core/services/data_fetch_service.dart';
 
 class BookingController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
@@ -38,11 +40,22 @@ class BookingController extends GetxController {
   final RxString promoCode = ''.obs;
   final RxDouble discount = 0.0.obs;
   final RxBool isCheckingPromo = false.obs;
+  final Rxn<Deal> selectedDeal = Rxn<Deal>();
+
+  final BookingApiService _bookingApiService = BookingApiService();
+  final DealApiService _dealApiService = DealApiService();
+  final PaymentApiService _paymentApiService = PaymentApiService();
+  final DataFetchService _dataFetchService = Get.find<DataFetchService>();
 
   @override
   void onInit() {
     super.onInit();
-    final ground = Get.arguments;
+    // Don't fetch availability immediately, wait for ground to be set
+    // This prevents issues when controller is initialized without arguments
+  }
+
+  /// Set ground and fetch availability for that ground
+  void setGroundAndFetchAvailability(dynamic ground) {
     if (ground != null && ground['id'] != null) {
       fetchAvailability(ground['id']);
     }
@@ -52,11 +65,11 @@ class BookingController extends GetxController {
     isLoadingSlots.value = true;
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
-      final response = await ApiClient().dio.get(
-        '/public/grounds/$groundId/bookings?date=$dateStr',
+      final bookings = await _dataFetchService.fetchGroundBookings(
+        groundId,
+        date: dateStr,
       );
 
-      final List bookings = response.data ?? [];
       final List<String> booked = [];
 
       for (var b in bookings) {
@@ -67,7 +80,7 @@ class BookingController extends GetxController {
           // Identify which of our 1-hour slots overlap with this booking
           for (var slotStr in allSlots) {
             final slotTime = DateFormat('hh:mm a').parse(slotStr);
-            // Construct a DateTime for the slot on the selected date
+            // Construct a DateTime for slot on selected date
             final slotStart = DateTime(
               selectedDate.value.year,
               selectedDate.value.month,
@@ -89,7 +102,7 @@ class BookingController extends GetxController {
 
       bookedSlots.value = booked.toSet().toList(); // Unique
     } catch (e) {
-      print('Error fetching availability: $e');
+      AppUtils.showError(message: 'Error fetching availability: $e');
     } finally {
       isLoadingSlots.value = false;
     }
@@ -112,34 +125,25 @@ class BookingController extends GetxController {
     }
   }
 
-  final Rxn<dynamic> selectedDeal = Rxn<dynamic>();
-
   Future<void> applyPromoCode(String code) async {
     if (code.isEmpty) return;
     isCheckingPromo.value = true;
     try {
-      final res = await ApiClient().dio.get('/public/deals');
-      if (res.statusCode == 200) {
-        final deals = res.data ?? [];
-        final deal = (deals as List).firstWhereOrNull(
-          (d) => d['code'].toString().toLowerCase() == code.toLowerCase(),
-        );
+      final deals = await _dealApiService.getPublicDeals();
+      final deal = deals.firstWhereOrNull(
+        (d) => d.title.toLowerCase().contains(code.toLowerCase()),
+      );
 
-        if (deal != null) {
-          selectedDeal.value = deal;
-          final percentage =
-              double.tryParse(deal['discount_percentage'].toString()) ?? 0.0;
-          final amount = subtotal * (percentage / 100);
-          discount.value = amount;
-          promoCode.value = code;
-          AppUtils.showSuccess(message: 'Promo code applied: ${deal['title']}');
-        } else {
-          AppUtils.showError(message: 'Invalid or expired promo code');
-          selectedDeal.value = null;
-          discount.value = 0;
-        }
+      if (deal != null) {
+        selectedDeal.value = deal;
+        final amount = subtotal * (deal.discountPercentage / 100);
+        discount.value = amount;
+        promoCode.value = code;
+        AppUtils.showSuccess(message: 'Promo code applied: ${deal.title}');
       } else {
         AppUtils.showError(message: 'Invalid or expired promo code');
+        selectedDeal.value = null;
+        discount.value = 0;
       }
     } catch (e) {
       AppUtils.showError(message: 'Could not validate promo code');
@@ -182,8 +186,7 @@ class BookingController extends GetxController {
 
     // Check Phone Verification
     final profileController = Get.find<ProfileController>();
-    final isVerified =
-        profileController.userProfile['is_phone_verified'] ?? false;
+    final isVerified = profileController.userProfile['phone_verified'] ?? false;
 
     if (!isVerified) {
       Get.dialog(
@@ -210,38 +213,67 @@ class BookingController extends GetxController {
         ).parse(selectedSlots.last).add(const Duration(hours: 1)),
       );
 
-      final data = {
+      final bookingData = {
         'ground_id': ground['id'],
         'start_time': '$formattedDate $startTimeStr:00',
         'end_time': '$formattedDate $endTimeStr:00',
         'total_price': totalPrice,
         'players': players.value,
-        'coupon_id': selectedDeal.value?['id'],
+        'coupon_id': selectedDeal.value?.id,
       };
 
-      final response = await ApiClient().dio.post('/bookings', data: data);
+      final booking = await _bookingApiService.createBooking(bookingData);
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final bookingId = response.data['id'];
-        Get.offAllNamed(
-          '/payment',
-          arguments: {
-            'bookingId': bookingId,
-            'totalPrice': totalPrice,
-            'subtotal': subtotal,
-            'discount': discount.value,
-            'deal': selectedDeal.value,
-          },
-        );
-        selectedSlots.clear();
-      } else {
-        AppUtils.showError(message: 'Failed to create booking.');
-      }
+      Get.offAllNamed(
+        '/payment',
+        arguments: {
+          'bookingId': booking.id,
+          'totalPrice': totalPrice,
+          'subtotal': subtotal,
+          'discount': discount.value,
+          'deal': selectedDeal.value,
+        },
+      );
+      selectedSlots.clear();
     } catch (e) {
-      print('Booking error: $e');
-      AppUtils.showError(message: 'Something went wrong while booking.');
+      AppUtils.showError(message: 'Something went wrong while booking: $e');
     } finally {
       isBooking.value = false;
+    }
+  }
+
+  Future<void> initiatePayment(int bookingId, double amount) async {
+    try {
+      final paymentData = {
+        'amount': amount,
+        'booking_id': bookingId,
+        'callback_url': 'sportsstudio://payment-success',
+      };
+
+      final response = await _paymentApiService.initiateSafepayPayment(
+        paymentData,
+      );
+
+      // Launch Safepay payment URL
+      // You'll need to implement URL launcher here
+      AppUtils.showSuccess(message: 'Payment initiated successfully');
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to initiate payment: $e');
+    }
+  }
+
+  Future<void> verifyPayment(String token) async {
+    try {
+      final response = await _paymentApiService.verifySafepayPayment(token);
+
+      if (response['status'] == 'success') {
+        AppUtils.showSuccess(message: 'Payment verified successfully');
+        Get.offAllNamed('/my-bookings');
+      } else {
+        AppUtils.showError(message: 'Payment verification failed');
+      }
+    } catch (e) {
+      AppUtils.showError(message: 'Payment verification error: $e');
     }
   }
 }

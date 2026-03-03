@@ -1,33 +1,145 @@
 import 'package:get/get.dart';
+import 'package:sports_studio/core/network/api_services.dart';
+import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class FavoritesController extends GetxController {
-  final RxSet<int> favoriteIds = <int>{}.obs;
-  final RxList<dynamic> favoriteGrounds = <dynamic>[].obs;
+  final RxBool isLoadingFavorites = false.obs;
+  final RxList<Favorite> favorites = <Favorite>[].obs;
+  final RxList<Ground> favoriteGrounds = <Ground>[].obs;
+  final RxString searchQuery = ''.obs;
 
-  bool isFavorite(int id) => favoriteIds.contains(id);
+  final FavoriteApiService _favoriteApiService = FavoriteApiService();
 
-  void toggleFavorite(dynamic ground) {
-    if (ground == null || ground['id'] == null) return;
+  @override
+  void onInit() {
+    super.onInit();
+    fetchFavorites();
+  }
 
-    final id = int.tryParse(ground['id'].toString()) ?? 0;
-    if (favoriteIds.contains(id)) {
-      favoriteIds.remove(id);
-      favoriteGrounds.removeWhere(
-        (g) => int.tryParse(g['id'].toString()) == id,
-      );
-      Get.snackbar(
-        'Removed',
-        'Removed from favorites',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } else {
-      favoriteIds.add(id);
-      favoriteGrounds.add(ground);
-      Get.snackbar(
-        'Added',
-        'Added to favorites!',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+  Future<void> fetchFavorites() async {
+    isLoadingFavorites.value = true;
+    try {
+      final favoriteList = await _favoriteApiService.getUserFavorites();
+      favorites.value = favoriteList;
+
+      // Extract grounds from favorites
+      final grounds = favoriteList
+          .map((fav) => fav.ground)
+          .where((ground) => ground != null)
+          .cast<Ground>()
+          .toList();
+      favoriteGrounds.value = grounds;
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to fetch favorites: $e');
+    } finally {
+      isLoadingFavorites.value = false;
+    }
+  }
+
+  bool isFavorite(int groundId) {
+    return favorites.any((favorite) => favorite.groundId == groundId);
+  }
+
+  Future<void> toggleFavorite(int groundId) async {
+    try {
+      if (isFavorite(groundId)) {
+        await _favoriteApiService.removeFavorite(groundId);
+        AppUtils.showSuccess(message: 'Removed from favorites');
+
+        // Remove from local lists
+        favorites.removeWhere((fav) => fav.groundId == groundId);
+        favoriteGrounds.removeWhere((ground) => ground.id == groundId);
+      } else {
+        await _favoriteApiService.addFavorite(groundId);
+        AppUtils.showSuccess(message: 'Added to favorites');
+
+        // Refresh favorites to get the updated list with ground details
+        await fetchFavorites();
+      }
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to update favorite: $e');
+    }
+  }
+
+  Future<void> addToFavorites(int groundId) async {
+    if (isFavorite(groundId)) {
+      AppUtils.showError(message: 'Ground already in favorites');
+      return;
+    }
+
+    try {
+      await _favoriteApiService.addFavorite(groundId);
+      AppUtils.showSuccess(message: 'Added to favorites');
+      await fetchFavorites();
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to add to favorites: $e');
+    }
+  }
+
+  Future<void> removeFromFavorites(int groundId) async {
+    if (!isFavorite(groundId)) {
+      AppUtils.showError(message: 'Ground not in favorites');
+      return;
+    }
+
+    try {
+      await _favoriteApiService.removeFavorite(groundId);
+      AppUtils.showSuccess(message: 'Removed from favorites');
+
+      // Remove from local lists
+      favorites.removeWhere((fav) => fav.groundId == groundId);
+      favoriteGrounds.removeWhere((ground) => ground.id == groundId);
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to remove from favorites: $e');
+    }
+  }
+
+  void filterFavorites() {
+    if (searchQuery.value.isEmpty) {
+      return;
+    }
+
+    var filtered = favoriteGrounds.where((ground) {
+      return ground.name.toLowerCase().contains(
+            searchQuery.value.toLowerCase(),
+          ) ||
+          ground.description.toLowerCase().contains(
+            searchQuery.value.toLowerCase(),
+          );
+    }).toList();
+
+    // Update filtered list (you might want to create a separate filtered list variable)
+    favoriteGrounds.assignAll(filtered);
+  }
+
+  void updateSearchQuery(String query) {
+    searchQuery.value = query;
+    filterFavorites();
+  }
+
+  void clearFilters() {
+    searchQuery.value = '';
+    fetchFavorites();
+  }
+
+  int get favoritesCount {
+    return favorites.length;
+  }
+
+  Favorite? getFavoriteByGroundId(int groundId) {
+    try {
+      return favorites.firstWhere((fav) => fav.groundId == groundId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Ground? getFavoriteGroundById(int groundId) {
+    try {
+      return favoriteGrounds.firstWhere((ground) => ground.id == groundId);
+    } catch (e) {
+      return null;
     }
   }
 }

@@ -51,7 +51,7 @@ class TeamsPage extends StatelessWidget {
                   _buildSearchHeader(controller),
                   const SizedBox(height: AppSpacing.l),
                   Obx(() {
-                    if (controller.isLoading.value) {
+                    if (controller.isLoadingTeam.value) {
                       return const Center(
                         child: Padding(
                           padding: EdgeInsets.all(50),
@@ -376,16 +376,14 @@ class TeamsPage extends StatelessWidget {
               Obx(
                 () => AppButton(
                   label: 'Create Team',
-                  isLoading: controller.isCreating.value,
+                  isLoading: controller.isCreatingTeam.value,
                   onPressed: () {
                     if (nameCtrl.text.isEmpty) {
                       Get.snackbar('Error', 'Please enter a team name');
                       return;
                     }
                     controller.createTeam(
-                      name: nameCtrl.text,
-                      sport: selectedSport,
-                      description: descCtrl.text,
+                     
                     );
                   },
                 ),

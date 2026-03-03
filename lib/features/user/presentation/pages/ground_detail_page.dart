@@ -592,9 +592,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
           return Column(
             children: controller.reviews.take(3).map((r) {
               return _reviewCard(
-                r['user']?['name'] ?? 'User',
-                r['rating']?.toString() ?? '5.0',
-                r['comment'] ?? '',
+                r.user?.name ?? 'User',
+                r.rating.toString(),
+                r.comment,
               );
             }).toList(),
           );

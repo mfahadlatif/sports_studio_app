@@ -16,6 +16,7 @@ dependencies:
   cached_network_image: ^3.4.1
   google_nav_bar: ^5.0.7
   intl: ^0.20.2
+  intl_phone_field: ^2.0.2
   dio: ^5.9.1
   flutter_secure_storage: ^10.0.0
   image_picker: ^1.2.1

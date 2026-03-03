@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/core/models/models.dart';
 
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 import 'package:sports_studio/features/user/controller/events_controller.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({super.key});
@@ -31,15 +32,17 @@ class _EventDetailPageState extends State<EventDetailPage> {
     super.initState();
     final eventArgs = Get.arguments;
     if (eventArgs != null) {
-      if (eventArgs is Map<String, dynamic>) {
-        controller.eventDetail.value = eventArgs;
+      if (eventArgs is Event) {
+        controller.selectedEvent.value = eventArgs;
+        _fetchParticipants(eventArgs.id.toString());
+      } else if (eventArgs is Map<String, dynamic>) {
         final id = eventArgs['id'];
         if (id != null) {
           _fetchParticipants(id);
-          controller.fetchEventDetail(id.toString());
+          controller.getEventById(id.toString());
         }
       } else if (eventArgs is String || eventArgs is int) {
-        controller.fetchEventDetail(eventArgs.toString());
+        controller.getEventById(eventArgs.toString());
       }
     }
   }
@@ -63,46 +66,37 @@ class _EventDetailPageState extends State<EventDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final event = controller.eventDetail;
-      if (controller.isLoading.value && event.isEmpty) {
+      final event = controller.selectedEvent.value;
+      if (controller.isLoadingEvent.value && event == null) {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
 
-      final title = event['name'] ?? event['title'] ?? 'Upcoming Tournament';
+      final title = event?.name ?? 'Upcoming Tournament';
       final description =
-          event['description'] ??
+          event?.description ??
           'Join us for an exciting sports event this weekend.';
-      final date = event['date'] ?? event['start_time'] ?? 'TBD';
-      final location =
-          event['location'] ??
-          event['booking']?['ground']?['complex']?['address'] ??
-          'Main Stadium';
-      final registrationFee = event['registration_fee'] ?? 0;
-      final maxParticipants = event['max_participants'] ?? 0;
-      final currentParticipants = event['participants_count'] ?? 0;
-      final isFull =
-          maxParticipants > 0 && currentParticipants >= maxParticipants;
+      final startTime = event?.startTime;
+      final date = startTime != null
+          ? DateFormat('MMM dd, yyyy').format(startTime)
+          : 'TBD';
+      final location = event?.location ?? 'Main Stadium';
+      final registrationFee = event?.registrationFee ?? 0;
+      final maxParticipants = event?.maxParticipants ?? 0;
+      final currentParticipants = event?.participantsCount ?? 0;
 
       List<String> images = [];
-      if (event.isNotEmpty) {
-        if (event['images'] != null && (event['images'] as List).isNotEmpty) {
-          images = List<String>.from(
-            (event['images'] as List).map((i) => i is Map ? i['url'] : i),
-          );
-        } else if (event['event_path'] != null) {
-          images.add(event['event_path']);
-        }
+      if (event?.images != null && event!.images!.isNotEmpty) {
+        images = event.images!
+            .cast<String>()
+            .toList();
       }
-
-      if (images.isEmpty) {
-        images.add(
-          'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800',
-        );
-      }
+      
+      final isFull = maxParticipants > 0 && currentParticipants >= maxParticipants;
 
       // URL Sanitization Utility
       List<String> sanitizedImages = images
-          .map((url) => UrlHelper.sanitizeUrl(url))
+          .where((url) => url.isNotEmpty)
+          .map((url) => url.startsWith('http') ? url : 'https://$url')
           .toList();
 
       return Scaffold(
@@ -117,7 +111,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     children: [
                       // Hero Image Carousel
                       Hero(
-                        tag: 'event_image_${event['id'] ?? ''}',
+                        tag: 'event_image_${event?.id ?? 'unknown'}',
                         child: Stack(
                           children: [
                             SizedBox(
@@ -191,7 +185,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     ],
                                   ),
                                 ),
-                                if (event['event_type'] == 'private')
+                                if (event?.eventType == 'private')
                                   IconButton(
                                     onPressed: () => _copyInviteLink(event),
                                     icon: const Icon(
@@ -200,7 +194,22 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     ),
                                     tooltip: 'Share Invite Link',
                                   ),
-                                if (event['status'] != null)
+                                if (event?.status == 'completed')
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'Completed',
+                                      style: AppTextStyles.label.copyWith(
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  )
+                                else if (event != null)
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 10,
@@ -211,11 +220,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
-                                      (event['status'] as String)
-                                              .capitalizeFirst ??
-                                          '',
+                                      event.status.capitalizeFirst ?? 'Unknown',
                                       style: AppTextStyles.label.copyWith(
-                                        color: AppColors.primary,
+                                        color: event.status == 'cancelled'
+                                            ? Colors.red
+                                            : AppColors.textMuted,
                                       ),
                                     ),
                                   ),
@@ -226,19 +235,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
                             // Date
                             _infoRow(
-                              Icons.calendar_month_outlined,
+                              Icons.calendar_today_outlined,
                               date.toString().length > 10
                                   ? date.toString().substring(0, 10)
                                   : date.toString(),
                             ),
                             const SizedBox(height: AppSpacing.s),
                             // Location
-                            _infoRow(Icons.map_outlined, location.toString()),
-                            const SizedBox(height: AppSpacing.s),
+                            _infoRow(
+                              Icons.location_on_outlined,
+                              location,
+                            ),
                             // Fee
                             _infoRow(
                               Icons.confirmation_number_outlined,
-                              double.tryParse(registrationFee.toString()) == 0
+                              registrationFee == 0
                                   ? 'Free Entry'
                                   : 'Rs. ${registrationFee} Registration Fee',
                             ),
@@ -451,7 +462,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   Future<void> _joinEvent(dynamic event) async {
-    if (event == null || event['id'] == null) {
+    if (event == null || event.id == null) {
       Get.snackbar('Error', 'Event data is missing.');
       return;
     }
@@ -478,7 +489,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     try {
       final response = await ApiClient().dio.post(
-        '/events/${event['id']}/join',
+        '/events/${event.id}/join',
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() => _hasJoined = true);
@@ -509,7 +520,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   void _copyInviteLink(dynamic event) {
     final baseUrl = "https://lightcoral-goose-424965.hostingersite.com/events/";
-    final link = "$baseUrl${event['id']}";
+    final link = "$baseUrl${event.id}";
     Clipboard.setData(ClipboardData(text: link));
     Get.snackbar(
       'Link Copied',

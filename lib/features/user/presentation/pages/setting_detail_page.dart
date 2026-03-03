@@ -7,6 +7,7 @@ import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/widgets/phone_input_field.dart';
 
 class SettingDetailPage extends StatefulWidget {
   const SettingDetailPage({super.key});
@@ -94,7 +95,7 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
                     onPressed: () => isEditProfile
                         ? _handleUpdateProfile()
                         : _handleChangePassword(),
-                    isLoading: controller.isLoading.value,
+                    isLoading: controller.isUpdatingProfile.value,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
@@ -154,11 +155,11 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: AppSpacing.m),
-        _buildInputField(
-          'Phone Number',
-          phoneController,
-          Icons.phone_outlined,
-          keyboardType: TextInputType.phone,
+        SimplePhoneInputField(
+          controller: phoneController,
+          hint: 'Enter your phone number',
+          label: 'Phone Number',
+          isRequired: true,
         ),
         if (isOwner) ...[
           const SizedBox(height: AppSpacing.m),
@@ -251,12 +252,7 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
   }
 
   void _handleUpdateProfile() {
-    controller.updateProfile(
-      name: nameController.text.trim(),
-      email: emailController.text.trim(),
-      phone: phoneController.text.trim(),
-      businessName: businessNameController.text.trim(),
-    );
+    controller.updateProfile();
   }
 
   void _handleChangePassword() {
@@ -269,10 +265,6 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
       );
       return;
     }
-    controller.changePassword(
-      currentPassword: currentPasswordController.text,
-      newPassword: newPasswordController.text,
-      confirmPassword: confirmPasswordController.text,
-    );
+    controller.changePassword();
   }
 }

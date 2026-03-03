@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/auth/controller/phone_verification_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/widgets/phone_input_field.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 
 class PhoneVerificationDialog extends StatefulWidget {
@@ -72,18 +73,11 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
               const SizedBox(height: AppSpacing.l),
 
               if (!showOtpField) ...[
-                Text('Phone Number', style: AppTextStyles.label),
-                const SizedBox(height: 8),
-                TextField(
+                SimplePhoneInputField(
                   controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. +923001234567',
-                    prefixIcon: const Icon(Icons.phone_outlined),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  hint: 'e.g. +923001234567',
+                  label: 'Phone Number',
+                  isRequired: true,
                 ),
                 const SizedBox(height: AppSpacing.l),
                 AppButton(

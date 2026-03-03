@@ -94,7 +94,7 @@ class FavoritesPage extends StatelessWidget {
                             top: 8,
                             right: 8,
                             child: GestureDetector(
-                              onTap: () => controller.toggleFavorite(ground),
+                              onTap: () => controller.toggleFavorite(ground.id),
                               child: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: const BoxDecoration(

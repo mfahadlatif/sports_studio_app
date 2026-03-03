@@ -7,6 +7,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/auth/controller/auth_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/widgets/phone_input_field.dart';
 
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
@@ -54,12 +55,12 @@ class AuthPage extends StatelessWidget {
                   Obx(
                     () => Text(
                       controller.isLogin.value
-                          ? 'Welcome\nBack!'
-                          : 'Create\nAccount',
+                          ? 'Welcome Back!'
+                          : 'Create Account',
                       textAlign: TextAlign.center,
                       style: AppTextStyles.h1.copyWith(
                         color: Colors.white,
-                        fontSize: 40,
+                        fontSize: 33,
                         height: 1.1,
                       ),
                     ),
@@ -209,19 +210,11 @@ class AuthPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.m),
-            TextField(
+            SimplePhoneInputField(
               controller: controller.phoneController,
-              keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(
-                hintText: 'Phone Number',
-                prefixIcon: Icon(Icons.phone_outlined),
-                filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(16)),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+              hint: 'Enter your phone number',
+              label: 'Phone Number',
+              isRequired: true,
             ),
             const SizedBox(height: AppSpacing.m),
           ],

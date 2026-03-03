@@ -1,30 +1,54 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/core/network/api_services.dart';
+import 'package:sports_studio/core/models/models.dart' as models;
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:dio/dio.dart' as dio_form;
 
 class ProfileController extends GetxController {
-  final RxBool isLoading = false.obs;
+  final RxBool isLoadingProfile = false.obs;
+  final RxBool isUpdatingProfile = false.obs;
+  final RxBool isChangingPassword = false.obs;
+  final RxBool isUploadingAvatar = false.obs;
   final RxMap<String, dynamic> userProfile = <String, dynamic>{}.obs;
+  final RxList<models.Notification> notifications = <models.Notification>[].obs;
+  final RxInt unreadCount = 0.obs;
+
+  // Form controllers
+  final nameController = TextEditingController();
+  final emailController = TextEditingController();
+  final phoneController = TextEditingController();
+  final currentPasswordController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
+
+  final UserApiService _userApiService = UserApiService();
+  final NotificationApiService _notificationApiService =
+      NotificationApiService();
+  final MediaApiService _mediaApiService = MediaApiService();
 
   @override
   void onInit() {
     super.onInit();
     fetchProfile();
+    fetchNotifications();
   }
 
   Future<void> fetchProfile() async {
-    isLoading.value = true;
+    isLoadingProfile.value = true;
     try {
-      final response = await ApiClient().dio.get('/me');
-      if (response.statusCode == 200) {
-        updateUserData(response.data['user'] ?? response.data);
-      }
+      final user = await _userApiService.getCurrentUser();
+      userProfile.value = user.toJson();
+
+      // Populate form controllers
+      nameController.text = user.name;
+      emailController.text = user.email;
+      phoneController.text = user.phone ?? '';
     } catch (e) {
-      print('Failed to fetch profile: $e');
+      AppUtils.showError(message: 'Failed to fetch profile: $e');
     } finally {
-      isLoading.value = false;
+      isLoadingProfile.value = false;
     }
   }
 
@@ -32,63 +56,65 @@ class ProfileController extends GetxController {
     userProfile.value = data;
   }
 
-  Future<void> updateProfile({
-    required String name,
-    required String email,
-    String? phone,
-    String? businessName,
-  }) async {
-    isLoading.value = true;
-    try {
-      final response = await ApiClient().dio.post(
-        '/profile',
-        data: {
-          'name': name,
-          'email': email,
-          'phone': phone,
-          'business_name': businessName,
-        },
-      );
+  Future<void> updateProfile() async {
+    if (nameController.text.trim().isEmpty) {
+      AppUtils.showError(message: 'Name is required');
+      return;
+    }
 
-      if (response.statusCode == 200) {
-        updateUserData(response.data['user'] ?? response.data);
-        Get.back();
-        AppUtils.showSuccess(message: 'Profile updated successfully');
-      }
+    if (emailController.text.trim().isEmpty) {
+      AppUtils.showError(message: 'Email is required');
+      return;
+    }
+
+    isUpdatingProfile.value = true;
+    try {
+      final profileData = {
+        'name': nameController.text.trim(),
+        'email': emailController.text.trim(),
+        'phone': phoneController.text.trim(),
+      };
+
+      final user = await _userApiService.updateProfile(profileData);
+      userProfile.value = user.toJson();
+      AppUtils.showSuccess(message: 'Profile updated successfully');
+      Get.back();
     } catch (e) {
-      AppUtils.showError(message: 'Failed to update profile');
+      AppUtils.showError(message: 'Failed to update profile: $e');
     } finally {
-      isLoading.value = false;
+      isUpdatingProfile.value = false;
     }
   }
 
-  Future<void> changePassword({
-    required String currentPassword,
-    required String newPassword,
-    required String confirmPassword,
-  }) async {
-    isLoading.value = true;
-    try {
-      final response = await ApiClient().dio.post(
-        '/profile/password',
-        data: {
-          'current_password': currentPassword,
-          'password': newPassword,
-          'password_confirmation': confirmPassword,
-        },
-      );
+  Future<void> changePassword() async {
+    if (currentPasswordController.text.isEmpty) {
+      AppUtils.showError(message: 'Current password is required');
+      return;
+    }
 
-      if (response.statusCode == 200) {
-        Get.back();
-        AppUtils.showSuccess(message: 'Password changed successfully');
-      }
-    } catch (e) {
-      AppUtils.showError(
-        message:
-            'Failed to change password. Ensure current password is correct.',
+    if (newPasswordController.text.isEmpty) {
+      AppUtils.showError(message: 'New password is required');
+      return;
+    }
+
+    if (newPasswordController.text != confirmPasswordController.text) {
+      AppUtils.showError(message: 'Passwords do not match');
+      return;
+    }
+
+    isChangingPassword.value = true;
+    try {
+      await _userApiService.changePassword(
+        currentPasswordController.text,
+        newPasswordController.text,
       );
+      AppUtils.showSuccess(message: 'Password changed successfully');
+      Get.back();
+      clearPasswordFields();
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to change password: $e');
     } finally {
-      isLoading.value = false;
+      isChangingPassword.value = false;
     }
   }
 
@@ -103,25 +129,191 @@ class ProfileController extends GetxController {
 
       if (image == null) return;
 
-      isLoading.value = true;
-      dio_form.FormData formData = dio_form.FormData.fromMap({
-        'avatar': await dio_form.MultipartFile.fromFile(
-          image.path,
-          filename: 'avatar.jpg',
-        ),
-      });
+      isUploadingAvatar.value = true;
 
-      final response = await ApiClient().dio.post('/profile', data: formData);
+      // Upload image using media service
+      final uploadResponse = await _mediaApiService.uploadFile(image.path);
+      final avatarPath = uploadResponse['path'];
 
-      if (response.statusCode == 200) {
-        userProfile.value = response.data['user'] ?? response.data;
-        AppUtils.showSuccess(message: 'Profile picture updated');
-      }
+      // Update profile with new avatar
+      final profileData = {'avatar': avatarPath};
+      User user = await _userApiService.updateProfile(profileData);
+      userProfile.value = user.toJson();
+
+      AppUtils.showSuccess(message: 'Profile picture updated');
     } catch (e) {
-      print('Avatar update error: $e');
-      AppUtils.showError(message: 'Failed to update profile picture');
+      AppUtils.showError(message: 'Failed to update profile picture: $e');
     } finally {
-      isLoading.value = false;
+      isUploadingAvatar.value = false;
     }
+  }
+
+  Future<void> fetchNotifications() async {
+    try {
+      final notificationList = await _notificationApiService
+          .getUserNotifications();
+      notifications.value = notificationList;
+      unreadCount.value = notificationList
+          .where((n) => n.readAt == null)
+          .length;
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to fetch notifications: $e');
+    }
+  }
+
+  Future<void> markNotificationAsRead(int notificationId) async {
+    try {
+      await _notificationApiService.markAsRead(notificationId);
+
+      // Update local notification
+      final notification = notifications.firstWhereOrNull(
+        (n) => n.id == notificationId,
+      );
+      if (notification != null) {
+        final index = notifications.indexOf(notification);
+        notifications[index] = models.Notification(
+          id: notification.id,
+          userId: notification.userId,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          readAt: DateTime.now(),
+          createdAt: notification.createdAt,
+        );
+
+        // Update unread count
+        unreadCount.value = notifications.where((n) => n.readAt == null).length;
+      }
+
+      AppUtils.showSuccess(message: 'Marked as read');
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to mark as read: $e');
+    }
+  }
+
+  Future<void> markAllAsRead() async {
+    try {
+      await _notificationApiService.markAllAsRead();
+
+      // Update local notifications
+      final updatedNotifications = notifications.map((notification) {
+        return models.Notification(
+          id: notification.id,
+          userId: notification.userId,
+          title: notification.title,
+          message: notification.message,
+          type: notification.type,
+          readAt: DateTime.now(),
+          createdAt: notification.createdAt,
+        );
+      }).toList();
+
+      notifications.value = updatedNotifications;
+      unreadCount.value = 0;
+
+      AppUtils.showSuccess(message: 'All notifications marked as read');
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to mark all as read: $e');
+    }
+  }
+
+  Future<void> deleteNotification(int notificationId) async {
+    try {
+      await _notificationApiService.deleteNotification(notificationId);
+
+      // Remove from local list
+      notifications.removeWhere((n) => n.id == notificationId);
+
+      // Update unread count
+      unreadCount.value = notifications.where((n) => n.readAt == null).length;
+
+      AppUtils.showSuccess(message: 'Notification deleted');
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to delete notification: $e');
+    }
+  }
+
+  Future<void> requestPhoneVerification(String phone) async {
+    try {
+      await _userApiService.requestPhoneVerification(phone);
+      AppUtils.showSuccess(message: 'Verification code sent to $phone');
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to send verification code: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> verifyPhone(String phone, String code) async {
+    try {
+      final response = await _userApiService.verifyPhone(phone, code);
+
+      if (response['phone_verified'] == true) {
+        AppUtils.showSuccess(message: 'Phone verified successfully!');
+        await fetchProfile(); // Refresh profile to update verification status
+      } else {
+        AppUtils.showError(message: 'Invalid verification code');
+      }
+
+      return response;
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to verify phone: $e');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> checkPhoneVerificationStatus() async {
+    try {
+      return await _userApiService.checkPhoneVerificationStatus();
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to check verification status: $e');
+      rethrow;
+    }
+  }
+
+  void clearPasswordFields() {
+    currentPasswordController.clear();
+    newPasswordController.clear();
+    confirmPasswordController.clear();
+  }
+
+  void populateProfileForm() {
+    final user = userProfile.value;
+    nameController.text = user['name'] ?? '';
+    emailController.text = user['email'] ?? '';
+    phoneController.text = user['phone'] ?? '';
+  }
+
+  bool get isPhoneVerified {
+    return userProfile.value['phone_verified'] ?? false;
+  }
+
+  bool get hasUnreadNotifications {
+    return unreadCount.value > 0;
+  }
+
+  String get userName {
+    return userProfile.value['name'] ?? 'User';
+  }
+
+  String get userEmail {
+    return userProfile.value['email'] ?? '';
+  }
+
+  String? get userPhone {
+    return userProfile.value['phone'];
+  }
+
+  String? get userAvatar {
+    return userProfile.value['avatar'];
+  }
+
+  @override
+  void onClose() {
+    nameController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    currentPasswordController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
+    super.onClose();
   }
 }

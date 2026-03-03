@@ -32,6 +32,8 @@ import 'package:sports_studio/features/user/controller/favorites_controller.dart
 import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
 import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
+import 'package:sports_studio/core/services/app_initialization_service.dart';
+import 'package:sports_studio/core/services/data_fetch_service.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -53,6 +55,10 @@ void main() async {
   final landingController = Get.put(LandingController(), permanent: true);
   Get.put(FavoritesController(), permanent: true);
   Get.put(ProfileController(), permanent: true);
+
+  // Initialize app services
+  Get.put(AppInitializationService(), permanent: true);
+  Get.put(DataFetchService(), permanent: true);
 
   // Restore Role from storage
   final String? savedRole = await storage.read(key: 'user_role');

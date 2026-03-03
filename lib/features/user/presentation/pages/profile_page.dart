@@ -171,7 +171,7 @@ class ProfilePage extends StatelessWidget {
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
       ),
       child: Obx(() {
-        if (profileController.isLoading.value) {
+        if (profileController.isLoadingProfile.value) {
           return const Center(
             child: CircularProgressIndicator(color: Colors.white),
           );
