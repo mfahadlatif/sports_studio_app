@@ -20,46 +20,18 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
   final ProfileController controller = Get.find<ProfileController>();
   final LandingController landingController = Get.find<LandingController>();
 
-  late TextEditingController nameController;
-  late TextEditingController emailController;
-  late TextEditingController phoneController;
-  late TextEditingController businessNameController;
-
-  late TextEditingController currentPasswordController;
-  late TextEditingController newPasswordController;
-  late TextEditingController confirmPasswordController;
+  // Local controllers removed to use shared ProfileController controllers
 
   @override
   void initState() {
     super.initState();
-    final user = controller.userProfile;
-    nameController = TextEditingController(
-      text: user['name']?.toString() ?? '',
-    );
-    emailController = TextEditingController(
-      text: user['email']?.toString() ?? '',
-    );
-    phoneController = TextEditingController(
-      text: user['phone']?.toString() ?? '',
-    );
-    businessNameController = TextEditingController(
-      text: user['business_name']?.toString() ?? '',
-    );
-
-    currentPasswordController = TextEditingController();
-    newPasswordController = TextEditingController();
-    confirmPasswordController = TextEditingController();
+    // Use controllers from ProfileController to ensure data consistency
+    controller.populateProfileForm();
   }
 
   @override
   void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    phoneController.dispose();
-    businessNameController.dispose();
-    currentPasswordController.dispose();
-    newPasswordController.dispose();
-    confirmPasswordController.dispose();
+    // Shared controllers are disposed in the GetX controller
     super.dispose();
   }
 
@@ -146,17 +118,21 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildInputField('Full Name', nameController, Icons.person_outline),
+        _buildInputField(
+          'Full Name',
+          controller.nameController,
+          Icons.person_outline,
+        ),
         const SizedBox(height: AppSpacing.m),
         _buildInputField(
           'Email Address',
-          emailController,
+          controller.emailController,
           Icons.email_outlined,
           keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: AppSpacing.m),
         SimplePhoneInputField(
-          controller: phoneController,
+          controller: controller.phoneController,
           hint: 'Enter your phone number',
           label: 'Phone Number',
           isRequired: true,
@@ -165,7 +141,9 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
           const SizedBox(height: AppSpacing.m),
           _buildInputField(
             'Business/Complex Name',
-            businessNameController,
+            TextEditingController(
+              text: controller.userProfile['business_name']?.toString() ?? '',
+            ),
             Icons.business_outlined,
           ),
         ],
@@ -181,21 +159,21 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
         const SizedBox(height: AppSpacing.m),
         _buildInputField(
           'Current Password',
-          currentPasswordController,
+          controller.currentPasswordController,
           Icons.lock_outline,
           isPassword: true,
         ),
         const SizedBox(height: AppSpacing.m),
         _buildInputField(
           'New Password',
-          newPasswordController,
+          controller.newPasswordController,
           Icons.lock_reset_outlined,
           isPassword: true,
         ),
         const SizedBox(height: AppSpacing.m),
         _buildInputField(
           'Confirm New Password',
-          confirmPasswordController,
+          controller.confirmPasswordController,
           Icons.lock_reset_outlined,
           isPassword: true,
         ),
@@ -256,7 +234,8 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
   }
 
   void _handleChangePassword() {
-    if (newPasswordController.text != confirmPasswordController.text) {
+    if (controller.newPasswordController.text !=
+        controller.confirmPasswordController.text) {
       Get.snackbar(
         'Error',
         'New passwords do not match',

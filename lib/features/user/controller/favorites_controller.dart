@@ -2,6 +2,7 @@ import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class FavoritesController extends GetxController {
   final RxBool isLoadingFavorites = false.obs;
@@ -18,9 +19,15 @@ class FavoritesController extends GetxController {
   }
 
   Future<void> fetchFavorites() async {
+    // Check if user is logged in before fetching
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
+    if (token == null) return;
+
     isLoadingFavorites.value = true;
     try {
       final favoriteList = await _favoriteApiService.getUserFavorites();
+
       favorites.value = favoriteList;
 
       // Extract grounds from favorites

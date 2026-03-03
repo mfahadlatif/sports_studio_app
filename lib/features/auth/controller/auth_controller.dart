@@ -9,6 +9,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
+import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 
 class AuthController extends GetxController {
   final RxBool isLogin = true.obs;
@@ -116,9 +117,14 @@ class AuthController extends GetxController {
   }
 
   void _navigateToHome(UserRole role) {
-    // Refresh profile data
+    // Refresh user-specific data
     if (Get.isRegistered<ProfileController>()) {
       Get.find<ProfileController>().fetchProfile();
+      Get.find<ProfileController>().fetchNotifications();
+    }
+
+    if (Get.isRegistered<FavoritesController>()) {
+      Get.find<FavoritesController>().fetchFavorites();
     }
 
     // Ensure LandingController is available and set the role

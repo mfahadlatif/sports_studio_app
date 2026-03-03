@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/theme/app_spacing.dart';
 import 'package:sports_studio/features/user/controller/teams_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class TeamsPage extends StatelessWidget {
   const TeamsPage({super.key});
@@ -52,11 +53,9 @@ class TeamsPage extends StatelessWidget {
                   const SizedBox(height: AppSpacing.l),
                   Obx(() {
                     if (controller.isLoadingTeam.value) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(50),
-                          child: CircularProgressIndicator(),
-                        ),
+                      return const Padding(
+                        padding: EdgeInsets.all(50),
+                        child: AppProgressIndicator(),
                       );
                     }
 
@@ -382,9 +381,7 @@ class TeamsPage extends StatelessWidget {
                       Get.snackbar('Error', 'Please enter a team name');
                       return;
                     }
-                    controller.createTeam(
-                     
-                    );
+                    controller.createTeam();
                   },
                 ),
               ),

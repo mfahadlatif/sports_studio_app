@@ -71,6 +71,7 @@ class Ground {
   final int complexId;
   final String status;
   final String type;
+  final String? slug; // FIX 10: Added slug for URL-based navigation
   final List<String>? images;
   final String? dimensions;
   final List<String>? amenities;
@@ -87,6 +88,7 @@ class Ground {
     required this.complexId,
     this.status = 'active',
     this.type = 'cricket',
+    this.slug,
     this.images,
     this.dimensions,
     this.amenities,
@@ -105,6 +107,7 @@ class Ground {
       complexId: json['complex_id'] ?? 0,
       status: json['status'] ?? 'active',
       type: json['type'] ?? 'cricket',
+      slug: json['slug'], // FIX 10
       images: json['images'] != null ? List<String>.from(json['images']) : null,
       dimensions: json['dimensions'],
       amenities: json['amenities'] != null
@@ -128,6 +131,7 @@ class Ground {
       'complex_id': complexId,
       'status': status,
       'type': type,
+      'slug': slug,
       'images': images,
       'dimensions': dimensions,
       'amenities': amenities,
@@ -200,7 +204,8 @@ class Booking {
       createdAt: DateTime.parse(json['created_at']),
       ground: json['ground'] != null ? Ground.fromJson(json['ground']) : null,
       user: json['user'] != null ? User.fromJson(json['user']) : null,
-      event: json['event'] != null ? Event.fromJson(json['event']) : null,
+      // FIX 5: Do NOT recursively parse nested event to avoid infinite recursion
+      event: null,
     );
   }
 
@@ -286,7 +291,8 @@ class Event {
       endTime: DateTime.parse(json['end_time']),
       registrationFee:
           double.tryParse(json['registration_fee'].toString()) ?? 0.0,
-      maxParticipants: json['maxParticipants'] ?? json['max_participants'] ?? 0,
+      maxParticipants:
+          json['max_participants'] ?? 0, // FIX 11: API always uses snake_case
       groundId: json['ground_id'],
       organizerId: json['organizer_id'],
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
@@ -299,7 +305,7 @@ class Event {
       eventType: json['event_type'] ?? 'public',
       status: json['status'] ?? 'upcoming',
       participantsCount:
-          json['participants_count'] ?? json['participants_count'],
+          json['participants_count'], // FIX 11: removed duplicate fallback
       userJoined: json['user_joined'],
       organizer: json['organizer'] != null
           ? User.fromJson(json['organizer'])
@@ -490,11 +496,12 @@ class Favorite {
 }
 
 class Notification {
-  final int id;
+  final String id; // Laravel notifications use UUID strings as IDs
   final int userId;
   final String title;
   final String message;
   final String type;
+  final String? link;
   final DateTime? readAt;
   final DateTime createdAt;
 
@@ -504,17 +511,25 @@ class Notification {
     required this.title,
     required this.message,
     this.type = 'general',
+    this.link,
     this.readAt,
     required this.createdAt,
   });
 
   factory Notification.fromJson(Map<String, dynamic> json) {
+    // FIX: Laravel DB notifications store payload in nested 'data' object
+    // Structure: { id, notifiable_id, data: { title, message, type, link }, read_at, created_at }
+    final data = json['data'] is Map
+        ? json['data'] as Map<String, dynamic>
+        : <String, dynamic>{};
     return Notification(
-      id: json['id'],
-      userId: json['user_id'],
-      title: json['title'] ?? '',
-      message: json['message'] ?? '',
-      type: json['type'] ?? 'general',
+      // FIX: Laravel notification IDs are UUIDs (strings), not integers
+      id: json['id']?.toString() ?? '',
+      userId: json['notifiable_id'] ?? json['user_id'] ?? 0,
+      title: data['title'] ?? json['title'] ?? 'Notification',
+      message: data['message'] ?? json['message'] ?? '',
+      type: data['type'] ?? json['type'] ?? 'general',
+      link: data['link'] ?? json['link'],
       readAt: json['read_at'] != null ? DateTime.parse(json['read_at']) : null,
       createdAt: DateTime.parse(json['created_at']),
     );
@@ -524,6 +539,7 @@ class Notification {
 class Deal {
   final int id;
   final String title;
+  final String? code; // FIX 9: Added promo code field for validation
   final String description;
   final double discountPercentage;
   final DateTime validFrom;
@@ -536,6 +552,7 @@ class Deal {
   Deal({
     required this.id,
     required this.title,
+    this.code,
     required this.description,
     required this.discountPercentage,
     required this.validFrom,
@@ -550,6 +567,7 @@ class Deal {
     return Deal(
       id: json['id'],
       title: json['title'] ?? '',
+      code: json['code'], // FIX 9
       description: json['description'] ?? '',
       discountPercentage:
           double.tryParse(json['discount_percentage'].toString()) ?? 0.0,

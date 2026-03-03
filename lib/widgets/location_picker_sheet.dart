@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class LocationPickerSheet extends StatefulWidget {
   final String? initialAddress;
@@ -112,14 +113,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                       color: AppColors.primary,
                     ),
                     suffixIcon: _isSearching
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: Padding(
-                              padding: EdgeInsets.all(12),
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          )
+                        ? const AppProgressIndicator(size: 20, strokeWidth: 2)
                         : null,
                     filled: true,
                     fillColor: AppColors.background,

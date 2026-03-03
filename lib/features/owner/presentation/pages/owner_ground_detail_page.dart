@@ -4,6 +4,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
+
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 
@@ -80,7 +82,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: AppProgressIndicator());
     }
 
     if (_ground == null) {

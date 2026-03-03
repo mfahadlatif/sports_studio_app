@@ -11,6 +11,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:sports_studio/features/user/controller/ground_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class GroundDetailPage extends StatefulWidget {
   const GroundDetailPage({super.key});
@@ -99,7 +100,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     return Obx(() {
       final ground = controller.groundDetails;
       if (controller.isLoadingGround.value && ground.isEmpty) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: AppProgressIndicator());
       }
 
       return Scaffold(
@@ -575,7 +576,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
           if (controller.isLoadingReviews.value) {
             return const Padding(
               padding: EdgeInsets.all(20),
-              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              child: AppProgressIndicator(strokeWidth: 2),
             );
           }
 

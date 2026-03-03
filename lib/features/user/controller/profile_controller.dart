@@ -5,6 +5,7 @@ import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart' as models;
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ProfileController extends GetxController {
   final RxBool isLoadingProfile = false.obs;
@@ -36,7 +37,12 @@ class ProfileController extends GetxController {
   }
 
   Future<void> fetchProfile() async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'auth_token');
+    if (token == null) return;
+
     isLoadingProfile.value = true;
+
     try {
       final user = await _userApiService.getCurrentUser();
       userProfile.value = user.toJson();
@@ -149,6 +155,9 @@ class ProfileController extends GetxController {
   }
 
   Future<void> fetchNotifications() async {
+    final token = await const FlutterSecureStorage().read(key: 'auth_token');
+    if (token == null) return;
+
     try {
       final notificationList = await _notificationApiService
           .getUserNotifications();
@@ -161,7 +170,7 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> markNotificationAsRead(int notificationId) async {
+  Future<void> markNotificationAsRead(String notificationId) async {
     try {
       await _notificationApiService.markAsRead(notificationId);
 
@@ -177,6 +186,7 @@ class ProfileController extends GetxController {
           title: notification.title,
           message: notification.message,
           type: notification.type,
+          link: notification.link,
           readAt: DateTime.now(),
           createdAt: notification.createdAt,
         );
@@ -203,6 +213,7 @@ class ProfileController extends GetxController {
           title: notification.title,
           message: notification.message,
           type: notification.type,
+          link: notification.link,
           readAt: DateTime.now(),
           createdAt: notification.createdAt,
         );
@@ -217,7 +228,7 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> deleteNotification(int notificationId) async {
+  Future<void> deleteNotification(String notificationId) async {
     try {
       await _notificationApiService.deleteNotification(notificationId);
 

@@ -6,6 +6,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -172,9 +173,7 @@ class ProfilePage extends StatelessWidget {
       ),
       child: Obx(() {
         if (profileController.isLoadingProfile.value) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white),
-          );
+          return const AppProgressIndicator(color: Colors.white);
         }
 
         final user = profileController.userProfile;

@@ -4,6 +4,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class OwnerReportsPage extends StatefulWidget {
   const OwnerReportsPage({super.key});
@@ -124,7 +125,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
         centerTitle: true,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppProgressIndicator()
           : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1000),

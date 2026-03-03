@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class PaymentController extends GetxController {
   final RxBool isProcessingPayment = false.obs;
@@ -11,7 +10,7 @@ class PaymentController extends GetxController {
   final RxList<Transaction> transactions = <Transaction>[].obs;
   final RxString paymentToken = ''.obs;
   final RxMap<String, dynamic> paymentData = <String, dynamic>{}.obs;
-  
+
   final PaymentApiService _paymentApiService = PaymentApiService();
   final BookingApiService _bookingApiService = BookingApiService();
   final TransactionApiService _transactionApiService = TransactionApiService();
@@ -28,7 +27,8 @@ class PaymentController extends GetxController {
 
   Future<void> fetchTransactions() async {
     try {
-      final transactionList = await _transactionApiService.getUserTransactions();
+      final transactionList = await _transactionApiService
+          .getUserTransactions();
       transactions.value = transactionList;
     } catch (e) {
       AppUtils.showError(message: 'Failed to fetch transactions: $e');
@@ -47,27 +47,53 @@ class PaymentController extends GetxController {
 
     isProcessingPayment.value = true;
     try {
-      final paymentRequestData = {
+      // FIX 1: Backend only accepts {amount, currency} — not booking_id or callback_url
+      final response = await _paymentApiService.initiateSafepayPayment({
         'amount': amount,
-        'booking_id': bookingId,
-        'callback_url': callbackUrl ?? 'sportsstudio://payment-success',
-      };
+        'currency': 'PKR',
+      });
 
-      final response = await _paymentApiService.initiateSafepayPayment(paymentRequestData);
-      
-      if (response['success'] == true) {
-        paymentData.value = response;
-        paymentToken.value = response['token'] ?? '';
-        
-        // Launch Safepay payment URL
-        final paymentUrl = response['payment_url'];
-        if (paymentUrl != null) {
-          await _launchUrl(paymentUrl);
-        } else {
-          AppUtils.showError(message: 'Payment URL not available');
-        }
+      // FIX 1: Backend returns {tracker, environment, sandbox_url, production_url}
+      final tracker = response['tracker'];
+      final env = response['environment'] ?? 'sandbox';
+
+      if (tracker == null) {
+        AppUtils.showError(
+          message: 'Failed to get payment tracker from Safepay',
+        );
+        return;
+      }
+
+      final checkoutBase = env == 'sandbox'
+          ? 'https://sandbox.api.getsafepay.com/checkout/pay'
+          : 'https://api.getsafepay.com/checkout/pay';
+
+      final checkoutUrl =
+          '$checkoutBase?tracker=$tracker&environment=$env&source=mobile';
+
+      paymentToken.value = tracker;
+      paymentData.value = response;
+
+      // Navigate to payment WebView page
+      final result = await Get.toNamed(
+        '/payment-webview',
+        arguments: {
+          'url': checkoutUrl,
+          'bookingId': bookingId,
+          'amount': amount,
+        },
+      );
+
+      if (result == true) {
+        // Payment completed in WebView — finalize booking
+        await _bookingApiService.finalizePayment(bookingId);
+        AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
+        Get.offAllNamed('/my-bookings');
       } else {
-        AppUtils.showError(message: response['message'] ?? 'Failed to initiate payment');
+        AppUtils.showInfo(
+          title: 'Cancelled',
+          message: 'Payment was cancelled.',
+        );
       }
     } catch (e) {
       AppUtils.showError(message: 'Payment initiation failed: $e');
@@ -79,24 +105,19 @@ class PaymentController extends GetxController {
   Future<void> verifySafepayPayment(String token) async {
     isVerifyingPayment.value = true;
     try {
+      // FIX 1: Pass token to backend verify endpoint
       final response = await _paymentApiService.verifySafepayPayment(token);
-      
-      if (response['status'] == 'success') {
+
+      if (response['status'] == 'valid') {
         AppUtils.showSuccess(message: 'Payment verified successfully!');
-        
-        // Finalize booking payment
         if (currentBooking.value != null) {
           await _bookingApiService.finalizePayment(currentBooking.value!.id);
         }
-        
-        // Navigate to success page
-        Get.offAllNamed('/payment-success', arguments: {
-          'transaction_id': response['transaction_id'],
-          'amount': response['amount'],
-          'booking_id': currentBooking.value?.id,
-        });
+        Get.offAllNamed('/my-bookings');
       } else {
-        AppUtils.showError(message: response['message'] ?? 'Payment verification failed');
+        AppUtils.showError(
+          message: 'Payment could not be verified. Please contact support.',
+        );
       }
     } catch (e) {
       AppUtils.showError(message: 'Payment verification failed: $e');
@@ -107,7 +128,9 @@ class PaymentController extends GetxController {
 
   Future<void> getTransaction(int transactionId) async {
     try {
-      final transaction = await _transactionApiService.getTransaction(transactionId);
+      final transaction = await _transactionApiService.getTransaction(
+        transactionId,
+      );
       // Navigate to transaction details or update current transaction data
       Get.toNamed('/transaction-details', arguments: transaction);
     } catch (e) {
@@ -135,15 +158,6 @@ class PaymentController extends GetxController {
       Get.offAllNamed('/my-bookings');
     } catch (e) {
       AppUtils.showError(message: 'Failed to cancel payment: $e');
-    }
-  }
-
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      AppUtils.showError(message: 'Could not launch payment URL');
     }
   }
 

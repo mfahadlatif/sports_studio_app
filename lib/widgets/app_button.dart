@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
+
 /// A premium app-wide button with proper inline loading state.
+
 /// Loading shows a small [20×20] white spinner + label, NOT a full-width indicator.
 class AppButton extends StatelessWidget {
   final String label;
@@ -36,15 +39,10 @@ class AppButton extends StatelessWidget {
     Widget child;
 
     if (isLoading) {
-      child = const SizedBox(
-        width: 20,
-        height: 20,
-        child: Center(
-          child: CircularProgressIndicator(
-            color: Colors.white,
-            strokeWidth: 2.5,
-          ),
-        ),
+      child = const AppProgressIndicator(
+        size: 20,
+        color: Colors.white,
+        strokeWidth: 2.5,
       );
     } else {
       child = Row(

@@ -9,6 +9,7 @@ import 'package:sports_studio/features/landing/controller/landing_controller.dar
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class OwnerBookingsView extends StatelessWidget {
   const OwnerBookingsView({super.key});
@@ -62,7 +63,7 @@ class OwnerBookingsView extends StatelessWidget {
   ) {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
+        return const AppProgressIndicator();
       }
 
       final list = type == 'Upcoming'

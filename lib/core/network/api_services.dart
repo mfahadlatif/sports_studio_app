@@ -13,13 +13,16 @@ class GroundApiService {
     int perPage = 15,
   }) async {
     try {
-      final response = await _client.dio.get('/public/grounds', queryParameters: {
-        if (complexId != null) 'complex_id': complexId,
-        if (type != null) 'type': type,
-        if (ownerId != null) 'owner_id': ownerId,
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/public/grounds',
+        queryParameters: {
+          if (complexId != null) 'complex_id': complexId,
+          if (type != null) 'type': type,
+          if (ownerId != null) 'owner_id': ownerId,
+          'page': page,
+          'per_page': perPage,
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -47,12 +50,12 @@ class GroundApiService {
     try {
       final queryParams = <String, dynamic>{};
       if (date != null) queryParams['date'] = date;
-      
+
       final response = await _client.dio.get(
         '/public/grounds/$groundId/bookings',
         queryParameters: queryParams,
       );
-      
+
       if (response.statusCode == 200) {
         return response.data as List;
       }
@@ -62,15 +65,12 @@ class GroundApiService {
     }
   }
 
-  Future<List<Ground>> getUserGrounds({
-    int page = 1,
-    int perPage = 15,
-  }) async {
+  Future<List<Ground>> getUserGrounds({int page = 1, int perPage = 15}) async {
     try {
-      final response = await _client.dio.get('/grounds', queryParameters: {
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/grounds',
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -127,11 +127,14 @@ class ComplexApiService {
     int perPage = 10,
   }) async {
     try {
-      final response = await _client.dio.get('/public/complexes', queryParameters: {
-        if (ownerId != null) 'owner_id': ownerId,
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/public/complexes',
+        queryParameters: {
+          if (ownerId != null) 'owner_id': ownerId,
+          'page': page,
+          'per_page': perPage,
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -160,10 +163,10 @@ class ComplexApiService {
     int perPage = 10,
   }) async {
     try {
-      final response = await _client.dio.get('/complexes', queryParameters: {
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/complexes',
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -187,9 +190,15 @@ class ComplexApiService {
     }
   }
 
-  Future<Complex> updateComplex(int id, Map<String, dynamic> complexData) async {
+  Future<Complex> updateComplex(
+    int id,
+    Map<String, dynamic> complexData,
+  ) async {
     try {
-      final response = await _client.dio.put('/complexes/$id', data: complexData);
+      final response = await _client.dio.put(
+        '/complexes/$id',
+        data: complexData,
+      );
       if (response.statusCode == 200) {
         return Complex.fromJson(response.data);
       }
@@ -219,10 +228,10 @@ class BookingApiService {
     int perPage = 15,
   }) async {
     try {
-      final response = await _client.dio.get('/bookings', queryParameters: {
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/bookings',
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -258,9 +267,15 @@ class BookingApiService {
     }
   }
 
-  Future<Booking> updateBooking(int id, Map<String, dynamic> bookingData) async {
+  Future<Booking> updateBooking(
+    int id,
+    Map<String, dynamic> bookingData,
+  ) async {
     try {
-      final response = await _client.dio.put('/bookings/$id', data: bookingData);
+      final response = await _client.dio.put(
+        '/bookings/$id',
+        data: bookingData,
+      );
       if (response.statusCode == 200) {
         return Booking.fromJson(response.data);
       }
@@ -283,9 +298,13 @@ class BookingApiService {
 
   Future<Booking> finalizePayment(int bookingId) async {
     try {
-      final response = await _client.dio.post('/bookings/$bookingId/finalize-payment');
+      final response = await _client.dio.post(
+        '/bookings/$bookingId/finalize-payment',
+      );
       if (response.statusCode == 200) {
-        return Booking.fromJson(response.data);
+        // FIX 2: Backend returns { message: '...', booking: {...} }
+        final bookingData = response.data['booking'] ?? response.data;
+        return Booking.fromJson(bookingData);
       }
       throw Exception('Failed to finalize payment');
     } catch (e) {
@@ -304,12 +323,15 @@ class EventApiService {
     int perPage = 24,
   }) async {
     try {
-      final response = await _client.dio.get('/public/events', queryParameters: {
-        if (organizerId != null) 'organizer_id': organizerId,
-        if (eventType != null) 'event_type': eventType,
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/public/events',
+        queryParameters: {
+          if (organizerId != null) 'organizer_id': organizerId,
+          if (eventType != null) 'event_type': eventType,
+          'page': page,
+          'per_page': perPage,
+        },
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -325,7 +347,11 @@ class EventApiService {
     try {
       final response = await _client.dio.get('/public/events/$idOrSlug');
       if (response.statusCode == 200) {
-        return Event.fromJson(response.data);
+        // FIX 13: Safely handle both wrapped { data: {...} } and direct responses
+        final data = response.data is Map && response.data.containsKey('data')
+            ? response.data['data']
+            : response.data;
+        return Event.fromJson(data);
       }
       throw Exception('Event not found');
     } catch (e) {
@@ -333,15 +359,12 @@ class EventApiService {
     }
   }
 
-  Future<List<Event>> getUserEvents({
-    int page = 1,
-    int perPage = 24,
-  }) async {
+  Future<List<Event>> getUserEvents({int page = 1, int perPage = 24}) async {
     try {
-      final response = await _client.dio.get('/events', queryParameters: {
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/events',
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -409,10 +432,10 @@ class EventParticipantApiService {
     int perPage = 15,
   }) async {
     try {
-      final response = await _client.dio.get('/event-participants', queryParameters: {
-        'page': page,
-        'per_page': perPage,
-      });
+      final response = await _client.dio.get(
+        '/event-participants',
+        queryParameters: {'page': page, 'per_page': perPage},
+      );
 
       if (response.statusCode == 200) {
         return response.data['data'] as List;
@@ -425,7 +448,10 @@ class EventParticipantApiService {
 
   Future<dynamic> joinEvent(Map<String, dynamic> participantData) async {
     try {
-      final response = await _client.dio.post('/event-participants', data: participantData);
+      final response = await _client.dio.post(
+        '/event-participants',
+        data: participantData,
+      );
       if (response.statusCode == 201) {
         return response.data;
       }
@@ -447,9 +473,15 @@ class EventParticipantApiService {
     }
   }
 
-  Future<dynamic> updateParticipant(int id, Map<String, dynamic> participantData) async {
+  Future<dynamic> updateParticipant(
+    int id,
+    Map<String, dynamic> participantData,
+  ) async {
     try {
-      final response = await _client.dio.put('/event-participants/$id', data: participantData);
+      final response = await _client.dio.put(
+        '/event-participants/$id',
+        data: participantData,
+      );
       if (response.statusCode == 200) {
         return response.data;
       }
@@ -478,8 +510,10 @@ class TeamApiService {
     try {
       final response = await _client.dio.get('/teams');
       if (response.statusCode == 200) {
-        final data = response.data as List;
-        return data.map((json) => Team.fromJson(json)).toList();
+        // FIX 3: API returns paginated { data: [...] }, not raw list
+        final raw = response.data;
+        final list = raw is Map ? (raw['data'] ?? raw) : raw;
+        return (list as List).map((json) => Team.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
@@ -534,9 +568,15 @@ class TeamApiService {
     }
   }
 
-  Future<dynamic> addTeamMember(int teamId, Map<String, dynamic> memberData) async {
+  Future<dynamic> addTeamMember(
+    int teamId,
+    Map<String, dynamic> memberData,
+  ) async {
     try {
-      final response = await _client.dio.post('/teams/$teamId/members', data: memberData);
+      final response = await _client.dio.post(
+        '/teams/$teamId/members',
+        data: memberData,
+      );
       if (response.statusCode == 201) {
         return response.data;
       }
@@ -548,7 +588,9 @@ class TeamApiService {
 
   Future<void> removeTeamMember(int teamId, int userId) async {
     try {
-      final response = await _client.dio.delete('/teams/$teamId/members/$userId');
+      final response = await _client.dio.delete(
+        '/teams/$teamId/members/$userId',
+      );
       if (response.statusCode != 204) {
         throw Exception('Failed to remove team member');
       }
@@ -576,7 +618,10 @@ class FavoriteApiService {
 
   Future<Favorite> addFavorite(int groundId) async {
     try {
-      final response = await _client.dio.post('/favorites', data: {'ground_id': groundId});
+      final response = await _client.dio.post(
+        '/favorites',
+        data: {'ground_id': groundId},
+      );
       if (response.statusCode == 201) {
         return Favorite.fromJson(response.data);
       }
@@ -614,7 +659,8 @@ class NotificationApiService {
     }
   }
 
-  Future<void> markAsRead(int id) async {
+  // FIX: Laravel notification IDs are UUIDs (Strings), not integers
+  Future<void> markAsRead(String id) async {
     try {
       final response = await _client.dio.post('/notifications/$id/read');
       if (response.statusCode != 200) {
@@ -636,7 +682,8 @@ class NotificationApiService {
     }
   }
 
-  Future<void> deleteNotification(int id) async {
+  // FIX: Laravel notification IDs are UUIDs (Strings), not integers
+  Future<void> deleteNotification(String id) async {
     try {
       final response = await _client.dio.delete('/notifications/$id');
       if (response.statusCode != 204) {
@@ -655,8 +702,12 @@ class DealApiService {
     try {
       final response = await _client.dio.get('/public/deals');
       if (response.statusCode == 200) {
-        final data = response.data['data'] as List;
-        return data.map((json) => Deal.fromJson(json)).toList();
+        // FIX: Backend uses ->get() returning a flat array, NOT a paginated {data:[...]}
+        final raw = response.data;
+        final list = raw is List
+            ? raw
+            : (raw is Map ? (raw['data'] ?? []) : []);
+        return (list as List).map((json) => Deal.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
@@ -668,8 +719,12 @@ class DealApiService {
     try {
       final response = await _client.dio.get('/deals');
       if (response.statusCode == 200) {
-        final data = response.data['data'] as List;
-        return data.map((json) => Deal.fromJson(json)).toList();
+        // FIX: Backend uses ->get() returning a flat array, NOT a paginated {data:[...]}
+        final raw = response.data;
+        final list = raw is List
+            ? raw
+            : (raw is Map ? (raw['data'] ?? []) : []);
+        return (list as List).map((json) => Deal.fromJson(json)).toList();
       }
       return [];
     } catch (e) {
@@ -718,9 +773,10 @@ class ReviewApiService {
 
   Future<List<Review>> getPublicReviews({int? groundId}) async {
     try {
-      final response = await _client.dio.get('/public/reviews', queryParameters: {
-        if (groundId != null) 'ground_id': groundId,
-      });
+      final response = await _client.dio.get(
+        '/public/reviews',
+        queryParameters: {if (groundId != null) 'ground_id': groundId},
+      );
 
       if (response.statusCode == 200) {
         final data = response.data['data'] as List;
@@ -734,7 +790,10 @@ class ReviewApiService {
 
   Future<Review> createPublicReview(Map<String, dynamic> reviewData) async {
     try {
-      final response = await _client.dio.post('/public/reviews', data: reviewData);
+      final response = await _client.dio.post(
+        '/public/reviews',
+        data: reviewData,
+      );
       if (response.statusCode == 201) {
         return Review.fromJson(response.data);
       }
@@ -759,7 +818,10 @@ class ReviewApiService {
 
   Future<Review> updateReviewStatus(int id, String status) async {
     try {
-      final response = await _client.dio.put('/reviews/$id/status', data: {'status': status});
+      final response = await _client.dio.put(
+        '/reviews/$id/status',
+        data: {'status': status},
+      );
       if (response.statusCode == 200) {
         return Review.fromJson(response.data);
       }
@@ -813,9 +875,14 @@ class TransactionApiService {
 class PaymentApiService {
   final ApiClient _client = ApiClient();
 
-  Future<Map<String, dynamic>> initiateSafepayPayment(Map<String, dynamic> paymentData) async {
+  Future<Map<String, dynamic>> initiateSafepayPayment(
+    Map<String, dynamic> paymentData,
+  ) async {
     try {
-      final response = await _client.dio.post('/safepay/init', data: paymentData);
+      final response = await _client.dio.post(
+        '/safepay/init',
+        data: paymentData,
+      );
       if (response.statusCode == 200) {
         return response.data;
       }
@@ -827,7 +894,10 @@ class PaymentApiService {
 
   Future<Map<String, dynamic>> verifySafepayPayment(String token) async {
     try {
-      final response = await _client.dio.post('/safepay/verify', data: {'token': token});
+      final response = await _client.dio.post(
+        '/safepay/verify',
+        data: {'token': token},
+      );
       if (response.statusCode == 200) {
         return response.data;
       }
@@ -870,8 +940,12 @@ class MediaApiService {
 
   Future<void> deleteMediaByPath(String path) async {
     try {
-      final response = await _client.dio.post('/media/delete-by-path', data: {'path': path});
-      if (response.statusCode != 204) {
+      final response = await _client.dio.post(
+        '/media/delete-by-path',
+        data: {'path': path},
+      );
+      // FIX 6: Backend returns 200, not 204, for this POST endpoint
+      if (response.statusCode != 200 && response.statusCode != 204) {
         throw Exception('Failed to delete media by path');
       }
     } catch (e) {
@@ -897,9 +971,19 @@ class UserApiService {
 
   Future<User> updateProfile(Map<String, dynamic> profileData) async {
     try {
-      final response = await _client.dio.put('/profile', data: profileData);
+      // FIX: Backend returns {message: '...', user: {...}} — must unwrap 'user'
+      // Route accepts both POST and PUT via Route::match(['put','post'])
+      final response = await _client.dio.post(
+        '/profile',
+        data: {...profileData, '_method': 'PUT'},
+      );
       if (response.statusCode == 200) {
-        return User.fromJson(response.data);
+        // Handle both wrapped {user: {...}} and direct user object responses
+        final raw = response.data;
+        final userData = raw is Map && raw.containsKey('user')
+            ? raw['user'] as Map<String, dynamic>
+            : raw as Map<String, dynamic>;
+        return User.fromJson(userData);
       }
       throw Exception('Failed to update profile');
     } catch (e) {
@@ -907,13 +991,19 @@ class UserApiService {
     }
   }
 
-  Future<void> changePassword(String currentPassword, String newPassword) async {
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     try {
-      final response = await _client.dio.post('/profile/password', data: {
-        'current_password': currentPassword,
-        'password': newPassword,
-        'password_confirmation': newPassword,
-      });
+      final response = await _client.dio.post(
+        '/profile/password',
+        data: {
+          'current_password': currentPassword,
+          'password': newPassword,
+          'password_confirmation': newPassword,
+        },
+      );
       if (response.statusCode != 200) {
         throw Exception('Failed to change password');
       }
@@ -924,7 +1014,10 @@ class UserApiService {
 
   Future<void> requestPhoneVerification(String phone) async {
     try {
-      final response = await _client.dio.post('/request-phone-verification', data: {'phone': phone});
+      final response = await _client.dio.post(
+        '/request-phone-verification',
+        data: {'phone': phone},
+      );
       if (response.statusCode != 200) {
         throw Exception('Failed to request phone verification');
       }
@@ -935,10 +1028,10 @@ class UserApiService {
 
   Future<Map<String, dynamic>> verifyPhone(String phone, String code) async {
     try {
-      final response = await _client.dio.post('/verify-phone', data: {
-        'phone': phone,
-        'code': code,
-      });
+      final response = await _client.dio.post(
+        '/verify-phone',
+        data: {'phone': phone, 'code': code},
+      );
       if (response.statusCode == 200) {
         return response.data;
       }
@@ -967,7 +1060,9 @@ class ContactApiService {
   Future<void> submitContactForm(Map<String, dynamic> contactData) async {
     try {
       final response = await _client.dio.post('/contact', data: contactData);
-      if (response.statusCode != 200) {
+      // FIX 7: Backend returns 201 Created, accept any 2xx success response
+      final status = response.statusCode ?? 0;
+      if (status < 200 || status >= 300) {
         throw Exception('Failed to submit contact form');
       }
     } catch (e) {

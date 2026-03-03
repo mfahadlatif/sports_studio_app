@@ -8,6 +8,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
@@ -68,7 +69,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     return Obx(() {
       final event = controller.selectedEvent.value;
       if (controller.isLoadingEvent.value && event == null) {
-        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        return const Scaffold(body: AppProgressIndicator());
       }
 
       final title = event?.name ?? 'Upcoming Tournament';
@@ -86,12 +87,11 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
       List<String> images = [];
       if (event?.images != null && event!.images!.isNotEmpty) {
-        images = event.images!
-            .cast<String>()
-            .toList();
+        images = event.images!.cast<String>().toList();
       }
-      
-      final isFull = maxParticipants > 0 && currentParticipants >= maxParticipants;
+
+      final isFull =
+          maxParticipants > 0 && currentParticipants >= maxParticipants;
 
       // URL Sanitization Utility
       List<String> sanitizedImages = images
@@ -242,10 +242,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             ),
                             const SizedBox(height: AppSpacing.s),
                             // Location
-                            _infoRow(
-                              Icons.location_on_outlined,
-                              location,
-                            ),
+                            _infoRow(Icons.location_on_outlined, location),
                             // Fee
                             _infoRow(
                               Icons.confirmation_number_outlined,
@@ -319,9 +316,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             ),
                             const SizedBox(height: AppSpacing.s),
                             _isLoadingParticipants
-                                ? const Center(
-                                    child: CircularProgressIndicator(),
-                                  )
+                                ? const AppProgressIndicator(size: 30)
                                 : _participants.isEmpty
                                 ? Text(
                                     'No participants yet. Be the first to join!',
@@ -405,7 +400,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   ),
                                 ),
                                 child: _isJoining
-                                    ? const CircularProgressIndicator(
+                                    ? const AppProgressIndicator(
+                                        size: 24,
                                         color: Colors.white,
                                       )
                                     : Text(
@@ -488,9 +484,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
     setState(() => _isJoining = true);
 
     try {
-      final response = await ApiClient().dio.post(
-        '/events/${event.id}/join',
-      );
+      final response = await ApiClient().dio.post('/events/${event.id}/join');
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() => _hasJoined = true);
         Get.snackbar(

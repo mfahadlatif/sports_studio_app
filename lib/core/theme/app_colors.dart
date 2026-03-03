@@ -13,17 +13,18 @@ class AppColors {
   // Accent colors
   static const Color accent = Color(0xFFFA8019);
   static const Color accentDark = Color(0xFFD96D12);
+  static const Color deepBlueColor = Color(0xFF1A1F71);
 
   // Neutral colors
   static const Color background = Color(0xFFF7F9FB);
   static const Color surface = Colors.white;
   static const Color error = Color(0xFFE53E3E);
-  
+
   // Text colors
   static const Color textPrimary = Color(0xFF111827);
   static const Color textSecondary = Color(0xFF6B7280);
   static const Color textMuted = Color(0xFF9CA3AF);
-  
+
   // Border colors
   static const Color border = Color(0xFFE5E7EB);
   static const Color inputBackground = Color(0xFFF9FAFB);

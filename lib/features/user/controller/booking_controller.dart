@@ -130,8 +130,14 @@ class BookingController extends GetxController {
     isCheckingPromo.value = true;
     try {
       final deals = await _dealApiService.getPublicDeals();
+      // FIX 4: Match on deal's `code` field (not title). Also check validity dates.
+      final now = DateTime.now();
       final deal = deals.firstWhereOrNull(
-        (d) => d.title.toLowerCase().contains(code.toLowerCase()),
+        (d) =>
+            (d.code?.toLowerCase() == code.toLowerCase()) &&
+            d.status == 'active' &&
+            d.validFrom.isBefore(now) &&
+            d.validUntil.isAfter(now),
       );
 
       if (deal != null) {
@@ -139,7 +145,10 @@ class BookingController extends GetxController {
         final amount = subtotal * (deal.discountPercentage / 100);
         discount.value = amount;
         promoCode.value = code;
-        AppUtils.showSuccess(message: 'Promo code applied: ${deal.title}');
+        AppUtils.showSuccess(
+          message:
+              'Promo code applied: ${deal.title} (${deal.discountPercentage.toStringAsFixed(0)}% off)',
+        );
       } else {
         AppUtils.showError(message: 'Invalid or expired promo code');
         selectedDeal.value = null;
@@ -217,9 +226,9 @@ class BookingController extends GetxController {
         'ground_id': ground['id'],
         'start_time': '$formattedDate $startTimeStr:00',
         'end_time': '$formattedDate $endTimeStr:00',
-        'total_price': totalPrice,
+        'total_price': totalPrice, // Discount is already factored in
         'players': players.value,
-        'coupon_id': selectedDeal.value?.id,
+        // FIX 12: Removed coupon_id — backend doesn't accept it, discount is pre-applied in total_price
       };
 
       final booking = await _bookingApiService.createBooking(bookingData);

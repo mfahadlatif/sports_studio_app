@@ -14,6 +14,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as dio_form;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class CreateMatchPage extends StatefulWidget {
   const CreateMatchPage({super.key});
@@ -678,8 +679,9 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
 
   Widget _buildGroundSelector() {
     if (_isLoadingGrounds) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppProgressIndicator();
     }
+
     if (_grounds.isEmpty) {
       return const Text('No grounds available');
     }
@@ -729,11 +731,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       placeholder: (context, url) => Container(
                         color: Colors.grey[100],
                         child: const Center(
-                          child: SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                          child: AppProgressIndicator(size: 20, strokeWidth: 2),
                         ),
                       ),
                       errorWidget: (_, __, ___) => Container(

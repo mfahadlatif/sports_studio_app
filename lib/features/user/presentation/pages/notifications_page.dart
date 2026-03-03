@@ -4,6 +4,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -179,11 +180,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             TextButton(
               onPressed: _isMarkingAll ? null : _markAllRead,
               child: _isMarkingAll
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const AppProgressIndicator(size: 16, strokeWidth: 2)
                   : Text(
                       'Mark All Read',
                       style: AppTextStyles.label.copyWith(
@@ -194,7 +191,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppProgressIndicator()
           : Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 900),

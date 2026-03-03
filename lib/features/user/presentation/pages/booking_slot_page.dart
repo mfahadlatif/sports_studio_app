@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/booking_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class BookingSlotPage extends StatelessWidget {
   const BookingSlotPage({super.key});
@@ -280,11 +281,7 @@ class BookingSlotPage extends StatelessWidget {
                     minimumSize: const Size(0, 42),
                   ),
                   child: controller.isCheckingPromo.value
-                      ? const SizedBox(
-                          height: 16,
-                          width: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
+                      ? const AppProgressIndicator(size: 16, strokeWidth: 2)
                       : const Text('Apply'),
                 ),
               ),
@@ -307,11 +304,7 @@ class BookingSlotPage extends StatelessWidget {
               Text('Available Slots', style: AppTextStyles.h3),
               Obx(
                 () => controller.isLoadingSlots.value
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    ? const AppProgressIndicator(size: 16, strokeWidth: 2)
                     : const SizedBox.shrink(),
               ),
             ],

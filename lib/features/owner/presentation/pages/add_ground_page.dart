@@ -4,6 +4,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/add_ground_controller.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class AddGroundPage extends StatelessWidget {
   const AddGroundPage({super.key});
@@ -460,44 +461,13 @@ class AddGroundPage extends StatelessWidget {
   }
 
   Widget _buildSubmitButton(AddGroundController controller) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: Obx(
-        () => ElevatedButton(
-          onPressed: controller.isSubmitting.value
-              ? null
-              : () => controller.submit(),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          child: controller.isSubmitting.value
-              ? const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text('Publishing...'),
-                  ],
-                )
-              : Text(
-                  'Publish Ground',
-                  style: AppTextStyles.bodyLarge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-        ),
+    final bool isEdit =
+        Get.arguments != null && Get.arguments['isEdit'] == true;
+    return Obx(
+      () => AppButton(
+        label: isEdit ? 'Update Ground' : 'Publish Ground',
+        onPressed: () => controller.submit(),
+        isLoading: controller.isSubmitting.value,
       ),
     );
   }

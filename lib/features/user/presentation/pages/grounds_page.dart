@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/presentation/widgets/ground_card_wide.dart';
 import 'package:sports_studio/features/user/controller/home_controller.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class GroundsPage extends StatefulWidget {
   const GroundsPage({super.key});
@@ -107,9 +108,7 @@ class _GroundsPageState extends State<GroundsPage>
           // Grounds List
           Obx(() {
             if (controller.isLoading.value) {
-              return const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              );
+              return const SliverFillRemaining(child: AppProgressIndicator());
             }
 
             if (controller.filteredGrounds.isEmpty) {

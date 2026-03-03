@@ -8,8 +8,8 @@ class AppProgressIndicator extends StatelessWidget {
 
   const AppProgressIndicator({
     super.key,
-    this.size = 24,
-    this.strokeWidth = 3,
+    this.size = 56, // Updated default size to 56
+    this.strokeWidth = 4,
     this.color,
   });
 
@@ -21,7 +21,9 @@ class AppProgressIndicator extends StatelessWidget {
         width: size,
         child: CircularProgressIndicator(
           strokeWidth: strokeWidth,
-          valueColor: AlwaysStoppedAnimation<Color>(color ?? AppColors.primary),
+          color:
+              color ??
+              AppColors.primary, // Updated default color to deepBlueColor
         ),
       ),
     );

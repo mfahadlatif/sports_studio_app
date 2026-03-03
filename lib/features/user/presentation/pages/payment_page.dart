@@ -10,6 +10,7 @@ import 'package:sports_studio/core/network/api_client.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -388,13 +389,10 @@ class _PaymentPageState extends State<PaymentPage> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
             ),
             child: _isPromoLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+                ? const AppProgressIndicator(
+                    size: 20,
+                    strokeWidth: 2,
+                    color: Colors.white,
                   )
                 : const Text('Apply'),
           ),

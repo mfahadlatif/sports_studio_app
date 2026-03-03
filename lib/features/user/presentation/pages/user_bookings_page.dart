@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class UserBookingsPage extends StatelessWidget {
   const UserBookingsPage({super.key});
@@ -46,7 +47,7 @@ class UserBookingsPage extends StatelessWidget {
   Widget _buildBookingList(String type, BookingsController controller) {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Center(child: CircularProgressIndicator());
+        return const AppProgressIndicator();
       }
 
       final list = type == 'Upcoming'

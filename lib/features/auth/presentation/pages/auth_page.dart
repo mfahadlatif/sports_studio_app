@@ -8,6 +8,7 @@ import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/auth/controller/auth_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/phone_input_field.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
@@ -360,16 +361,7 @@ class AuthPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: isLoading
-          ? const SizedBox(
-              height: 24,
-              width: 24,
-              child: Center(
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: AppColors.primary,
-                ),
-              ),
-            )
+          ? const AppProgressIndicator(size: 24, strokeWidth: 2)
           : Row(
               mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,

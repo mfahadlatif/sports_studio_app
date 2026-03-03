@@ -4,6 +4,8 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sports_studio/widgets/app_button.dart';
+
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as dio_form;
@@ -209,44 +211,12 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 _buildAmenitiesGrid(),
                 const SizedBox(height: AppSpacing.xxl),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 4,
-                      shadowColor: AppColors.primary.withOpacity(0.3),
-                    ),
-                    child: _isLoading
-                        ? const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Text('Saving...'),
-                            ],
-                          )
-                        : Text(
-                            'Save & Continue',
-                            style: AppTextStyles.bodyLarge.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                  ),
+                AppButton(
+                  label: 'Save & Continue',
+                  onPressed: _submit,
+                  isLoading: _isLoading,
                 ),
+
                 const SizedBox(height: AppSpacing.xxl),
               ],
             ),

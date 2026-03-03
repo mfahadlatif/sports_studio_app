@@ -4,7 +4,9 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+
 import 'package:sports_studio/core/models/models.dart';
 
 class OwnerGroundsView extends StatelessWidget {
@@ -18,7 +20,7 @@ class OwnerGroundsView extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppProgressIndicator();
         }
 
         return CustomScrollView(
