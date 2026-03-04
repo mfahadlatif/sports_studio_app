@@ -211,11 +211,13 @@ class AuthPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.m),
-            SimplePhoneInputField(
+            PhoneTextfield(
               controller: controller.phoneController,
-              hint: 'Enter your phone number',
+              countryCode: controller.countryCode,
+              dialCode: controller.dialCode,
               label: 'Phone Number',
               isRequired: true,
+              onPhoneChanged: (v) => controller.fullPhone.value = v,
             ),
             const SizedBox(height: AppSpacing.m),
           ],

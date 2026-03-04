@@ -9,6 +9,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
@@ -96,7 +97,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
       // URL Sanitization Utility
       List<String> sanitizedImages = images
           .where((url) => url.isNotEmpty)
-          .map((url) => url.startsWith('http') ? url : 'https://$url')
+          .map((url) => UrlHelper.sanitizeUrl(url))
           .toList();
 
       return Scaffold(

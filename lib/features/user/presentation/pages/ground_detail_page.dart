@@ -59,7 +59,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     ) {
       if (controller.groundDetails.isNotEmpty) {
         int next = _currentPage.value + 1;
-        List images = controller.groundDetails['images'] ?? [];
+        final images = UrlHelper.getParsedImages(
+          controller.groundDetails['images'],
+        );
         if (next >= (images.isEmpty ? 1 : images.length)) {
           next = 0;
         }
@@ -168,24 +170,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   Widget _buildSliverAppBar(dynamic ground) {
-    List<String> images = [];
-    if (ground != null) {
-      if (ground['images'] != null && (ground['images'] as List).isNotEmpty) {
-        images = List<String>.from(
-          (ground['images'] as List).map(
-            (i) => i is Map ? i['url'] : i.toString(),
-          ),
-        );
-      } else if (ground['image_path'] != null) {
-        images.add(ground['image_path'].toString());
-      }
-    }
-
-    // Default image if no gallery
-    if (images.isEmpty) {
-      images.add(
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800',
-      );
+    List<String> images = UrlHelper.getParsedImages(ground?['images']);
+    if (images.isEmpty && ground?['image_path'] != null) {
+      images.add(ground!['image_path'].toString());
     }
 
     // URL Sanitization Utility
@@ -656,7 +643,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
         (index) => Icon(
           Icons.star,
           size: 14,
-          color: index < double.parse(r) ? Colors.amber : Colors.grey[300],
+          color: index < (double.tryParse(r) ?? 0.0)
+              ? Colors.amber
+              : Colors.grey[300],
         ),
       ),
     );

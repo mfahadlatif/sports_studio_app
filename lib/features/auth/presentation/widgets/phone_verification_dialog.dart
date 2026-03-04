@@ -73,9 +73,10 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
               const SizedBox(height: AppSpacing.l),
 
               if (!showOtpField) ...[
-                SimplePhoneInputField(
+                PhoneTextfield(
                   controller: phoneController,
-                  hint: 'e.g. +923001234567',
+                  countryCode: controller.countryCode,
+                  dialCode: controller.dialCode,
                   label: 'Phone Number',
                   isRequired: true,
                 ),
@@ -92,7 +93,7 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                     }
                     FocusScope.of(context).unfocus();
                     final success = await controller.requestVerification(
-                      phoneController.text.trim(),
+                      controller.dialCode.value + phoneController.text.trim(),
                     );
                     if (success) {
                       setState(() => showOtpField = true);
@@ -154,7 +155,8 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                           }
                           FocusScope.of(context).unfocus();
                           final success = await controller.verifyPhone(
-                            phoneController.text.trim(),
+                            controller.dialCode.value +
+                                phoneController.text.trim(),
                             otpController.text.trim(),
                           );
                           if (success) {

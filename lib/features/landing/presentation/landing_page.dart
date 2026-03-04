@@ -200,7 +200,7 @@ class LandingPage extends StatelessWidget {
                 child: SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 15.0,
+                      horizontal: 0.0,
                       vertical: 8,
                     ),
                     child: Obx(
@@ -211,7 +211,7 @@ class LandingPage extends StatelessWidget {
                         activeColor: AppColors.primary,
                         iconSize: 24,
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
+                          horizontal: 8,
                           vertical: 12,
                         ),
                         duration: const Duration(milliseconds: 400),

@@ -4,6 +4,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/theme/app_spacing.dart';
 import 'package:sports_studio/features/user/controller/teams_controller.dart';
+import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
@@ -70,8 +71,8 @@ class TeamsPage extends StatelessWidget {
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 16),
                       itemBuilder: (context, index) {
-                        final team = controller.teams[index];
-                        return _teamCard(team);
+                        final Team team = controller.teams[index];
+                        return _teamCard(team, controller);
                       },
                     );
                   }),
@@ -86,121 +87,129 @@ class TeamsPage extends StatelessWidget {
 
   Widget _buildSearchHeader(TeamsController controller) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border.withOpacity(0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: TextField(
         decoration: InputDecoration(
-          hintText: 'Search teams by name or sport...',
+          hintText: 'Find teams or sports...',
           border: InputBorder.none,
-          icon: const Icon(Icons.search, color: AppColors.textSecondary),
+          icon: Icon(Icons.search, color: AppColors.primary.withOpacity(0.6)),
           hintStyle: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: AppColors.textSecondary.withOpacity(0.5),
           ),
         ),
-        onChanged: (v) {
-          // Add search logic if needed
-        },
+        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
+        onChanged: (v) => controller.updateSearchQuery(v),
       ),
     );
   }
 
-  Widget _teamCard(dynamic team) {
-    final members = (team['members'] as List?) ?? [];
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: const Icon(
-                  Icons.emoji_events,
-                  color: AppColors.primary,
-                  size: 24,
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  team['sport']?.toString() ?? 'General',
-                  style: AppTextStyles.label.copyWith(fontSize: 10),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(team['name'] ?? 'Team Name', style: AppTextStyles.h2),
-          const SizedBox(height: 8),
-          Text(
-            team['description'] ?? 'No description provided.',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+  Widget _teamCard(Team team, TeamsController controller) {
+    final members = team.members ?? [];
+    return InkWell(
+      onTap: () {
+        controller.selectedTeam.value = team;
+        // Navigation to team details could be added here
+      },
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.border.withOpacity(0.5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 20),
-          const Divider(),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  _buildAvatars(members),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${members.length} Members',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ],
-              ),
-              const Icon(
-                Icons.arrow_forward_ios,
-                size: 14,
-                color: AppColors.textSecondary,
+                  child: const Icon(
+                    Icons.emoji_events,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    team.sport ?? 'General',
+                    style: AppTextStyles.label.copyWith(fontSize: 10),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(team.name, style: AppTextStyles.h2),
+            if (team.description != null && team.description!.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                team.description!,
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
-          ),
-        ],
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    _buildAvatars(members),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${members.length} Members',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -224,7 +233,7 @@ class TeamsPage extends StatelessWidget {
                 ),
                 child: Center(
                   child: Text(
-                    (members[i]['user']?['name'] ?? '?')[0].toUpperCase(),
+                    (members[i].user?.name ?? '?')[0].toUpperCase(),
                     style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
@@ -303,13 +312,18 @@ class TeamsPage extends StatelessWidget {
   }
 
   void _showCreateTeamDialog(BuildContext context, TeamsController controller) {
-    final nameCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    String selectedSport = 'Cricket';
+    controller.clearTeamForm();
+    controller.teamSportController.text = 'Cricket';
 
     Get.bottomSheet(
+      isScrollControlled: true,
       Container(
-        padding: const EdgeInsets.all(AppSpacing.l),
+        padding: EdgeInsets.only(
+          left: AppSpacing.l,
+          right: AppSpacing.l,
+          top: AppSpacing.l,
+          bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
+        ),
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -328,7 +342,7 @@ class TeamsPage extends StatelessWidget {
               const SizedBox(height: 20),
               _lbl('Team Name'),
               TextField(
-                controller: nameCtrl,
+                controller: controller.teamNameController,
                 decoration: InputDecoration(
                   hintText: 'e.g. Dream XI',
                   filled: true,
@@ -342,11 +356,12 @@ class TeamsPage extends StatelessWidget {
               const SizedBox(height: 16),
               _lbl('Primary Sport'),
               DropdownButtonFormField<String>(
-                value: selectedSport,
+                value: controller.teamSportController.text,
                 items: ['Cricket', 'Football', 'Badminton', 'Padel', 'Tennis']
                     .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                     .toList(),
-                onChanged: (v) => selectedSport = v ?? 'Cricket',
+                onChanged: (v) =>
+                    controller.teamSportController.text = v ?? 'Cricket',
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey[50],
@@ -359,7 +374,7 @@ class TeamsPage extends StatelessWidget {
               const SizedBox(height: 16),
               _lbl('Description (Optional)'),
               TextField(
-                controller: descCtrl,
+                controller: controller.teamDescriptionController,
                 maxLines: 3,
                 decoration: InputDecoration(
                   hintText: 'Brief about your team',
@@ -377,7 +392,7 @@ class TeamsPage extends StatelessWidget {
                   label: 'Create Team',
                   isLoading: controller.isCreatingTeam.value,
                   onPressed: () {
-                    if (nameCtrl.text.isEmpty) {
+                    if (controller.teamNameController.text.isEmpty) {
                       Get.snackbar('Error', 'Please enter a team name');
                       return;
                     }

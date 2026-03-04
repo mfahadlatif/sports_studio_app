@@ -5,6 +5,8 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 
@@ -193,6 +195,47 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Ground Image Header
+              if (_booking['ground'] != null)
+                Container(
+                  height: 180,
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.l),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: CachedNetworkImage(
+                      imageUrl: UrlHelper.sanitizeUrl(
+                        (_booking['ground']['images'] is List &&
+                                (_booking['ground']['images'] as List)
+                                    .isNotEmpty)
+                            ? _booking['ground']['images'][0].toString()
+                            : _booking['ground']['image_path']?.toString(),
+                      ),
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) =>
+                          Container(color: Colors.grey[200]),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppColors.primaryLight,
+                        child: const Icon(
+                          Icons.sports_cricket,
+                          size: 48,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
               // Status hero card
               Container(
                 width: double.infinity,

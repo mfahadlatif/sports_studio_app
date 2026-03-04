@@ -1,170 +1,135 @@
+import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sports_studio/widgets/app_text_field.dart';
 
-/// Phone Input Field Widgets with Country Code Picker
-/// 
-/// This file provides two phone input widgets with integrated country code picker:
-/// 
-/// 1. **SimplePhoneInputField** (Recommended for most use cases)
-///    - Easy to use, minimal configuration
-///    - Shows label and renders complete phone field
-///    - Automatically handles country code selection
-///    
-///    Example:
-///    ```dart
-///    SimplePhoneInputField(
-///      controller: phoneController,
-///      hint: 'Enter your phone number',
-///      label: 'Phone Number',
-///      isRequired: true,
-///    )
-///    ```
-/// 
-/// 2. **PhoneInputField** (Advanced use case)
-///    - More customization options
-///    - Optional label rendering
-///    - Callbacks for phone changes and country code changes
-///    - Better for complex forms
-///    
-///    Example:
-///    ```dart
-///    PhoneInputField(
-///      controller: phoneController,
-///      labelText: 'Phone Number',
-///      hintText: 'Enter phone number',
-///      isRequired: true,
-///      onChanged: (phone) => print('Phone: $phone'),
-///      onCountryCodeChanged: (code) => print('Country: $code'),
-///    )
-///    ```
-/// 
-/// Features:
-/// - 🌍 180+ countries supported
-/// - 📱 Real-time validation
-/// - 🎨 Themed input with app colors
-/// - ♿ Accessible design
-/// - 📝 Complete phone numbers with country codes
-
-class PhoneInputField extends StatefulWidget {
+/// Premium Phone Input Field with Country Code Picker
+/// Styled based on user sample code
+class PhoneTextfield extends StatelessWidget {
   final TextEditingController controller;
-  final String hintText;
-  final String? labelText;
+  final RxString countryCode;
+  final RxString dialCode;
+  final String label;
   final bool isRequired;
-  final ValueChanged<String>? onChanged;
-  final ValueChanged<String>? onCountryCodeChanged;
-  final String initialCountryCode;
-  final bool showLabel;
-  final int? maxLines;
-  final int? minLines;
+  final Function(String)? onPhoneChanged;
 
-  const PhoneInputField({
+  const PhoneTextfield({
     super.key,
     required this.controller,
-    this.hintText = 'Enter phone number',
-    this.labelText,
+    required this.countryCode,
+    required this.dialCode,
+    this.label = 'Phone Number',
     this.isRequired = false,
-    this.onChanged,
-    this.onCountryCodeChanged,
-    this.initialCountryCode = 'PK',
-    this.showLabel = true,
-    this.maxLines = 1,
-    this.minLines = 1,
+    this.onPhoneChanged,
   });
-
-  @override
-  State<PhoneInputField> createState() => _PhoneInputFieldState();
-}
-
-class _PhoneInputFieldState extends State<PhoneInputField> {
-  String _selectedCountryCode = 'PK';
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedCountryCode = widget.initialCountryCode;
-  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.showLabel && widget.labelText != null) ...[
+        if (label.isNotEmpty) ...[
           Row(
             children: [
               Text(
-                widget.labelText!,
+                label,
                 style: AppTextStyles.label.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.textPrimary,
                 ),
               ),
-              if (widget.isRequired)
-                const Text(
-                  ' *',
-                  style: TextStyle(color: Colors.red),
-                ),
+              if (isRequired)
+                const Text(' *', style: TextStyle(color: Colors.red)),
             ],
           ),
           const SizedBox(height: 8),
         ],
-        IntlPhoneField(
-          controller: widget.controller,
-          decoration: InputDecoration(
-            hintText: widget.hintText,
-            prefixIcon: const Icon(Icons.phone_outlined),
-            filled: true,
-            fillColor: AppColors.background,
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-              borderSide: BorderSide(
-                color: AppColors.border,
-                width: 1,
-              ),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-              borderSide: BorderSide(
-                color: AppColors.primary,
-                width: 2,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
+        Container(
+          height: 58,
+          width: MediaQuery.sizeOf(context).width,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(width: 1, color: AppColors.border),
           ),
-          initialCountryCode: _selectedCountryCode,
-          onChanged: (phone) {
-            widget.onChanged?.call(phone.completeNumber);
-          },
-          onCountryChanged: (country) {
-            setState(() {
-              _selectedCountryCode = country.countryCode ?? 'PK';
-            });
-            widget.onCountryCodeChanged?.call(country.countryCode ?? 'PK');
-          },
+          child: Row(
+            children: [
+              Obx(
+                () => Container(
+                  height: 58,
+                  width: 90,
+                  decoration: const BoxDecoration(
+                    color: AppColors.secondary,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(11),
+                      bottomLeft: Radius.circular(11),
+                    ),
+                  ),
+                  child: CountryCodePicker(
+                    key: ValueKey(countryCode.value),
+                    padding: const EdgeInsets.all(0),
+                    margin: const EdgeInsets.all(2),
+                    onChanged: (value) {
+                      dialCode.value = value.dialCode ?? '+92';
+                      countryCode.value = value.code ?? 'PK';
+                      if (onPhoneChanged != null) {
+                        onPhoneChanged!(dialCode.value + controller.text);
+                      }
+                    },
+                    initialSelection: countryCode.value.isEmpty
+                        ? 'PK'
+                        : countryCode.value,
+                    favorite: const ['PK', 'AE', 'SA'],
+                    textStyle: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    showCountryOnly: false,
+                    showOnlyCountryWhenClosed: false,
+                    alignLeft: false,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: AppTextField(
+                  fillColor: Colors.transparent,
+                  controller: controller,
+                  keyboardType: TextInputType.number,
+                  hasBorder: false,
+                  hintText: "Enter phone number",
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onChanged: (v) {
+                    if (onPhoneChanged != null) {
+                      onPhoneChanged!(dialCode.value + v);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
   }
 }
 
-/// Widget for phone input without specific text field controller
-/// This version uses the IntlPhoneField directly for simpler use cases
-class SimplePhoneInputField extends StatefulWidget {
+/// Legacy wrapper for SimplePhoneInputField to maintain compatibility while using the new design
+class SimplePhoneInputField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final String label;
   final bool isRequired;
   final Function(String)? onPhoneChanged;
   final String initialCountry;
+
+  // We need to provide Rx variables if they aren't provided
+  // In many cases these come from a controller, so it's better to use PhoneTextfield directly.
+  // But for compatibility with existing code:
 
   const SimplePhoneInputField({
     super.key,
@@ -177,67 +142,19 @@ class SimplePhoneInputField extends StatefulWidget {
   });
 
   @override
-  State<SimplePhoneInputField> createState() => _SimplePhoneInputFieldState();
-}
-
-class _SimplePhoneInputFieldState extends State<SimplePhoneInputField> {
-  @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              widget.label,
-              style: AppTextStyles.label.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            if (widget.isRequired)
-              const Text(
-                ' *',
-                style: TextStyle(color: Colors.red),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        IntlPhoneField(
-          controller: widget.controller,
-          decoration: InputDecoration(
-            hintText: widget.hint,
-            prefixIcon: const Icon(Icons.phone_outlined),
-            filled: true,
-            fillColor: AppColors.background,
-            border: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-              borderSide: BorderSide.none,
-            ),
-            enabledBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-              borderSide: BorderSide(
-                color: AppColors.border,
-                width: 1,
-              ),
-            ),
-            focusedBorder: const OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(16)),
-              borderSide: BorderSide(
-                color: AppColors.primary,
-                width: 2,
-              ),
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
-          ),
-          initialCountryCode: widget.initialCountry,
-          onChanged: (phone) {
-            widget.onPhoneChanged?.call(phone.completeNumber);
-          },
-        ),
-      ],
+    // For local state if not provided
+    final RxString cCode = initialCountry.obs;
+    final RxString dCode =
+        '+92'.obs; // Default dial code, will be updated by picker
+
+    return PhoneTextfield(
+      controller: controller,
+      countryCode: cCode,
+      dialCode: dCode,
+      label: label,
+      isRequired: isRequired,
+      onPhoneChanged: onPhoneChanged,
     );
   }
 }

@@ -28,14 +28,30 @@ class BookingSlotPage extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 800),
           child: Column(
             children: [
-              _buildGroundHeader(controller),
-              _buildDateSelector(controller),
-              const SizedBox(height: AppSpacing.m),
-              _buildPlayersSelector(controller),
-              const SizedBox(height: AppSpacing.m),
-              _buildPromoCodeSection(controller),
-              const SizedBox(height: AppSpacing.m),
-              Expanded(child: _buildSlotGrid(controller)),
+              Expanded(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(child: _buildGroundHeader(controller)),
+                    SliverToBoxAdapter(child: _buildDateSelector(controller)),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.m),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildPlayersSelector(controller),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.m),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _buildPromoCodeSection(controller),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.m),
+                    ),
+                    _buildSlotGridSliver(controller),
+                  ],
+                ),
+              ),
               _buildPriceSummary(controller),
             ],
           ),
@@ -292,27 +308,29 @@ class BookingSlotPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSlotGrid(BookingController controller) {
-    return Padding(
+  Widget _buildSlotGridSliver(BookingController controller) {
+    return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Available Slots', style: AppTextStyles.h3),
-              Obx(
-                () => controller.isLoadingSlots.value
-                    ? const AppProgressIndicator(size: 16, strokeWidth: 2)
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.m),
-          Expanded(
-            child: Obx(
+      sliver: SliverToBoxAdapter(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Available Slots', style: AppTextStyles.h3),
+                Obx(
+                  () => controller.isLoadingSlots.value
+                      ? const AppProgressIndicator(size: 16, strokeWidth: 2)
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.m),
+            Obx(
               () => GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   crossAxisSpacing: 10,
@@ -361,8 +379,9 @@ class BookingSlotPage extends StatelessWidget {
                 },
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.xl),
+          ],
+        ),
       ),
     );
   }

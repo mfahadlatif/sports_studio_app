@@ -97,15 +97,10 @@ class GroundCard extends StatelessWidget {
     final complex = ground['complex'] ?? {};
     final address = complex['address'] ?? 'Lahore, Pakistan';
 
-    final images = ground['images'] as List<dynamic>?;
-    String? rawUrl;
-    if (images != null && images.isNotEmpty) {
-      rawUrl = images[0];
-    } else if (ground['image_path'] != null) {
-      rawUrl = ground['image_path'];
-    }
-
-    final imageUrl = UrlHelper.sanitizeUrl(rawUrl);
+    final imageUrl = UrlHelper.getFirstImage(
+      ground['images'],
+      fallbackPath: ground['image_path'],
+    );
 
     return GestureDetector(
       onTap: () => Get.toNamed('/ground-detail', arguments: ground),
@@ -138,12 +133,40 @@ class GroundCard extends StatelessWidget {
                 height: 140,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey[200],
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[100],
                   height: 140,
                   width: double.infinity,
-                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                  child: const Center(
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
+                errorWidget: (context, url, error) {
+                  print('❌ [Image] Failed to load: $url | error: $error');
+                  return Container(
+                    color: Colors.grey[100],
+                    height: 140,
+                    width: double.infinity,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.sports_cricket,
+                          color: Colors.grey[400],
+                          size: 36,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'No Image',
+                          style: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ),
             Padding(

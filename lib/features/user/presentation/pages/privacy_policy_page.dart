@@ -20,12 +20,14 @@ class PrivacyPolicyPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Sports Studio Privacy Policy', style: AppTextStyles.h1),
+            Center(child: Text('Sports Studio', style: AppTextStyles.h1.copyWith(color: AppColors.primary))),
             const SizedBox(height: 8),
-            Text(
-              'Last Updated: October 2023',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textMuted,
+            Center(
+              child: Text(
+                'Last Updated: October 2023',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textMuted,
+                ),
               ),
             ),
             const SizedBox(height: 32),
@@ -72,7 +74,7 @@ class PrivacyPolicyPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.h3),
+          Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
           const SizedBox(height: 8),
           Text(content, style: AppTextStyles.bodyMedium.copyWith(height: 1.5)),
           if (items != null) ...[

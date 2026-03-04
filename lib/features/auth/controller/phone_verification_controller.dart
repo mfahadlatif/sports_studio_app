@@ -8,6 +8,8 @@ class PhoneVerificationController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxBool isVerified = false.obs;
   final RxString phoneNumber = ''.obs;
+  final countryCode = 'PK'.obs;
+  final dialCode = '+92'.obs;
 
   @override
   void onInit() {

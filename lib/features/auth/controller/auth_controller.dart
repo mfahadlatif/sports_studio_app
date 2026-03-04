@@ -24,6 +24,10 @@ class AuthController extends GetxController {
   final passwordController = TextEditingController();
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
+  final fullPhone = ''.obs;
+  final countryCode = 'PK'.obs;
+  final dialCode = '+92'.obs;
+  final code = '+92'.obs;
   final confirmPasswordController = TextEditingController();
 
   void toggleAuthMode() {
@@ -138,7 +142,7 @@ class AuthController extends GetxController {
   Future<void> register() async {
     final name = nameController.text.trim();
     final email = emailController.text.trim();
-    final phone = phoneController.text.trim();
+    final phone = fullPhone.value.trim();
     final password = passwordController.text;
     final confirmPassword = confirmPasswordController.text;
 
@@ -148,6 +152,11 @@ class AuthController extends GetxController {
         password.isEmpty ||
         confirmPassword.isEmpty) {
       AppUtils.showError(message: 'Please fill in all fields');
+      return;
+    }
+
+    if (phone.length < 9) {
+      AppUtils.showError(message: 'Please enter a valid phone number');
       return;
     }
 

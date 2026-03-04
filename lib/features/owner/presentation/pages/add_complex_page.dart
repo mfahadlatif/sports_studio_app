@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
 
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
@@ -55,12 +56,12 @@ class _AddComplexPageState extends State<AddComplexPage> {
     setState(() => _isLoading = true);
     try {
       final Map<String, dynamic> dataMap = {
-        'name': _nameCtrl.text,
-        'address': _addressCtrl.text,
-        'description': _descCtrl.text,
+        'name': _nameCtrl.text.trim(),
+        'address': _addressCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
         'status': _selectedStatus,
-        'latitude': _latCtrl.text,
-        'longitude': _lngCtrl.text,
+        'latitude': _latCtrl.text.trim(),
+        'longitude': _lngCtrl.text.trim(),
         'amenities': _selectedAmenities.toList(),
       };
 
@@ -82,18 +83,27 @@ class _AddComplexPageState extends State<AddComplexPage> {
       final res = await ApiClient().dio.post('/complexes', data: formData);
 
       if (res.statusCode == 200 || res.statusCode == 201) {
+        final groundsController = Get.find<GroundsController>();
+        await groundsController.fetchComplexesAndGrounds();
         Get.back(result: true);
         AppUtils.showSuccess(message: 'Complex created successfully!');
       }
+    } on dio_form.DioException catch (e) {
+      debugPrint('❌ [AddComplex] Error: ${e.response?.data}');
+      String msg = 'Failed to create complex';
+      if (e.response?.data != null && e.response?.data['message'] != null) {
+        msg = e.response?.data['message'];
+      }
+      AppUtils.showError(message: msg);
     } catch (e) {
-      AppUtils.showError(message: 'Failed to create complex');
+      AppUtils.showError(message: 'Failed to create complex: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage();
+    final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
     if (images.isNotEmpty) {
       setState(() => _pickedImages.addAll(images));
     }
@@ -212,7 +222,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 const SizedBox(height: AppSpacing.xxl),
 
                 AppButton(
-                  label: 'Save & Continue',
+                  label: 'Save & Create Complex',
                   onPressed: _submit,
                   isLoading: _isLoading,
                 ),
@@ -235,7 +245,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.border.withOpacity(0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -275,7 +285,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
             value: _selectedStatus == 'active',
             onChanged: (v) =>
                 setState(() => _selectedStatus = v ? 'active' : 'inactive'),
-            activeColor: Colors.green,
+            activeColor: AppColors.primary,
           ),
         ],
       ),
@@ -295,7 +305,9 @@ class _AddComplexPageState extends State<AddComplexPage> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: AppColors.border,
+                color: _pickedImages.isEmpty
+                    ? AppColors.border.withOpacity(0.5)
+                    : AppColors.primary.withOpacity(0.4),
                 style: BorderStyle.solid,
               ),
             ),
@@ -315,6 +327,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -324,7 +337,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
         if (_pickedImages.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.m),
           SizedBox(
-            height: 80,
+            height: 90,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _pickedImages.length,
@@ -332,10 +345,10 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 return Stack(
                   children: [
                     Container(
-                      margin: const EdgeInsets.only(right: 10),
-                      width: 80,
+                      margin: const EdgeInsets.only(right: 12),
+                      width: 90,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(14),
                         image: DecorationImage(
                           image: FileImage(File(_pickedImages[index].path)),
                           fit: BoxFit.cover,
@@ -343,20 +356,20 @@ class _AddComplexPageState extends State<AddComplexPage> {
                       ),
                     ),
                     Positioned(
-                      top: 0,
-                      right: 10,
+                      top: 4,
+                      right: 16,
                       child: GestureDetector(
                         onTap: () =>
                             setState(() => _pickedImages.removeAt(index)),
                         child: Container(
-                          padding: const EdgeInsets.all(2),
+                          padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.close,
-                            size: 12,
+                            size: 14,
                             color: Colors.white,
                           ),
                         ),
@@ -401,7 +414,9 @@ class _AddComplexPageState extends State<AddComplexPage> {
               color: isSelected ? AppColors.primary : Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.border,
+                color: isSelected
+                    ? AppColors.primary
+                    : AppColors.border.withOpacity(0.5),
               ),
               boxShadow: isSelected
                   ? [
@@ -504,6 +519,8 @@ class _AddComplexPageState extends State<AddComplexPage> {
     _nameCtrl.dispose();
     _addressCtrl.dispose();
     _descCtrl.dispose();
+    _latCtrl.dispose();
+    _lngCtrl.dispose();
     super.dispose();
   }
 }

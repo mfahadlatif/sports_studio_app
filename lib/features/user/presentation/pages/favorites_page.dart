@@ -50,7 +50,7 @@ class FavoritesPage extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     ElevatedButton.icon(
-                      onPressed: () => Get.back(),
+                      onPressed: () => Get.toNamed('/grounds'),
                       icon: const Icon(Icons.explore_outlined),
                       label: const Text('Explore Grounds'),
                     ),

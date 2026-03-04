@@ -84,10 +84,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.person_outline,
                         title: 'Personal Information',
                         subtitle: 'Update your name, email and details',
-                        onTap: () => Get.toNamed(
-                          '/setting-detail',
-                          arguments: {'title': 'Edit Profile'},
-                        ),
+                        onTap: () => Get.toNamed('/edit-profile'),
                         color: Colors.teal,
                       ),
                       _buildOption(

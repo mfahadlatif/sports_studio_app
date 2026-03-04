@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/add_ground_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/core/models/models.dart';
 
 class AddGroundPage extends StatelessWidget {
   const AddGroundPage({super.key});
@@ -27,6 +28,12 @@ class AddGroundPage extends StatelessWidget {
                 _buildHeader(),
                 const SizedBox(height: AppSpacing.xl),
 
+                _sectionHeader('Sports Complex', Icons.business_outlined),
+                const SizedBox(height: AppSpacing.m),
+                _lbl('Select Complex *'),
+                _buildComplexDropdown(controller),
+                const SizedBox(height: AppSpacing.l),
+
                 _sectionHeader('Ground Media', Icons.image_outlined),
                 const SizedBox(height: AppSpacing.m),
                 _buildImagePicker(controller),
@@ -40,14 +47,6 @@ class AddGroundPage extends StatelessWidget {
                   'e.g. Center Pitch 1',
                   Icons.sports_soccer,
                   textController: controller.nameController,
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                _lbl('Location / Area *'),
-                _textField(
-                  'e.g. Gulberg, Lahore',
-                  Icons.location_on_outlined,
-                  textController: controller.locationController,
                 ),
                 const SizedBox(height: AppSpacing.m),
 
@@ -67,9 +66,17 @@ class AddGroundPage extends StatelessWidget {
                   'Tennis',
                   'Badminton',
                 ], controller),
+                const SizedBox(height: AppSpacing.m),
+
+                _lbl('Description'),
+                _textField(
+                  'Provide details about the ground...',
+                  Icons.description_outlined,
+                  textController: controller.descriptionController,
+                ),
                 const SizedBox(height: AppSpacing.l),
 
-                _sectionHeader('Physical Metrics', Icons.straighten_outlined),
+                _sectionHeader('Metrics & Settings', Icons.settings_outlined),
                 const SizedBox(height: AppSpacing.m),
                 Row(
                   children: [
@@ -77,10 +84,10 @@ class AddGroundPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _lbl('Length (m)'),
+                          _lbl('Length (ft)'),
                           _textField(
                             'e.g. 100',
-                            Icons.height,
+                            Icons.straighten,
                             keyboardType: TextInputType.number,
                             textController: controller.lengthController,
                           ),
@@ -92,10 +99,10 @@ class AddGroundPage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _lbl('Width (m)'),
+                          _lbl('Width (ft)'),
                           _textField(
                             'e.g. 70',
-                            Icons.width_full_outlined,
+                            Icons.straighten,
                             keyboardType: TextInputType.number,
                             textController: controller.widthController,
                           ),
@@ -103,6 +110,22 @@ class AddGroundPage extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _buildSwitchSetting(
+                  'Floodlights / Lighting',
+                  'Is this ground equipped for night play?',
+                  Icons.lightbulb_outline,
+                  controller.hasLighting,
+                ),
+                const SizedBox(height: AppSpacing.s),
+                _buildSwitchSetting(
+                  'Ground Status (Active)',
+                  'Control visibility on the marketplace',
+                  Icons.visibility_outlined,
+                  RxBool(controller.status.value == 'active'),
+                  onChanged: (v) =>
+                      controller.status.value = v ? 'active' : 'inactive',
                 ),
                 const SizedBox(height: AppSpacing.l),
 
@@ -133,23 +156,6 @@ class AddGroundPage extends StatelessWidget {
                 const SizedBox(height: AppSpacing.m),
                 _lbl('Select amenities available at this specific ground'),
                 _buildAmenitiesSelection(controller),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader('Rules & Policies', Icons.gavel_outlined),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Ground Rules'),
-                _textField(
-                  'e.g. No non-marking shoes...',
-                  Icons.rule_outlined,
-                  textController: controller.rulesController,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Cancellation Policy'),
-                _textField(
-                  'e.g. Full refund before 24h...',
-                  Icons.policy_outlined,
-                  textController: controller.cancellationPolicyController,
-                ),
                 const SizedBox(height: AppSpacing.xxl),
 
                 _buildSubmitButton(controller),
@@ -158,6 +164,97 @@ class AddGroundPage extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildComplexDropdown(AddGroundController controller) {
+    return Obx(() {
+      if (controller.isLoadingComplexes.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (controller.availableComplexes.isEmpty) {
+        return Container(
+          padding: const EdgeInsets.all(AppSpacing.m),
+          decoration: BoxDecoration(
+            color: Colors.red[50],
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.red[200]!),
+          ),
+          child: const Text(
+            'No complexes found. Please create a sports complex first.',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
+        );
+      }
+      return DropdownButtonFormField<Complex>(
+        value: controller.selectedComplex.value,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(Icons.business),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.white,
+        ),
+        items: controller.availableComplexes
+            .map((e) => DropdownMenuItem(value: e, child: Text(e.name)))
+            .toList(),
+        onChanged: (v) {
+          if (v != null) controller.selectedComplex.value = v;
+        },
+      );
+    });
+  }
+
+  Widget _buildSwitchSetting(
+    String title,
+    String subtitle,
+    IconData icon,
+    RxBool value, {
+    Function(bool)? onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border.withOpacity(0.5)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Obx(
+            () => Switch(
+              value: value.value,
+              onChanged: (v) {
+                value.value = v;
+                if (onChanged != null) onChanged(v);
+              },
+              activeColor: AppColors.primary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -313,30 +410,42 @@ class AddGroundPage extends StatelessWidget {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.border.withOpacity(0.5)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 10,
-                  ),
-                ],
+                border: Border.all(
+                  color: controller.pickedImages.isEmpty
+                      ? AppColors.border.withOpacity(0.5)
+                      : AppColors.primary.withOpacity(0.4),
+                  width: controller.pickedImages.isEmpty ? 1 : 1.5,
+                ),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.add_photo_alternate_outlined,
                     size: 32,
                     color: AppColors.primary,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Add Ground Images',
+                    controller.pickedImages.isEmpty
+                        ? 'Tap to Select Multiple Images'
+                        : '+ Add More Images',
                     style: AppTextStyles.label.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
+                  if (controller.pickedImages.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${controller.pickedImages.length} image(s) selected',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -344,7 +453,7 @@ class AddGroundPage extends StatelessWidget {
           if (controller.pickedImages.isNotEmpty) ...[
             const SizedBox(height: 16),
             SizedBox(
-              height: 100,
+              height: 110,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: controller.pickedImages.length,
@@ -464,10 +573,36 @@ class AddGroundPage extends StatelessWidget {
     final bool isEdit =
         Get.arguments != null && Get.arguments['isEdit'] == true;
     return Obx(
-      () => AppButton(
-        label: isEdit ? 'Update Ground' : 'Publish Ground',
-        onPressed: () => controller.submit(),
-        isLoading: controller.isSubmitting.value,
+      () => Column(
+        children: [
+          if (controller.uploadStatus.value.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    controller.uploadStatus.value,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          AppButton(
+            label: isEdit ? 'Update Ground' : 'Publish Ground',
+            onPressed: () => controller.submit(),
+            isLoading: controller.isSubmitting.value,
+          ),
+        ],
       ),
     );
   }

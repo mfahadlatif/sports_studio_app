@@ -12,6 +12,7 @@ import 'package:sports_studio/features/user/presentation/pages/onboarding_page.d
 import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
 import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
@@ -136,6 +137,11 @@ class SportsStudioApp extends StatelessWidget {
         GetPage(
           name: '/setting-detail',
           page: () => const SettingDetailPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/edit-profile',
+          page: () => const EditProfilePage(),
           transition: Transition.rightToLeft,
         ),
         GetPage(

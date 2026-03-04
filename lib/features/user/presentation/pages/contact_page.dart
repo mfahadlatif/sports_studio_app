@@ -153,7 +153,7 @@ class _ContactPageState extends State<ContactPage> {
       decoration: BoxDecoration(
         color: AppColors.primaryLight.withOpacity(0.5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
       ),
       child: Row(
         children: [
@@ -166,22 +166,25 @@ class _ContactPageState extends State<ContactPage> {
             child: Icon(icon, color: Colors.white, size: 24),
           ),
           const SizedBox(width: AppSpacing.m),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: AppTextStyles.bodySmall.copyWith(
-                  fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
                 ),
-              ),
-              Text(
-                info,
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
+                Text(
+                  info,
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),

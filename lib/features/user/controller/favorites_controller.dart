@@ -28,15 +28,14 @@ class FavoritesController extends GetxController {
     try {
       final favoriteList = await _favoriteApiService.getUserFavorites();
 
-      favorites.value = favoriteList;
+      favorites.assignAll(favoriteList);
 
-      // Extract grounds from favorites
+      // Extract grounds from favorites safely
       final grounds = favoriteList
           .map((fav) => fav.ground)
-          .where((ground) => ground != null)
-          .cast<Ground>()
+          .whereType<Ground>()
           .toList();
-      favoriteGrounds.value = grounds;
+      favoriteGrounds.assignAll(grounds);
     } catch (e) {
       AppUtils.showError(message: 'Failed to fetch favorites: $e');
     } finally {

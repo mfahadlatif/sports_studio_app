@@ -20,6 +20,10 @@ class ProfileController extends GetxController {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final phoneController = TextEditingController();
+  final fullPhone = ''.obs;
+  final countryCode = 'PK'.obs;
+  final dialCode = '+92'.obs;
+  final businessNameController = TextEditingController();
   final currentPasswordController = TextEditingController();
   final newPasswordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
@@ -27,7 +31,6 @@ class ProfileController extends GetxController {
   final UserApiService _userApiService = UserApiService();
   final NotificationApiService _notificationApiService =
       NotificationApiService();
-  final MediaApiService _mediaApiService = MediaApiService();
 
   @override
   void onInit() {
@@ -78,7 +81,10 @@ class ProfileController extends GetxController {
       final profileData = {
         'name': nameController.text.trim(),
         'email': emailController.text.trim(),
-        'phone': phoneController.text.trim(),
+        'phone': fullPhone.value.trim().isNotEmpty
+            ? fullPhone.value.trim()
+            : phoneController.text.trim(),
+        'business_name': businessNameController.text.trim(),
       };
 
       final user = await _userApiService.updateProfile(profileData);
@@ -130,24 +136,24 @@ class ProfileController extends GetxController {
       final XFile? image = await picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 70,
-        maxWidth: 500,
+        maxWidth: 800,
       );
 
       if (image == null) return;
 
       isUploadingAvatar.value = true;
+      print('📷 [ProfileCtrl] Picked image: ${image.path}');
 
-      // Upload image using media service
-      final uploadResponse = await _mediaApiService.uploadFile(image.path);
-      final avatarPath = uploadResponse['path'];
-
-      // Update profile with new avatar
-      final profileData = {'avatar': avatarPath};
-      User user = await _userApiService.updateProfile(profileData);
+      // Send avatar directly to /profile endpoint as multipart file
+      // The key 'avatar_file_path' signals UserApiService to use multipart
+      final User user = await _userApiService.updateProfile({
+        'avatar_file_path': image.path,
+      });
       userProfile.value = user.toJson();
-
+      print('✅ [ProfileCtrl] Avatar updated. New avatar: ${user.avatar}');
       AppUtils.showSuccess(message: 'Profile picture updated');
     } catch (e) {
+      print('❌ [ProfileCtrl] updateAvatar error: $e');
       AppUtils.showError(message: 'Failed to update profile picture: $e');
     } finally {
       isUploadingAvatar.value = false;
@@ -291,6 +297,8 @@ class ProfileController extends GetxController {
     nameController.text = user['name'] ?? '';
     emailController.text = user['email'] ?? '';
     phoneController.text = user['phone'] ?? '';
+    fullPhone.value = user['phone'] ?? '';
+    businessNameController.text = user['business_name'] ?? '';
   }
 
   bool get isPhoneVerified {
