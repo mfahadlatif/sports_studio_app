@@ -1,183 +1,173 @@
 class Complex {
   final int id;
+  final int ownerId;
   final String name;
   final String address;
-  final String description;
+  final String? description;
+  final double rating;
   final List<String>? images;
-  final double? latitude;
-  final double? longitude;
-  final List<String>? amenities;
   final String status;
-  final int? ownerId;
   final List<Ground>? grounds;
+  final User? owner;
 
   Complex({
     required this.id,
+    required this.ownerId,
     required this.name,
     required this.address,
-    required this.description,
+    this.description,
+    this.rating = 0.0,
     this.images,
-    this.latitude,
-    this.longitude,
-    this.amenities,
     this.status = 'active',
-    this.ownerId,
     this.grounds,
+    this.owner,
   });
 
   factory Complex.fromJson(Map<String, dynamic> json) {
     return Complex(
       id: json['id'],
+      ownerId: json['owner_id'],
       name: json['name'] ?? '',
       address: json['address'] ?? '',
-      description: json['description'] ?? '',
+      description: json['description'],
+      rating: double.tryParse(json['rating']?.toString() ?? '') ?? 0.0,
       images: json['images'] != null ? List<String>.from(json['images']) : null,
-      latitude: double.tryParse(json['latitude']?.toString() ?? ''),
-      longitude: double.tryParse(json['longitude']?.toString() ?? ''),
-      amenities: json['amenities'] != null
-          ? List<String>.from(json['amenities'])
-          : null,
       status: json['status'] ?? 'active',
-      ownerId: json['owner_id'],
       grounds: json['grounds'] != null
           ? (json['grounds'] as List).map((g) => Ground.fromJson(g)).toList()
           : null,
+      owner: json['owner'] != null ? User.fromJson(json['owner']) : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'owner_id': ownerId,
       'name': name,
       'address': address,
       'description': description,
+      'rating': rating,
       'images': images,
-      'latitude': latitude,
-      'longitude': longitude,
-      'amenities': amenities,
       'status': status,
-      'owner_id': ownerId,
       'grounds': grounds?.map((g) => g.toJson()).toList(),
+      'owner': owner?.toJson(),
     };
   }
 }
 
 class Ground {
   final int id;
-  final String name;
-  final double pricePerHour;
-  final String description;
-  final String location;
   final int complexId;
-  final String status;
-  final String type;
-  final String? slug; // FIX 10: Added slug for URL-based navigation
-  final List<String>? images;
+  final String name;
+  final String? slug;
+  final String? description;
+  final double pricePerHour;
   final String? dimensions;
+  final String type;
+  final List<String>? images;
   final List<String>? amenities;
-  final bool? lighting;
+  final bool lighting;
+  final String status;
   final int? bookingsCount;
   final Complex? complex;
+  final String? openingTime;
+  final String? closingTime;
 
   Ground({
     required this.id,
-    required this.name,
-    required this.pricePerHour,
-    required this.description,
-    required this.location,
     required this.complexId,
-    this.status = 'active',
-    this.type = 'cricket',
+    required this.name,
     this.slug,
-    this.images,
+    this.description,
+    required this.pricePerHour,
     this.dimensions,
+    this.type = 'cricket',
+    this.images,
     this.amenities,
-    this.lighting,
+    this.lighting = true,
+    this.status = 'active',
     this.bookingsCount,
     this.complex,
+    this.openingTime,
+    this.closingTime,
   });
 
   factory Ground.fromJson(Map<String, dynamic> json) {
     return Ground(
       id: json['id'],
+      complexId: json['complex_id'],
       name: json['name'] ?? '',
+      slug: json['slug'],
+      description: json['description'],
       pricePerHour: double.tryParse(json['price_per_hour'].toString()) ?? 0.0,
-      description: json['description'] ?? '',
-      location: json['location'] ?? '',
-      complexId: json['complex_id'] ?? 0,
-      status: json['status'] ?? 'active',
-      type: json['type'] ?? 'cricket',
-      slug: json['slug'], // FIX 10
-      images: json['images'] != null ? List<String>.from(json['images']) : null,
       dimensions: json['dimensions'],
+      type: json['type'] ?? 'cricket',
+      images: json['images'] != null ? List<String>.from(json['images']) : null,
       amenities: json['amenities'] != null
           ? List<String>.from(json['amenities'])
           : null,
-      lighting: json['lighting'] ?? false,
+      lighting: json['lighting'] ?? true,
+      status: json['status'] ?? 'active',
       bookingsCount: json['bookings_count'],
       complex: json['complex'] != null
           ? Complex.fromJson(json['complex'])
           : null,
+      openingTime: json['opening_time'],
+      closingTime: json['closing_time'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
-      'price_per_hour': pricePerHour,
-      'description': description,
-      'location': location,
       'complex_id': complexId,
-      'status': status,
-      'type': type,
+      'name': name,
       'slug': slug,
-      'images': images,
+      'description': description,
+      'price_per_hour': pricePerHour,
       'dimensions': dimensions,
+      'type': type,
+      'images': images,
       'amenities': amenities,
       'lighting': lighting,
+      'status': status,
       'bookings_count': bookingsCount,
       'complex': complex?.toJson(),
+      'opening_time': openingTime,
+      'closing_time': closingTime,
     };
   }
 }
 
 class Booking {
   final int id;
+  final int userId;
   final int groundId;
-  final int? userId;
   final DateTime startTime;
   final DateTime endTime;
   final double totalPrice;
-  final int? players;
+  final int players;
   final String status;
   final String paymentStatus;
-  final String? paymentMethod;
-  final String? customerName;
-  final String? customerPhone;
-  final String? customerEmail;
-  final DateTime? paymentExpiresAt;
-  final DateTime createdAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final Ground? ground;
   final User? user;
   final Event? event;
 
   Booking({
     required this.id,
+    required this.userId,
     required this.groundId,
-    this.userId,
     required this.startTime,
     required this.endTime,
     required this.totalPrice,
-    this.players,
+    this.players = 1,
     this.status = 'pending',
-    this.paymentStatus = 'unpaid',
-    this.paymentMethod,
-    this.customerName,
-    this.customerPhone,
-    this.customerEmail,
-    this.paymentExpiresAt,
-    required this.createdAt,
+    this.paymentStatus = 'pending',
+    this.createdAt,
+    this.updatedAt,
     this.ground,
     this.user,
     this.event,
@@ -186,46 +176,39 @@ class Booking {
   factory Booking.fromJson(Map<String, dynamic> json) {
     return Booking(
       id: json['id'],
-      groundId: json['ground_id'],
       userId: json['user_id'],
+      groundId: json['ground_id'],
       startTime: DateTime.parse(json['start_time']),
       endTime: DateTime.parse(json['end_time']),
       totalPrice: double.tryParse(json['total_price'].toString()) ?? 0.0,
-      players: json['players'],
+      players: json['players'] ?? 1,
       status: json['status'] ?? 'pending',
-      paymentStatus: json['payment_status'] ?? 'unpaid',
-      paymentMethod: json['payment_method'],
-      customerName: json['customer_name'],
-      customerPhone: json['customer_phone'],
-      customerEmail: json['customer_email'],
-      paymentExpiresAt: json['payment_expires_at'] != null
-          ? DateTime.parse(json['payment_expires_at'])
+      paymentStatus: json['payment_status'] ?? 'pending',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
-      createdAt: DateTime.parse(json['created_at']),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
       ground: json['ground'] != null ? Ground.fromJson(json['ground']) : null,
       user: json['user'] != null ? User.fromJson(json['user']) : null,
-      // FIX 5: Do NOT recursively parse nested event to avoid infinite recursion
-      event: null,
+      event: json['event'] != null ? Event.fromJson(json['event']) : null,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'ground_id': groundId,
       'user_id': userId,
+      'ground_id': groundId,
       'start_time': startTime.toIso8601String(),
       'end_time': endTime.toIso8601String(),
       'total_price': totalPrice,
       'players': players,
       'status': status,
       'payment_status': paymentStatus,
-      'payment_method': paymentMethod,
-      'customer_name': customerName,
-      'customer_phone': customerPhone,
-      'customer_email': customerEmail,
-      'payment_expires_at': paymentExpiresAt?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
       'ground': ground?.toJson(),
       'user': user?.toJson(),
       'event': event?.toJson(),
@@ -235,111 +218,113 @@ class Booking {
 
 class Event {
   final int id;
+  final int organizerId;
+  final int? bookingId;
   final String name;
+  final String? slug;
   final String? description;
   final DateTime startTime;
   final DateTime endTime;
   final double registrationFee;
-  final int maxParticipants;
-  final int groundId;
-  final int organizerId;
-  final double? latitude;
-  final double? longitude;
+  final int? maxParticipants;
+  final String status;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? image;
+  final String? location;
   final String? rules;
   final String? safetyPolicy;
-  final List<String>? images;
   final Map<String, dynamic>? schedule;
-  final String? location;
-  final String eventType;
-  final String status;
-  final int? participantsCount;
-  final bool? userJoined;
   final User? organizer;
   final Booking? booking;
+  final int? participantsCount;
+  final bool? userJoined;
 
   Event({
     required this.id,
+    required this.organizerId,
+    this.bookingId,
     required this.name,
+    this.slug,
     this.description,
     required this.startTime,
     required this.endTime,
     required this.registrationFee,
-    required this.maxParticipants,
-    required this.groundId,
-    required this.organizerId,
-    this.latitude,
-    this.longitude,
+    this.maxParticipants,
+    this.status = 'upcoming',
+    this.createdAt,
+    this.updatedAt,
+    this.image,
+    this.location,
     this.rules,
     this.safetyPolicy,
-    this.images,
     this.schedule,
-    this.location,
-    this.eventType = 'public',
-    this.status = 'upcoming',
-    this.participantsCount,
-    this.userJoined,
     this.organizer,
     this.booking,
+    this.participantsCount,
+    this.userJoined,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
       id: json['id'],
+      organizerId: json['organizer_id'],
+      bookingId: json['booking_id'],
       name: json['name'] ?? '',
+      slug: json['slug'],
       description: json['description'],
       startTime: DateTime.parse(json['start_time']),
       endTime: DateTime.parse(json['end_time']),
       registrationFee:
           double.tryParse(json['registration_fee'].toString()) ?? 0.0,
-      maxParticipants:
-          json['max_participants'] ?? 0, // FIX 11: API always uses snake_case
-      groundId: json['ground_id'],
-      organizerId: json['organizer_id'],
-      latitude: double.tryParse(json['latitude']?.toString() ?? ''),
-      longitude: double.tryParse(json['longitude']?.toString() ?? ''),
+      maxParticipants: json['max_participants'],
+      status: json['status'] ?? 'upcoming',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
+      image: json['image'],
+      location: json['location'],
       rules: json['rules'],
       safetyPolicy: json['safety_policy'],
-      images: json['images'] != null ? List<String>.from(json['images']) : null,
       schedule: json['schedule'],
-      location: json['location'],
-      eventType: json['event_type'] ?? 'public',
-      status: json['status'] ?? 'upcoming',
-      participantsCount:
-          json['participants_count'], // FIX 11: removed duplicate fallback
-      userJoined: json['user_joined'],
       organizer: json['organizer'] != null
           ? User.fromJson(json['organizer'])
           : null,
       booking: json['booking'] != null
           ? Booking.fromJson(json['booking'])
           : null,
+      participantsCount: json['participants_count'],
+      userJoined: json['user_joined'],
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
+      'organizer_id': organizerId,
+      'booking_id': bookingId,
       'name': name,
+      'slug': slug,
       'description': description,
       'start_time': startTime.toIso8601String(),
       'end_time': endTime.toIso8601String(),
       'registration_fee': registrationFee,
       'max_participants': maxParticipants,
-      'ground_id': groundId,
-      'organizer_id': organizerId,
-      'latitude': latitude,
-      'longitude': longitude,
+      'status': status,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
+      'image': image,
+      'location': location,
       'rules': rules,
       'safety_policy': safetyPolicy,
-      'images': images,
       'schedule': schedule,
-      'location': location,
-      'event_type': eventType,
-      'status': status,
-      'participants_count': participantsCount,
-      'user_joined': userJoined,
       'organizer': organizer?.toJson(),
       'booking': booking?.toJson(),
+      'participants_count': participantsCount,
+      'user_joined': userJoined,
     };
   }
 }
@@ -419,23 +404,43 @@ class User {
   final int id;
   final String name;
   final String email;
+  final String? emailVerifiedAt;
+  final String? password;
+  final String? rememberToken;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final String? phone;
+  final String? businessName;
+  final Map<String, dynamic>? notificationPreferences;
   final String role;
-  final bool? phoneVerified;
-  final DateTime? emailVerifiedAt;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final bool isActive;
+  final String? avatar;
+  final String? googleId;
+  final String? appleId;
+  final String? fcmToken;
+  final DateTime? phoneVerifiedAt;
+  final bool? isPhoneVerified;
 
   User({
     required this.id,
     required this.name,
     required this.email,
-    this.phone,
-    this.role = 'user',
-    this.phoneVerified,
     this.emailVerifiedAt,
-    required this.createdAt,
-    required this.updatedAt,
+    this.password,
+    this.rememberToken,
+    this.createdAt,
+    this.updatedAt,
+    this.phone,
+    this.businessName,
+    this.notificationPreferences,
+    this.role = 'user',
+    this.isActive = true,
+    this.avatar,
+    this.googleId,
+    this.appleId,
+    this.fcmToken,
+    this.phoneVerifiedAt,
+    this.isPhoneVerified,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -443,14 +448,26 @@ class User {
       id: json['id'],
       name: json['name'] ?? '',
       email: json['email'] ?? '',
-      phone: json['phone'],
-      role: json['role'] ?? 'user',
-      phoneVerified: json['phone_verified'],
-      emailVerifiedAt: json['email_verified_at'] != null
-          ? DateTime.parse(json['email_verified_at'])
+      emailVerifiedAt: json['email_verified_at'],
+      password: json['password'],
+      rememberToken: json['remember_token'],
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : null,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
+      phone: json['phone'],
+      businessName: json['business_name'],
+      notificationPreferences: json['notification_preferences'],
+      role: json['role'] ?? 'user',
+      isActive: json['is_active'] ?? true,
+      avatar: json['avatar'],
+      googleId: json['google_id'],
+      appleId: json['apple_id'],
+      fcmToken: json['fcm_token'],
+      phoneVerifiedAt: json['phone_verified_at'],
+      isPhoneVerified: json['is_phone_verified'],
     );
   }
 
@@ -459,12 +476,22 @@ class User {
       'id': id,
       'name': name,
       'email': email,
+      'email_verified_at': emailVerifiedAt,
+      'password': password,
+      'remember_token': rememberToken,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
       'phone': phone,
+      'business_name': businessName,
+      'notification_preferences': notificationPreferences,
       'role': role,
-      'phone_verified': phoneVerified,
-      'email_verified_at': emailVerifiedAt?.toIso8601String(),
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
+      'is_active': isActive,
+      'avatar': avatar,
+      'google_id': googleId,
+      'apple_id': appleId,
+      'fcm_token': fcmToken,
+      'phone_verified_at': phoneVerifiedAt?.toIso8601String(),
+      'is_phone_verified': isPhoneVerified,
     };
   }
 }
@@ -539,27 +566,29 @@ class Notification {
 class Deal {
   final int id;
   final String title;
-  final String? code; // FIX 9: Added promo code field for validation
-  final String description;
+  final String? description;
+  final String? code;
   final double discountPercentage;
-  final DateTime validFrom;
   final DateTime validUntil;
-  final int? complexId;
-  final int? groundId;
-  final String status;
+  final String? applicableSports;
+  final bool isActive;
+  final String colorTheme;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
   final Complex? complex;
 
   Deal({
     required this.id,
     required this.title,
+    this.description,
     this.code,
-    required this.description,
     required this.discountPercentage,
-    required this.validFrom,
     required this.validUntil,
-    this.complexId,
-    this.groundId,
-    this.status = 'active',
+    this.applicableSports,
+    this.isActive = true,
+    this.colorTheme = 'from-primary to-primary/80',
+    this.createdAt,
+    this.updatedAt,
     this.complex,
   });
 
@@ -567,15 +596,20 @@ class Deal {
     return Deal(
       id: json['id'],
       title: json['title'] ?? '',
-      code: json['code'], // FIX 9
-      description: json['description'] ?? '',
+      description: json['description'],
+      code: json['code'],
       discountPercentage:
           double.tryParse(json['discount_percentage'].toString()) ?? 0.0,
-      validFrom: DateTime.parse(json['valid_from']),
       validUntil: DateTime.parse(json['valid_until']),
-      complexId: json['complex_id'],
-      groundId: json['ground_id'],
-      status: json['status'] ?? 'active',
+      applicableSports: json['applicable_sports'],
+      isActive: json['is_active'] ?? true,
+      colorTheme: json['color_theme'] ?? 'from-primary to-primary/80',
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
+          : null,
       complex: json['complex'] != null
           ? Complex.fromJson(json['complex'])
           : null,

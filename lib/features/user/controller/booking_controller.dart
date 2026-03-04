@@ -135,8 +135,7 @@ class BookingController extends GetxController {
       final deal = deals.firstWhereOrNull(
         (d) =>
             (d.code?.toLowerCase() == code.toLowerCase()) &&
-            d.status == 'active' &&
-            d.validFrom.isBefore(now) &&
+            d.isActive &&
             d.validUntil.isAfter(now),
       );
 

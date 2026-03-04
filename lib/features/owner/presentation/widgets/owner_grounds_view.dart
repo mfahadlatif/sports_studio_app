@@ -378,7 +378,7 @@ class OwnerGroundsView extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(ground.name, style: AppTextStyles.h3),
-                if (ground.location.isNotEmpty)
+                if (ground.description?.isNotEmpty == true)
                   Row(
                     children: [
                       const Icon(
@@ -388,7 +388,7 @@ class OwnerGroundsView extends StatelessWidget {
                       ),
                       const SizedBox(width: 2),
                       Text(
-                        ground.location,
+                        ground.description!,
                         style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textMuted,
                         ),
@@ -412,7 +412,6 @@ class OwnerGroundsView extends StatelessWidget {
                           'name': ground.name,
                           'price_per_hour': ground.pricePerHour,
                           'description': ground.description,
-                          'location': ground.location,
                           'type': ground.type,
                           'images': ground.images,
                           'status': ground.status,
@@ -427,7 +426,6 @@ class OwnerGroundsView extends StatelessWidget {
                           'ground': {
                             'id': ground.id,
                             'name': ground.name,
-                            'location': ground.location,
                             'price_per_hour': ground.pricePerHour,
                             'description': ground.description,
                             'type': ground.type,

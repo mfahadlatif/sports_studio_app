@@ -111,9 +111,10 @@ class FavoritesController extends GetxController {
       return ground.name.toLowerCase().contains(
             searchQuery.value.toLowerCase(),
           ) ||
-          ground.description.toLowerCase().contains(
-            searchQuery.value.toLowerCase(),
-          );
+          (ground.description?.toLowerCase().contains(
+                searchQuery.value.toLowerCase(),
+              ) ??
+              false);
     }).toList();
 
     // Update filtered list (you might want to create a separate filtered list variable)

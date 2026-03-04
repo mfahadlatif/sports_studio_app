@@ -86,8 +86,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
       final currentParticipants = event?.participantsCount ?? 0;
 
       List<String> images = [];
-      if (event?.images != null && event!.images!.isNotEmpty) {
-        images = event.images!.cast<String>().toList();
+      if (event?.image != null) {
+        images = [event!.image!];
       }
 
       final isFull =
@@ -185,7 +185,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     ],
                                   ),
                                 ),
-                                if (event?.eventType == 'private')
+                                if (event?.status == 'private')
                                   IconButton(
                                     onPressed: () => _copyInviteLink(event),
                                     icon: const Icon(

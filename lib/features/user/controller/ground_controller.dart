@@ -82,9 +82,10 @@ class GroundController extends GetxController {
     var filtered = grounds.where((ground) {
       bool matchesSearch =
           ground.name.toLowerCase().contains(searchQuery.value.toLowerCase()) ||
-          ground.description.toLowerCase().contains(
-            searchQuery.value.toLowerCase(),
-          );
+          (ground.description?.toLowerCase().contains(
+                searchQuery.value.toLowerCase(),
+              ) ??
+              false);
 
       bool matchesType =
           selectedType.value == 'all' || ground.type == selectedType.value;

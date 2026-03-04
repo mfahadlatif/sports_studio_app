@@ -212,16 +212,14 @@ class EventsController extends GetxController {
           endTime: updatedEvent.endTime,
           registrationFee: updatedEvent.registrationFee,
           maxParticipants: updatedEvent.maxParticipants,
-          groundId: updatedEvent.groundId,
           organizerId: updatedEvent.organizerId,
-          latitude: updatedEvent.latitude,
-          longitude: updatedEvent.longitude,
           rules: updatedEvent.rules,
           safetyPolicy: updatedEvent.safetyPolicy,
-          images: updatedEvent.images,
           schedule: updatedEvent.schedule,
           location: updatedEvent.location,
-          eventType: updatedEvent.eventType,
+          image: updatedEvent.image,
+          slug: updatedEvent.slug,
+          bookingId: updatedEvent.bookingId,
           status: updatedEvent.status,
           participantsCount: (updatedEvent.participantsCount ?? 0) + 1,
           userJoined: true,
@@ -252,16 +250,14 @@ class EventsController extends GetxController {
           endTime: updatedEvent.endTime,
           registrationFee: updatedEvent.registrationFee,
           maxParticipants: updatedEvent.maxParticipants,
-          groundId: updatedEvent.groundId,
           organizerId: updatedEvent.organizerId,
-          latitude: updatedEvent.latitude,
-          longitude: updatedEvent.longitude,
           rules: updatedEvent.rules,
           safetyPolicy: updatedEvent.safetyPolicy,
-          images: updatedEvent.images,
           schedule: updatedEvent.schedule,
           location: updatedEvent.location,
-          eventType: updatedEvent.eventType,
+          image: updatedEvent.image,
+          slug: updatedEvent.slug,
+          bookingId: updatedEvent.bookingId,
           status: updatedEvent.status,
           participantsCount: (updatedEvent.participantsCount ?? 0) - 1,
           userJoined: false,
@@ -283,7 +279,7 @@ class EventsController extends GetxController {
   bool get isSelectedEventFull {
     final event = selectedEvent.value;
     if (event == null || event.maxParticipants == 0) return false;
-    return (event.participantsCount ?? 0) >= event.maxParticipants;
+    return (event.participantsCount ?? 0) >= (event.maxParticipants ?? 0);
   }
 
   void filterEvents() {
@@ -297,7 +293,7 @@ class EventsController extends GetxController {
 
       bool matchesType =
           selectedEventType.value == 'all' ||
-          event.eventType == selectedEventType.value;
+          event.status == selectedEventType.value;
 
       return matchesSearch && matchesType;
     }).toList();
@@ -343,10 +339,10 @@ class EventsController extends GetxController {
     eventRegistrationFeeController.text = event.registrationFee.toString();
     eventStartDate.value = event.startTime;
     eventEndDate.value = event.endTime;
-    eventVisibility.value = event.eventType;
-    eventImages.value = event.images ?? [];
-    eventLatitude.value = event.latitude ?? 0.0;
-    eventLongitude.value = event.longitude ?? 0.0;
+    eventVisibility.value = event.status;
+    eventImages.value = event.image != null ? [event.image!] : [];
+    eventLatitude.value = 0.0; // Removed from model
+    eventLongitude.value = 0.0; // Removed from model
   }
 
   void addEventImage(String imagePath) {
