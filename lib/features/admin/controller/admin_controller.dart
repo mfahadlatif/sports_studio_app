@@ -56,7 +56,6 @@ class AdminController extends GetxController {
 
   Future<void> fetchRecentData() async {
     try {
-      // Mocking or fetching actual recent data if available on backend
       final response = await ApiClient().dio.get('/admin/recent-activity');
       if (response.statusCode == 200) {
         final data = response.data;

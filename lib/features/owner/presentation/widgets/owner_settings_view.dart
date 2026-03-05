@@ -42,17 +42,35 @@ class OwnerSettingsView extends StatelessWidget {
             _buildSettingsTile(
               Icons.business_outlined,
               'Business Profile',
-              'Manage company details',
+              'Name, email, phone, business name',
+              onTap: () => Get.toNamed('/edit-profile'),
+            ),
+            _buildSettingsTile(
+              Icons.lock_outline,
+              'Change Password',
+              'Update your password',
+              onTap: () => Get.toNamed(
+                '/setting-detail',
+                arguments: {'title': 'Change Password', 'description': 'Update your password'},
+              ),
             ),
             _buildSettingsTile(
               Icons.payments_outlined,
               'Payment Methods',
               'Payouts and bank accounts',
+              onTap: () => Get.toNamed(
+                '/setting-detail',
+                arguments: {'title': 'Payment Methods', 'description': 'Payouts and bank accounts'},
+              ),
             ),
             _buildSettingsTile(
               Icons.schedule_outlined,
               'Operating Hours',
               'Set when grounds are open',
+              onTap: () => Get.toNamed(
+                '/setting-detail',
+                arguments: {'title': 'Operating Hours', 'description': 'Set when grounds are open'},
+              ),
             ),
           ]),
           const SizedBox(height: AppSpacing.l),
@@ -67,11 +85,19 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.language_outlined,
               'Language',
               'Default app language',
+              onTap: () => Get.toNamed(
+                '/setting-detail',
+                arguments: {'title': 'Language', 'description': 'Default app language'},
+              ),
             ),
             _buildSettingsTile(
               Icons.dark_mode_outlined,
               'Dark Mode',
               'Appearance settings',
+              onTap: () => Get.toNamed(
+                '/setting-detail',
+                arguments: {'title': 'Dark Mode', 'description': 'Appearance settings'},
+              ),
             ),
           ]),
           const SizedBox(height: AppSpacing.l),
@@ -80,11 +106,16 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.help_outline,
               'Help Center',
               'FAQs and troubleshooting',
+              onTap: () => Get.toNamed(
+                '/setting-detail',
+                arguments: {'title': 'Help Center', 'description': 'FAQs and troubleshooting'},
+              ),
             ),
             _buildSettingsTile(
               Icons.privacy_tip_outlined,
               'Privacy Policy',
               'Terms and conditions',
+              onTap: () => Get.toNamed('/privacy-policy'),
             ),
           ]),
         ],

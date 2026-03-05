@@ -9,6 +9,10 @@ import 'package:sports_studio/core/network/api_client.dart';
 import 'package:dio/dio.dart' as dio_form;
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 
 class AddEditGroundPage extends StatefulWidget {
   const AddEditGroundPage({super.key});
@@ -34,7 +38,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   String _closeTime = '23:00';
   final Set<String> _selectedAmenities = {};
 
-  XFile? _pickedImage;
+  final List<XFile> _pickedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   // Passed arguments
@@ -42,6 +46,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   dynamic _existingGround;
   int? _complexId;
   String _complexName = '';
+  int? _selectedComplexIdForStep; // Step 1: selected complex (before Continue)
 
   final List<Map<String, String>> _groundAmenitiesConfig = [
     {'id': 'water', 'name': 'Water', 'icon': '🚰'},
@@ -69,12 +74,14 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     final args = Get.arguments;
     if (args is Map) {
       _isEdit = args['isEdit'] == true;
-      _complexId = args['complexId'];
+      _complexId = int.tryParse(args['complexId']?.toString() ?? '');
       _complexName = args['complexName'] ?? '';
       if (_isEdit && args['ground'] != null) {
         _existingGround = args['ground'];
         _prefillFromExisting();
       }
+    } else if (args is int) {
+      _complexId = args;
     }
   }
 
@@ -111,15 +118,50 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       Get.snackbar('Error', 'Name and price are required');
       return;
     }
+    if (!_isEdit && _complexId == null) {
+      Get.snackbar('Error', 'Please select a complex first');
+      return;
+    }
 
     setState(() => _isSubmitting = true);
     try {
+      debugPrint(
+        '🌐 [AddGround] Starting submission... (Edit: $_isEdit, ComplexId: $_complexId)',
+      );
+
+      // Upload ground images first
+      final List<String> imagePaths = [];
+      for (final img in _pickedImages) {
+        try {
+          debugPrint('📸 [AddGround] Uploading image: ${img.name}');
+          final uploadForm = dio_form.FormData.fromMap({
+            'file': await dio_form.MultipartFile.fromFile(
+              img.path,
+              filename: img.name,
+            ),
+          });
+          final uploadRes = await ApiClient().dio.post(
+            '/upload',
+            data: uploadForm,
+          );
+          if (uploadRes.statusCode == 200 &&
+              uploadRes.data is Map &&
+              uploadRes.data['path'] != null) {
+            final path = uploadRes.data['path'].toString();
+            imagePaths.add(path);
+            debugPrint('✅ [AddGround] Image uploaded: $path');
+          }
+        } catch (e) {
+          debugPrint('⚠️ [AddGround] Image upload failed: $e');
+        }
+      }
+
       final Map<String, dynamic> dataMap = {
-        'name': _nameCtrl.text,
-        'location': _locationCtrl.text,
+        'name': _nameCtrl.text.trim(),
+        'location': _locationCtrl.text.trim(),
         'price_per_hour': double.tryParse(_priceCtrl.text) ?? 0,
-        'description': _descCtrl.text,
-        'dimensions': _dimensionsCtrl.text,
+        'description': _descCtrl.text.trim(),
+        'dimensions': _dimensionsCtrl.text.trim(),
         'open_time': _openTime,
         'close_time': _closeTime,
         'type': _selectedSport.toLowerCase(),
@@ -127,28 +169,19 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         'has_lighting': _hasLighting ? 1 : 0,
         'amenities': _selectedAmenities.toList(),
         if (_complexId != null) 'complex_id': _complexId,
+        if (imagePaths.isNotEmpty) 'images': imagePaths,
       };
 
-      dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
-
-      if (_pickedImage != null) {
-        formData.files.add(
-          MapEntry(
-            'image',
-            await dio_form.MultipartFile.fromFile(
-              _pickedImage!.path,
-              filename: _pickedImage!.name,
-            ),
-          ),
-        );
-      }
+      debugPrint('📤 [AddGround] Payload: $dataMap');
 
       final res = _isEdit
           ? await ApiClient().dio.post(
               '/grounds/${_existingGround['id']}?_method=PUT',
-              data: formData,
+              data: dataMap,
             )
-          : await ApiClient().dio.post('/grounds', data: formData);
+          : await ApiClient().dio.post('/grounds', data: dataMap);
+
+      debugPrint('✅ [AddGround] Response: ${res.statusCode} | ${res.data}');
 
       if (res.statusCode == 200 || res.statusCode == 201) {
         Get.snackbar(
@@ -156,27 +189,171 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
           _isEdit ? 'Ground updated successfully' : 'Ground published!',
           backgroundColor: Colors.green.withOpacity(0.1),
           colorText: Colors.green,
+          snackPosition: SnackPosition.BOTTOM,
         );
         Get.back(result: true);
       } else {
-        Get.snackbar('Error', 'Server returned an error');
+        AppUtils.showError(
+          message:
+              'Server Error (${res.statusCode}): ${res.data['message'] ?? 'Unknown error'}',
+        );
       }
     } catch (e) {
-      Get.snackbar('Error', 'Something went wrong: $e');
+      debugPrint('❌ [AddGround] Submission failed: $e');
+      AppUtils.showError(message: 'Submission failed: $e');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
   Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() => _pickedImage = image);
+    final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
+    if (images.isNotEmpty) {
+      setState(() => _pickedImages.addAll(images));
     }
+  }
+
+  /// Step 1 (match website): Select complex for new ground. "Continue" → show form.
+  Widget _buildSelectComplexStep() {
+    final groundsController = Get.put(GroundsController());
+    return Obx(() {
+      if (groundsController.isLoading.value &&
+          groundsController.complexes.isEmpty) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      final list = groundsController.complexes;
+      return Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 500),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.m),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: AppSpacing.m),
+                Text(
+                  'Step 1: Select the sports complex for your new ground',
+                  style: AppTextStyles.bodyLarge.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.l),
+                if (list.isEmpty) ...[
+                  const Icon(
+                    Icons.business_outlined,
+                    size: 64,
+                    color: AppColors.textMuted,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  const Text(
+                    'No complexes yet. Create one first.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textMuted),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  AppButton(
+                    label: 'Add Complex',
+                    onPressed: () async {
+                      final result = await Get.toNamed('/add-complex');
+                      if (result == true)
+                        groundsController.fetchComplexesAndGrounds();
+                    },
+                  ),
+                ] else ...[
+                  ...list.map((c) => _complexTile(c)),
+                  const SizedBox(height: AppSpacing.l),
+                  AppButton(
+                    label: 'Continue to Details',
+                    onPressed: _selectedComplexIdForStep == null
+                        ? null
+                        : () {
+                            final c = list.firstWhere(
+                              (x) => x.id == _selectedComplexIdForStep,
+                            );
+                            setState(() {
+                              _complexId = c.id;
+                              _complexName = c.name;
+                              _selectedComplexIdForStep = null;
+                            });
+                          },
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      );
+    });
+  }
+
+  Widget _complexTile(Complex c) {
+    final isSelected = _selectedComplexIdForStep == c.id;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedComplexIdForStep = c.id),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(AppSpacing.m),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.business_outlined,
+              size: 32,
+              color: isSelected ? AppColors.primary : AppColors.textMuted,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    c.name,
+                    style: AppTextStyles.bodyLarge.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (c.address.isNotEmpty)
+                    Text(
+                      c.address,
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.primary,
+                size: 24,
+              ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Step 1 (match website): Choose complex when adding new ground without complexId
+    if (!_isEdit && _complexId == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Add New Ground'), centerTitle: true),
+        body: _buildSelectComplexStep(),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEdit ? 'Edit Ground' : 'Add New Ground'),
@@ -253,11 +430,11 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 ),
                 const SizedBox(height: AppSpacing.m),
 
-                _lbl('Location / Area (e.g. Field 1)'),
-                _textField(
-                  _locationCtrl,
-                  'e.g. Gulberg III, Lahore',
-                  Icons.location_on_outlined,
+                _lbl('Location / Area (e.g. Field 1 or full address)'),
+                AddressAutocompleteField(
+                  controller: _locationCtrl,
+                  hintText: 'Search for a location...',
+                  prefixIcon: Icons.location_on_outlined,
                 ),
                 const SizedBox(height: AppSpacing.m),
 
@@ -454,53 +631,117 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   }
 
   Widget _buildImagePicker() {
-    return GestureDetector(
-      onTap: _pickImage,
-      child: Container(
-        width: double.infinity,
-        height: 180,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: _pickedImage != null
-              ? Image.file(File(_pickedImage!.path), fit: BoxFit.cover)
-              : _isEdit &&
-                    _existingGround['images'] != null &&
-                    (_existingGround['images'] as List).isNotEmpty
-              ? Image.network(
-                  UrlHelper.sanitizeUrl(_existingGround['images'][0]),
-                  fit: BoxFit.cover,
-                )
-              : Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.add_photo_alternate_outlined,
-                      size: 40,
-                      color: AppColors.primary.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Click to select ground image',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textMuted,
-                      ),
-                    ),
-                    Text(
-                      '(PNG, JPG up to 5MB)',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
-                      ),
-                    ),
-                  ],
+    // Show existing images from backend when editing, plus newly picked images.
+    final List<String> existingImages =
+        (_isEdit &&
+            _existingGround != null &&
+            _existingGround['images'] != null &&
+            _existingGround['images'] is List)
+        ? List<String>.from(_existingGround['images'])
+        : [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            width: double.infinity,
+            height: 120,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: _pickedImages.isEmpty
+                    ? AppColors.border
+                    : AppColors.primary.withOpacity(0.5),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.add_photo_alternate_outlined,
+                  size: 40,
+                  color: AppColors.primary.withOpacity(0.7),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  _pickedImages.isEmpty
+                      ? 'Tap to upload ground photos'
+                      : '${_pickedImages.length} new images selected',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+        const SizedBox(height: AppSpacing.s),
+        if (existingImages.isNotEmpty || _pickedImages.isNotEmpty)
+          SizedBox(
+            height: 90,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                // Existing images from backend
+                ...existingImages.map(
+                  (url) => Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    width: 90,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      image: DecorationImage(
+                        image: NetworkImage(UrlHelper.sanitizeUrl(url)),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                ),
+                // Newly picked images
+                ...List.generate(_pickedImages.length, (index) {
+                  final img = _pickedImages[index];
+                  return Stack(
+                    children: [
+                      Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        width: 90,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          image: DecorationImage(
+                            image: FileImage(File(img.path)),
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 12,
+                        child: GestureDetector(
+                          onTap: () =>
+                              setState(() => _pickedImages.removeAt(index)),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.close,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ],
+            ),
+          ),
+      ],
     );
   }
 

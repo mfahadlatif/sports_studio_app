@@ -48,18 +48,19 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
         _ground = groundRes.data['data'] ?? groundRes.data;
       }
 
-      // 2. Fetch specific stats for this ground (mocked if endpoint missing)
+      // 2. Fetch stats for this ground (use zeros if endpoint missing)
       try {
         final statsRes = await ApiClient().dio.get('/owner/grounds/$id/stats');
         if (statsRes.statusCode == 200) {
-          _stats = statsRes.data;
+          _stats = statsRes.data is Map
+              ? Map<String, dynamic>.from(statsRes.data)
+              : _stats;
         }
       } catch (_) {
-        // Fallback demo stats
         _stats = {
-          'total_revenue': 45000,
-          'bookings_count': 12,
-          'avg_rating': 4.8,
+          'total_revenue': 0,
+          'bookings_count': 0,
+          'avg_rating': 0.0,
         };
       }
 

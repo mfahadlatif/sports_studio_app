@@ -95,7 +95,7 @@ class GroundCard extends StatelessWidget {
     final name = ground['name'] ?? 'Arena Center';
     final price = ground['price_per_hour'] ?? '2,500';
     final complex = ground['complex'] ?? {};
-    final address = complex['address'] ?? 'Lahore, Pakistan';
+    final address = complex['address'] ?? '—';
 
     final imageUrl = UrlHelper.getFirstImage(
       ground['images'],

@@ -6,8 +6,10 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_shimmer.dart';
-import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
+import 'package:sports_studio/core/models/models.dart';
 
 class SportsComplexesPage extends StatefulWidget {
   const SportsComplexesPage({super.key});
@@ -68,13 +70,13 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     );
   }
 
-  void _openForm({dynamic complex}) => showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (_) =>
-        _ComplexFormSheet(complex: complex, onSuccess: _fetchComplexes),
-  );
+  void _openForm({dynamic complex}) async {
+    final result = await Get.to(
+      () => AddComplexPage(complex: complex),
+      transition: Transition.rightToLeft,
+    );
+    if (result == true) _fetchComplexes();
+  }
 
   List<dynamic> get _filtered => _complexes
       .where(
@@ -154,15 +156,13 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     );
   }
 
-  Widget _complexCard(dynamic complex) {
-    final groundCount =
-        complex['grounds_count'] ?? (complex['grounds'] as List?)?.length ?? 0;
-    final status = complex['status'] ?? 'active';
-    final isActive = status == 'active' || status == 1;
+  Widget _complexCard(Complex complex) {
+    final groundCount = complex.grounds?.length ?? 0;
+    final isActive = complex.status == 'active' || complex.status == '1';
 
     return GestureDetector(
       onTap: () =>
-          Get.toNamed('/complex-detail', arguments: {'id': complex['id']}),
+          Get.toNamed('/complex-detail', arguments: {'id': complex.id}),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         decoration: BoxDecoration(
@@ -228,11 +228,8 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          complex['name'] ?? 'Complex',
-                          style: AppTextStyles.h3,
-                        ),
-                        if ((complex['address'] ?? '').isNotEmpty)
+                        Text(complex.name, style: AppTextStyles.h3),
+                        if (complex.address.isNotEmpty)
                           Row(
                             children: [
                               const Icon(
@@ -243,7 +240,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                               const SizedBox(width: 3),
                               Expanded(
                                 child: Text(
-                                  complex['address'],
+                                  complex.address,
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: AppColors.textMuted,
                                   ),
@@ -312,36 +309,32 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        // Facilities row
-                        if (complex['amenities'] != null)
+                        // Facilities row: Show amenities from the first ground as representative or hide if empty
+                        if (complex.grounds != null &&
+                            complex.grounds!.isNotEmpty)
                           Wrap(
                             spacing: 4,
-                            children:
-                                (complex['amenities'] is List
-                                        ? complex['amenities'] as List
-                                        : [])
-                                    .take(6)
-                                    .map<Widget>(
-                                      (fId) => Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.background,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          border: Border.all(
-                                            color: AppColors.border.withOpacity(
-                                              0.3,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Text(
-                                          _getFacilityIcon(fId.toString()),
-                                          style: const TextStyle(fontSize: 12),
+                            children: (complex.grounds?.first.amenities ?? [])
+                                .take(6)
+                                .map<Widget>(
+                                  (fId) => Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: AppColors.border.withOpacity(
+                                          0.3,
                                         ),
                                       ),
-                                    )
-                                    .toList(),
+                                    ),
+                                    child: Text(
+                                      _getFacilityIcon(fId.toString()),
+                                      style: const TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                           ),
                       ],
                     ),
@@ -382,27 +375,8 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     );
   }
 
-  String _complexImageUrl(dynamic complex) {
-    String url =
-        'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
-    if (complex['images'] != null && (complex['images'] as List).isNotEmpty) {
-      url = complex['images'][0];
-    } else if (complex['image_path'] != null) {
-      url = complex['image_path'];
-    }
-
-    if (url.contains('localhost')) {
-      url = url
-          .replaceAll(
-            'localhost/cricket-oasis-bookings/backend/public',
-            'lightcoral-goose-424965.hostingersite.com/backend/public',
-          )
-          .replaceAll(
-            'http://localhost',
-            'https://lightcoral-goose-424965.hostingersite.com',
-          );
-    }
-    return url;
+  String _complexImageUrl(Complex complex) {
+    return UrlHelper.getFirstImage(complex.images, fallbackPath: null);
   }
 
   Widget _emptyState() => Center(
@@ -443,158 +417,5 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
       (c) => c['id'] == id,
       orElse: () => {'id': id, 'icon': '✓'},
     )['icon']!;
-  }
-}
-
-// ─── Form Sheet ───────────────────────────────────────────────────────────────
-class _ComplexFormSheet extends StatefulWidget {
-  final dynamic complex;
-  final VoidCallback onSuccess;
-  const _ComplexFormSheet({this.complex, required this.onSuccess});
-
-  @override
-  State<_ComplexFormSheet> createState() => _ComplexFormSheetState();
-}
-
-class _ComplexFormSheetState extends State<_ComplexFormSheet> {
-  final _nameCtrl = TextEditingController();
-  final _addressCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  bool _isSaving = false;
-
-  bool get _isEdit => widget.complex != null;
-
-  @override
-  void initState() {
-    super.initState();
-    if (_isEdit) {
-      _nameCtrl.text = widget.complex['name'] ?? '';
-      _addressCtrl.text = widget.complex['address'] ?? '';
-      _descCtrl.text = widget.complex['description'] ?? '';
-    }
-  }
-
-  Future<void> _save() async {
-    if (_nameCtrl.text.isEmpty || _addressCtrl.text.isEmpty) {
-      AppUtils.showError(message: 'Name and address are required');
-      return;
-    }
-    setState(() => _isSaving = true);
-    try {
-      final data = {
-        'name': _nameCtrl.text,
-        'address': _addressCtrl.text,
-        'description': _descCtrl.text,
-      };
-      final id = widget.complex?['id'];
-      final res = _isEdit
-          ? await ApiClient().dio.put('/complexes/$id', data: data)
-          : await ApiClient().dio.post('/complexes', data: data);
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        Get.back();
-        widget.onSuccess();
-        AppUtils.showSuccess(
-          message: _isEdit
-              ? 'Complex updated successfully!'
-              : 'Complex created successfully!',
-        );
-      }
-    } catch (_) {
-      AppUtils.showError(message: 'Something went wrong while saving');
-    } finally {
-      setState(() => _isSaving = false);
-    }
-  }
-
-  Widget _lbl(String t) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.s),
-    child: Text(t, style: AppTextStyles.label),
-  );
-  Widget _fld(TextEditingController c, String hint, IconData icon) => TextField(
-    controller: c,
-    decoration: InputDecoration(
-      hintText: hint,
-      prefixIcon: Icon(icon),
-      filled: true,
-      fillColor: AppColors.background,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      maxChildSize: 0.9,
-      minChildSize: 0.5,
-      builder: (ctx, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        padding: const EdgeInsets.all(AppSpacing.l),
-        child: SingleChildScrollView(
-          controller: scrollCtrl,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: AppSpacing.l),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                _isEdit ? 'Edit Complex' : 'Add Sports Complex',
-                style: AppTextStyles.h2,
-              ),
-              const SizedBox(height: AppSpacing.l),
-              _lbl('Complex Name *'),
-              _fld(
-                _nameCtrl,
-                'e.g. Star Sports Complex',
-                Icons.business_outlined,
-              ),
-              const SizedBox(height: AppSpacing.m),
-              _lbl('Address *'),
-              _fld(
-                _addressCtrl,
-                'e.g. Gulberg, Lahore',
-                Icons.location_on_outlined,
-              ),
-              const SizedBox(height: AppSpacing.m),
-              _lbl('Description'),
-              TextField(
-                controller: _descCtrl,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Describe your facility...',
-                  filled: true,
-                  fillColor: AppColors.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              AppButton(
-                label: _isEdit ? 'Update Complex' : 'Create Complex',
-                onPressed: _save,
-                isLoading: _isSaving,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

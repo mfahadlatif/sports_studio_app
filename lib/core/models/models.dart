@@ -156,6 +156,8 @@ class Booking {
   final int players;
   final String status;
   final String paymentStatus;
+  final String? paymentMethod;
+  final DateTime? paymentExpiresAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final Ground? ground;
@@ -172,6 +174,8 @@ class Booking {
     required this.players,
     this.status = 'pending',
     this.paymentStatus = 'pending',
+    this.paymentMethod,
+    this.paymentExpiresAt,
     this.createdAt,
     this.updatedAt,
     this.ground,
@@ -191,6 +195,10 @@ class Booking {
       players: int.tryParse(json['players']?.toString() ?? '') ?? 1,
       status: json['status'] ?? 'pending',
       paymentStatus: json['payment_status'] ?? 'pending',
+      paymentMethod: json['payment_method']?.toString(),
+      paymentExpiresAt: json['payment_expires_at'] != null
+          ? DateTime.tryParse(json['payment_expires_at'].toString())
+          : null,
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'])
           : null,
@@ -220,6 +228,8 @@ class Booking {
       'players': players,
       'status': status,
       'payment_status': paymentStatus,
+      'payment_method': paymentMethod,
+      'payment_expires_at': paymentExpiresAt?.toIso8601String(),
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
       'ground': ground?.toJson(),
@@ -240,6 +250,7 @@ class Event {
   final DateTime endTime;
   final double registrationFee;
   final int? maxParticipants;
+  final String eventType; // public / private
   final String status;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -248,6 +259,7 @@ class Event {
   final String? rules;
   final String? safetyPolicy;
   final String? schedule;
+  final List<String> images;
   final User? organizer;
   final Booking? booking;
   final int? participantsCount;
@@ -264,6 +276,7 @@ class Event {
     required this.endTime,
     required this.registrationFee,
     this.maxParticipants,
+    this.eventType = 'public',
     this.status = 'upcoming',
     this.createdAt,
     this.updatedAt,
@@ -272,6 +285,7 @@ class Event {
     this.rules,
     this.safetyPolicy,
     this.schedule,
+    this.images = const [],
     this.organizer,
     this.booking,
     this.participantsCount,
@@ -295,6 +309,7 @@ class Event {
       maxParticipants: json['max_participants'] != null
           ? int.tryParse(json['max_participants'].toString())
           : null,
+      eventType: json['event_type']?.toString() ?? 'public',
       status: json['status'] ?? 'upcoming',
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'])
@@ -307,6 +322,11 @@ class Event {
       rules: json['rules'],
       safetyPolicy: json['safety_policy'],
       schedule: json['schedule'],
+      images: (json['images'] is List)
+          ? List<String>.from(
+              (json['images'] as List).map((e) => e.toString()),
+            )
+          : const [],
       organizer:
           json['organizer'] != null && json['organizer'] is Map<String, dynamic>
           ? User.fromJson(json['organizer'])
@@ -334,6 +354,7 @@ class Event {
       'end_time': endTime.toIso8601String(),
       'registration_fee': registrationFee,
       'max_participants': maxParticipants,
+      'event_type': eventType,
       'status': status,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
@@ -342,6 +363,7 @@ class Event {
       'rules': rules,
       'safety_policy': safetyPolicy,
       'schedule': schedule,
+      'images': images,
       'organizer': organizer?.toJson(),
       'booking': booking?.toJson(),
       'participants_count': participantsCount,

@@ -8,6 +8,7 @@ class HomeController extends GetxController {
 
   // Search & Advanced Filter State
   final RxString searchQuery = ''.obs;
+  final RxString locationQuery = ''.obs;
   final RxString selectedCategory = 'All'.obs;
   final Rx<RangeValues> priceRange = const RangeValues(0, 20000).obs;
   final RxDouble minRating = 0.0.obs;
@@ -45,6 +46,11 @@ class HomeController extends GetxController {
     _applyFilters();
   }
 
+  void updateLocationQuery(String query) {
+    locationQuery.value = query;
+    _applyFilters();
+  }
+
   void updateCategory(String category) {
     selectedCategory.value = category;
     _applyFilters();
@@ -52,6 +58,11 @@ class HomeController extends GetxController {
 
   void updatePriceRange(RangeValues values) {
     priceRange.value = values;
+    _applyFilters();
+  }
+
+  void updateMinRating(double value) {
+    minRating.value = value;
     _applyFilters();
   }
 
@@ -71,6 +82,7 @@ class HomeController extends GetxController {
 
   void resetFilters() {
     searchQuery.value = '';
+    locationQuery.value = '';
     selectedCategory.value = 'All';
     priceRange.value = const RangeValues(0, 20000);
     minRating.value = 0.0;
@@ -95,13 +107,21 @@ class HomeController extends GetxController {
       final text = searchQuery.value.toLowerCase();
       result = result.where((ground) {
         final name = ground['name']?.toString().toLowerCase() ?? '';
-        final location = ground['location']?.toString().toLowerCase() ?? '';
         final complex = ground['complex'] ?? {};
         final address = complex['address']?.toString().toLowerCase() ?? '';
 
-        return name.contains(text) ||
-            location.contains(text) ||
-            address.contains(text);
+        return name.contains(text) || address.contains(text);
+      }).toList();
+    }
+
+    // 2b. Location Filter (separate field)
+    if (locationQuery.value.isNotEmpty) {
+      final text = locationQuery.value.toLowerCase();
+      result = result.where((ground) {
+        final location = ground['location']?.toString().toLowerCase() ?? '';
+        final complex = ground['complex'] ?? {};
+        final address = complex['address']?.toString().toLowerCase() ?? '';
+        return location.contains(text) || address.contains(text);
       }).toList();
     }
 
@@ -111,6 +131,15 @@ class HomeController extends GetxController {
           double.tryParse(ground['price_per_hour']?.toString() ?? '0') ?? 0;
       return price >= priceRange.value.start && price <= priceRange.value.end;
     }).toList();
+
+    // 3b. Minimum Rating filter
+    if (minRating.value > 0) {
+      result = result.where((ground) {
+        final rating =
+            double.tryParse(ground['avg_rating']?.toString() ?? '0') ?? 0;
+        return rating >= minRating.value;
+      }).toList();
+    }
 
     // 4. Amenities Filter
     if (selectedAmenities.isNotEmpty) {

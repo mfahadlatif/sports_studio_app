@@ -1307,7 +1307,10 @@ extension BookingApiServicePayment on BookingApiService {
     final ApiClient client = ApiClient();
     try {
       print('🌐 [BookingAPI] Finalizing payment for booking $bookingId...');
-      final response = await client.dio.post('/bookings/$bookingId/finalize');
+      // Match website/backend: POST /bookings/:id/finalize-payment
+      final response = await client.dio.post(
+        '/bookings/$bookingId/finalize-payment',
+      );
       if (response.statusCode == 200) {
         print('✅ [BookingAPI] Payment finalized for booking $bookingId');
         return Booking.fromJson(response.data);

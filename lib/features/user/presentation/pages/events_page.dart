@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/events_controller.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
@@ -80,27 +81,12 @@ class EventsPage extends StatelessWidget {
   Widget _buildEventCard(dynamic event) {
     final title = event['title'] ?? 'Sports Event';
     final date = event['date'] ?? 'Upcoming';
-    final location = event['location'] ?? 'Stadium';
+    final location = event['location'] ?? '—';
 
-    String imageUrl =
-        'https://images.unsplash.com/photo-1543326727-cf6c39e8f84c?q=80&w=800';
-    if (event['images'] != null && (event['images'] as List).isNotEmpty) {
-      imageUrl = event['images'][0];
-    } else if (event['event_path'] != null) {
-      imageUrl = event['event_path'];
-    }
-
-    if (imageUrl.contains('localhost')) {
-      imageUrl = imageUrl
-          .replaceAll(
-            'localhost/cricket-oasis-bookings/backend/public',
-            'lightcoral-goose-424965.hostingersite.com/backend/public',
-          )
-          .replaceAll(
-            'http://localhost',
-            'https://lightcoral-goose-424965.hostingersite.com',
-          );
-    }
+    final imageUrl = UrlHelper.getFirstImage(
+      event['images'],
+      fallbackPath: event['event_path']?.toString(),
+    );
 
     return GestureDetector(
       onTap: () => Get.toNamed('/event-detail', arguments: event),

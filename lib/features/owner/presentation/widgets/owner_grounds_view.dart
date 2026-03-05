@@ -8,6 +8,7 @@ import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
 
 import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class OwnerGroundsView extends StatelessWidget {
   const OwnerGroundsView({super.key});
@@ -196,20 +197,7 @@ class OwnerGroundsView extends StatelessWidget {
   }
 
   Widget _buildComplexTile(Complex complex) {
-    String imageUrl = (complex.images != null && complex.images!.isNotEmpty)
-        ? complex.images![0]
-        : 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800';
-    if (imageUrl.contains('localhost')) {
-      imageUrl = imageUrl
-          .replaceAll(
-            'localhost/cricket-oasis-bookings/backend/public',
-            'lightcoral-goose-424965.hostingersite.com/backend/public',
-          )
-          .replaceAll(
-            'http://localhost',
-            'https://lightcoral-goose-424965.hostingersite.com',
-          );
-    }
+    final imageUrl = UrlHelper.getFirstImage(complex.images);
 
     return GestureDetector(
       onTap: () =>
@@ -277,16 +265,7 @@ class OwnerGroundsView extends StatelessWidget {
   }
 
   Widget _buildGroundCard(Ground ground, GroundsController controller) {
-    String imageUrl = '';
-    if (ground.images != null && ground.images!.isNotEmpty) {
-      imageUrl = ground.images![0].toString();
-      if (imageUrl.contains('localhost')) {
-        imageUrl = imageUrl.replaceAll(
-          'localhost/cricket-oasis-bookings/backend/public',
-          'lightcoral-goose-424965.hostingersite.com/backend/public',
-        );
-      }
-    }
+    final imageUrl = UrlHelper.getFirstImage(ground.images);
 
     final isActive = ground.status == 'active';
 

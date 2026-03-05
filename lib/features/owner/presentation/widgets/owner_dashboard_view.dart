@@ -481,7 +481,7 @@ class OwnerDashboardView extends StatelessWidget {
 
     return GestureDetector(
       onTap: () =>
-          Get.toNamed('/complex-detail', arguments: {'complex': complex}),
+          Get.toNamed('/complex-detail', arguments: {'id': complex['id']}),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(12),
@@ -598,74 +598,83 @@ class OwnerDashboardView extends StatelessWidget {
         .toString()
         .toLowerCase();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: paymentStatus == 'paid'
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: () =>
+          Get.toNamed('/booking-detail', arguments: {'booking': booking}),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border.withOpacity(0.5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: paymentStatus == 'paid'
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.sports_cricket,
+                color: paymentStatus == 'paid' ? Colors.green : Colors.orange,
+              ),
             ),
-            child: Icon(
-              Icons.sports_cricket,
-              color: paymentStatus == 'paid' ? Colors.green : Colors.orange,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        userName,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Rs. $totalAmount',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Text(
+                        groundName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        startTime.toString().split(' ').last.substring(0, 5),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      userName,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    Text(
-                      'Rs. $totalAmount',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    Text(
-                      groundName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      startTime.toString().split(' ').last.substring(0, 5),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 12,
+              color: AppColors.textMuted,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

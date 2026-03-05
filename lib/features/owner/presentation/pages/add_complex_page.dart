@@ -4,16 +4,20 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
 
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as dio_form;
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 
 class AddComplexPage extends StatefulWidget {
-  const AddComplexPage({super.key});
+  /// Pass an existing complex map to enter edit mode.
+  final dynamic complex;
+
+  const AddComplexPage({super.key, this.complex});
 
   @override
   State<AddComplexPage> createState() => _AddComplexPageState();
@@ -27,10 +31,12 @@ class _AddComplexPageState extends State<AddComplexPage> {
   final _lngCtrl = TextEditingController();
 
   bool _isLoading = false;
-  String _selectedStatus = 'active';
+  bool _isActive = true;
 
   final List<XFile> _pickedImages = [];
   final ImagePicker _picker = ImagePicker();
+
+  bool get _isEdit => widget.complex != null;
 
   final List<Map<String, String>> _facilityConfigs = [
     {'id': 'parking', 'name': 'Parking', 'icon': '🅿️'},
@@ -47,6 +53,32 @@ class _AddComplexPageState extends State<AddComplexPage> {
 
   final Set<String> _selectedAmenities = {};
 
+  @override
+  void initState() {
+    super.initState();
+    if (_isEdit) {
+      final c = widget.complex;
+      _nameCtrl.text = c['name'] ?? '';
+      _addressCtrl.text = c['address'] ?? '';
+      _descCtrl.text = c['description'] ?? '';
+      _latCtrl.text = (c['latitude'] ?? '').toString();
+      _lngCtrl.text = (c['longitude'] ?? '').toString();
+      final status = c['status'];
+      _isActive = status == 'active' || status == 1 || status == true;
+
+      // Pre-select amenities
+      List amenities = [];
+      try {
+        amenities = c['amenities'] is List
+            ? c['amenities']
+            : (c['amenities'] is String
+                  ? (c['amenities'] as String).split(',')
+                  : []);
+      } catch (_) {}
+      _selectedAmenities.addAll(amenities.map((e) => e.toString()));
+    }
+  }
+
   Future<void> _submit() async {
     if (_nameCtrl.text.isEmpty || _addressCtrl.text.isEmpty) {
       AppUtils.showError(message: 'Please fill name and address');
@@ -55,51 +87,75 @@ class _AddComplexPageState extends State<AddComplexPage> {
 
     setState(() => _isLoading = true);
     try {
-      final Map<String, dynamic> dataMap = {
-        'name': _nameCtrl.text.trim(),
-        'address': _addressCtrl.text.trim(),
-        'description': _descCtrl.text.trim(),
-        'status': _selectedStatus,
-        'latitude': _latCtrl.text.trim(),
-        'longitude': _lngCtrl.text.trim(),
-        'amenities': _selectedAmenities.toList(),
-      };
+      if (_isEdit) {
+        // Edit: PUT with JSON (no file re-upload unless images are picked)
+        final id = widget.complex['id'];
+        final data = {
+          'name': _nameCtrl.text.trim(),
+          'address': _addressCtrl.text.trim(),
+          'description': _descCtrl.text.trim(),
+          'status': _isActive ? 'active' : 'inactive',
+          'latitude': _latCtrl.text.trim(),
+          'longitude': _lngCtrl.text.trim(),
+          'amenities': _selectedAmenities.toList(),
+        };
+        final res = await ApiClient().dio.put('/complexes/$id', data: data);
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          _onSuccess('Complex updated successfully!');
+        }
+      } else {
+        // Add: POST with FormData (supports image upload)
+        final Map<String, dynamic> dataMap = {
+          'name': _nameCtrl.text.trim(),
+          'address': _addressCtrl.text.trim(),
+          'description': _descCtrl.text.trim(),
+          'status': _isActive ? 'active' : 'inactive',
+          'latitude': _latCtrl.text.trim(),
+          'longitude': _lngCtrl.text.trim(),
+          'amenities': _selectedAmenities.toList(),
+        };
 
-      dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
-
-      // Add images
-      for (var file in _pickedImages) {
-        formData.files.add(
-          MapEntry(
-            'images[]',
-            await dio_form.MultipartFile.fromFile(
-              file.path,
-              filename: file.name,
+        dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
+        for (var file in _pickedImages) {
+          formData.files.add(
+            MapEntry(
+              'images[]',
+              await dio_form.MultipartFile.fromFile(
+                file.path,
+                filename: file.name,
+              ),
             ),
-          ),
-        );
-      }
+          );
+        }
 
-      final res = await ApiClient().dio.post('/complexes', data: formData);
-
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        final groundsController = Get.find<GroundsController>();
-        await groundsController.fetchComplexesAndGrounds();
-        Get.back(result: true);
-        AppUtils.showSuccess(message: 'Complex created successfully!');
+        final res = await ApiClient().dio.post('/complexes', data: formData);
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          _onSuccess('Complex created successfully!');
+        }
       }
     } on dio_form.DioException catch (e) {
       debugPrint('❌ [AddComplex] Error: ${e.response?.data}');
-      String msg = 'Failed to create complex';
+      String msg = _isEdit
+          ? 'Failed to update complex'
+          : 'Failed to create complex';
       if (e.response?.data != null && e.response?.data['message'] != null) {
         msg = e.response?.data['message'];
       }
       AppUtils.showError(message: msg);
     } catch (e) {
-      AppUtils.showError(message: 'Failed to create complex: $e');
+      AppUtils.showError(message: 'Something went wrong: $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _onSuccess(String message) {
+    try {
+      final groundsController = Get.find<GroundsController>();
+      groundsController.fetchComplexesAndGrounds();
+    } catch (_) {}
+    Get.back(result: true);
+    AppUtils.showSuccess(message: message);
   }
 
   Future<void> _pickImages() async {
@@ -112,186 +168,295 @@ class _AddComplexPageState extends State<AddComplexPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Add Sports Complex'),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        title: Text(
+          _isEdit ? 'Edit Sports Complex' : 'Add Sports Complex',
+          style: AppTextStyles.h3.copyWith(fontSize: 18),
+        ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          onPressed: () => Get.back(),
+        ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.m),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.m,
+          vertical: AppSpacing.s,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Basic Information Card ──────────────────────────────
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionTitle(
+                    icon: Icons.info_outline,
+                    label: 'Basic Information',
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  _lbl('Complex Name *'),
+                  _textField(
+                    _nameCtrl,
+                    'e.g. Elite Sports Complex',
+                    Icons.business_outlined,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  _lbl('Location / Area *'),
+                  AddressAutocompleteField(
+                    controller: _addressCtrl,
+                    hintText: 'Search for a location...',
+                    prefixIcon: Icons.map_outlined,
+                    latController: _latCtrl,
+                    lngController: _lngCtrl,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _lbl('Latitude'),
+                            _textField(
+                              _latCtrl,
+                              'e.g. 31.5204',
+                              Icons.pin_drop_outlined,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.m),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _lbl('Longitude'),
+                            _textField(
+                              _lngCtrl,
+                              'e.g. 74.3587',
+                              Icons.explore_outlined,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  _lbl('Description'),
+                  TextField(
+                    controller: _descCtrl,
+                    maxLines: 4,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                    decoration: InputDecoration(
+                      hintText:
+                          'Describe your sports complex, highlights, and special features...',
+                      hintStyle: AppTextStyles.bodySmall,
+                      filled: true,
+                      fillColor: AppColors.inputBackground,
+                      contentPadding: const EdgeInsets.all(14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.borderRadius,
+                        ),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  // ── Status toggle (inside same card, like web) ──
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                      vertical: AppSpacing.s + 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.inputBackground,
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.borderRadius,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Complex Status',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Active complexes are visible to customers',
+                                style: AppTextStyles.label.copyWith(
+                                  color: AppColors.textMuted,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: _isActive,
+                          onChanged: (v) => setState(() => _isActive = v),
+                          activeColor: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.m),
+
+            // ── Complex Images & Gallery Card ───────────────────────
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionTitle(
+                    icon: Icons.photo_library_outlined,
+                    label: 'Complex Images & Gallery',
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  _buildImageSection(),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.m),
+
+            // ── Facilities Card ─────────────────────────────────────
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SectionTitle(
+                    icon: Icons.apartment_outlined,
+                    label: 'Facilities Available',
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Select all facilities available at your complex',
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  _buildAmenitiesGrid(),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.l),
+
+            // ── Action Buttons ──────────────────────────────────────
+            Row(
               children: [
-                _buildHeader(),
-                const SizedBox(height: AppSpacing.xl),
-
-                _sectionHeader('Basic Information', Icons.info_outline),
-                const SizedBox(height: AppSpacing.m),
-
-                _lbl('Complex Name *'),
-                _textField(
-                  _nameCtrl,
-                  'e.g. Elite Sports Complex',
-                  Icons.business_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                _lbl('Location / Area *'),
-                _textField(
-                  _addressCtrl,
-                  'e.g. Downtown Sports District, Main Road',
-                  Icons.map_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _lbl('Latitude'),
-                          _textField(
-                            _latCtrl,
-                            'e.g. 31.5204',
-                            Icons.pin_drop_outlined,
-                            keyboardType: TextInputType.number,
+                Expanded(
+                  child: SizedBox(
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : () => Get.back(),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(
+                          color: AppColors.border,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.buttonRadius + 4,
                           ),
-                        ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.m),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _lbl('Longitude'),
-                          _textField(
-                            _lngCtrl,
-                            'e.g. 74.3587',
-                            Icons.explore_outlined,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ],
+                      child: Text(
+                        'Cancel',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                _lbl('Description'),
-                TextField(
-                  controller: _descCtrl,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText:
-                        'Describe your sports complex, highlights, and special features...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader('Complex Status', Icons.settings_outlined),
-                const SizedBox(height: AppSpacing.m),
-                _buildStatusSection(),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader(
-                  'Complex Images & Gallery',
-                  Icons.image_outlined,
+                const SizedBox(width: AppSpacing.m),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        disabledBackgroundColor: AppColors.primary.withOpacity(
+                          0.7,
+                        ),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.buttonRadius + 4,
+                          ),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const AppProgressIndicator(
+                              size: 20,
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _isEdit
+                                      ? Icons.update_rounded
+                                      : Icons.save_rounded,
+                                  size: 18,
+                                  color: Colors.white,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  _isEdit
+                                      ? 'Update Complex'
+                                      : 'Save & Continue',
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.m),
-                _buildImageSection(),
-                const SizedBox(height: AppSpacing.l),
-
-                _sectionHeader(
-                  'Facilities Available',
-                  Icons.apartment_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Select all facilities available at your complex'),
-                _buildAmenitiesGrid(),
-                const SizedBox(height: AppSpacing.xxl),
-
-                AppButton(
-                  label: 'Save & Create Complex',
-                  onPressed: _submit,
-                  isLoading: _isLoading,
-                ),
-
-                const SizedBox(height: AppSpacing.xxl),
               ],
             ),
-          ),
+            const SizedBox(height: AppSpacing.xxl),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildStatusSection() {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.m,
-        vertical: AppSpacing.s,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              Icon(
-                _selectedStatus == 'active'
-                    ? Icons.check_circle
-                    : Icons.pause_circle_filled,
-                color: _selectedStatus == 'active'
-                    ? Colors.green
-                    : Colors.orange,
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Status: ${_selectedStatus.capitalizeFirst}',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    _selectedStatus == 'active'
-                        ? 'Visible to all players'
-                        : 'Hidden from listings',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          Switch(
-            value: _selectedStatus == 'active',
-            onChanged: (v) =>
-                setState(() => _selectedStatus = v ? 'active' : 'inactive'),
-            activeColor: AppColors.primary,
-          ),
-        ],
-      ),
-    );
-  }
-
+  // ── Image Section ────────────────────────────────────────────────
   Widget _buildImageSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,15 +465,15 @@ class _AddComplexPageState extends State<AddComplexPage> {
           onTap: _pickImages,
           child: Container(
             width: double.infinity,
-            height: 120,
+            height: 130,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               border: Border.all(
                 color: _pickedImages.isEmpty
-                    ? AppColors.border.withOpacity(0.5)
-                    : AppColors.primary.withOpacity(0.4),
-                style: BorderStyle.solid,
+                    ? AppColors.primary.withOpacity(0.3)
+                    : AppColors.primary.withOpacity(0.6),
+                width: 1.5,
               ),
             ),
             child: Column(
@@ -316,20 +481,30 @@ class _AddComplexPageState extends State<AddComplexPage> {
               children: [
                 const Icon(
                   Icons.add_photo_alternate_outlined,
-                  size: 32,
+                  size: 36,
                   color: AppColors.primary,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   _pickedImages.isEmpty
                       ? 'Tap to upload complex photos'
-                      : '${_pickedImages.length} images selected',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.bold,
+                      : '${_pickedImages.length} image${_pickedImages.length > 1 ? 's' : ''} selected — tap to add more',
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
                   ),
+                  textAlign: TextAlign.center,
                 ),
+                if (_pickedImages.isEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'JPG, PNG supported',
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.textMuted,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -337,7 +512,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
         if (_pickedImages.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.m),
           SizedBox(
-            height: 90,
+            height: 100,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _pickedImages.length,
@@ -345,10 +520,12 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 return Stack(
                   children: [
                     Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      width: 90,
+                      margin: const EdgeInsets.only(right: 10),
+                      width: 100,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.borderRadius,
+                        ),
                         image: DecorationImage(
                           image: FileImage(File(_pickedImages[index].path)),
                           fit: BoxFit.cover,
@@ -357,7 +534,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     ),
                     Positioned(
                       top: 4,
-                      right: 16,
+                      right: 14,
                       child: GestureDetector(
                         onTap: () =>
                             setState(() => _pickedImages.removeAt(index)),
@@ -369,7 +546,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                           ),
                           child: const Icon(
                             Icons.close,
-                            size: 14,
+                            size: 12,
                             color: Colors.white,
                           ),
                         ),
@@ -385,15 +562,16 @@ class _AddComplexPageState extends State<AddComplexPage> {
     );
   }
 
+  // ── Facilities Grid ──────────────────────────────────────────────
   Widget _buildAmenitiesGrid() {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+        crossAxisCount: 2,
         crossAxisSpacing: 10,
         mainAxisSpacing: 10,
-        childAspectRatio: 2.2,
+        childAspectRatio: 2.4,
       ),
       itemCount: _facilityConfigs.length,
       itemBuilder: (context, index) {
@@ -409,39 +587,49 @@ class _AddComplexPageState extends State<AddComplexPage> {
               }
             });
           },
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color: isSelected ? AppColors.primary : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               border: Border.all(
-                color: isSelected
-                    ? AppColors.primary
-                    : AppColors.border.withOpacity(0.5),
+                color: isSelected ? AppColors.primary : AppColors.border,
+                width: isSelected ? 0 : 1.5,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.2),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
+                        color: AppColors.primary.withOpacity(0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
                       ),
                     ]
-                  : null,
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(facility['icon']!, style: const TextStyle(fontSize: 16)),
-                const SizedBox(width: 8),
+                Text(
+                  facility['icon']!,
+                  style: TextStyle(fontSize: isSelected ? 22 : 20),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     facility['name']!,
                     style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
                       color: isSelected ? Colors.white : AppColors.textPrimary,
+                      letterSpacing: 0.5,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -453,44 +641,15 @@ class _AddComplexPageState extends State<AddComplexPage> {
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Register Your Facility',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'List your sports complex to start managing grounds and bookings.',
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _sectionHeader(String title, IconData icon) => Row(
-    children: [
-      Icon(icon, size: 18, color: AppColors.primary),
-      const SizedBox(width: 8),
-      Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
-      const SizedBox(width: 8),
-      Expanded(child: Divider(color: AppColors.primary.withOpacity(0.2))),
-    ],
-  );
-
+  // ── Helpers ──────────────────────────────────────────────────────
   Widget _lbl(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
     child: Text(
       t,
-      style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+      style: AppTextStyles.label.copyWith(
+        color: AppColors.textPrimary,
+        fontWeight: FontWeight.w700,
+      ),
     ),
   );
 
@@ -502,13 +661,16 @@ class _AddComplexPageState extends State<AddComplexPage> {
   }) => TextField(
     controller: ctrl,
     keyboardType: keyboardType,
+    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
     decoration: InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon),
+      hintStyle: AppTextStyles.bodySmall,
+      prefixIcon: Icon(icon, size: 18, color: AppColors.textMuted),
       filled: true,
-      fillColor: Colors.white,
+      fillColor: AppColors.inputBackground,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
         borderSide: BorderSide.none,
       ),
     ),
@@ -522,5 +684,57 @@ class _AddComplexPageState extends State<AddComplexPage> {
     _latCtrl.dispose();
     _lngCtrl.dispose();
     super.dispose();
+  }
+}
+
+// ── Reusable Card wrapper ─────────────────────────────────────────────
+class _Card extends StatelessWidget {
+  final Widget child;
+  const _Card({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.m),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppConstants.cardRadius),
+        border: Border.all(color: AppColors.border.withOpacity(0.6)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+// ── Section title row ──────────────────────────────────────────────────
+class _SectionTitle extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _SectionTitle({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: AppTextStyles.bodyMedium.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+      ],
+    );
   }
 }

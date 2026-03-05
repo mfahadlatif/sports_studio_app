@@ -6,6 +6,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/presentation/widgets/ground_card_wide.dart';
 import 'package:sports_studio/features/user/controller/home_controller.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 
 class GroundsPage extends StatefulWidget {
   const GroundsPage({super.key});
@@ -17,6 +18,7 @@ class GroundsPage extends StatefulWidget {
 class _GroundsPageState extends State<GroundsPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _animCtrl;
+  final TextEditingController _locationCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _GroundsPageState extends State<GroundsPage>
   @override
   void dispose() {
     _animCtrl.dispose();
+    _locationCtrl.dispose();
     super.dispose();
   }
 
@@ -93,10 +96,22 @@ class _GroundsPageState extends State<GroundsPage>
                   controller,
                 ),
                 const SizedBox(height: AppSpacing.m),
-                _buildPremiumSearchBar(
-                  'Location...',
-                  Icons.map_outlined,
-                  controller,
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.m,
+                      ),
+                      child: AddressAutocompleteField(
+                        controller: _locationCtrl,
+                        hintText: 'Location...',
+                        prefixIcon: Icons.map_outlined,
+                        onSelect: (address, _, __) =>
+                            controller.updateLocationQuery(address),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.m),
                 _buildFastFilters(controller),
@@ -342,6 +357,10 @@ class _GroundsPageState extends State<GroundsPage>
                   ),
                   Obx(
                     () => _filterSection('Sort By', [
+                      _ratingTile(0.0, 'Any rating', controller),
+                      _ratingTile(4.0, '4.0+', controller),
+                      _ratingTile(4.5, '4.5+', controller),
+                      _ratingTile(4.8, '4.8+', controller),
                       _sortTile('Rating: High to Low', controller),
                       _sortTile('Price: Low to High', controller),
                       _sortTile('Price: High to Low', controller),
@@ -436,6 +455,28 @@ class _GroundsPageState extends State<GroundsPage>
           ? const Icon(Icons.check_circle, color: AppColors.primary)
           : null,
       onTap: () => controller.updateSort(title),
+    );
+  }
+
+  Widget _ratingTile(
+    double value,
+    String label,
+    HomeController controller,
+  ) {
+    final isSelected = controller.minRating.value == value;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        label,
+        style: AppTextStyles.bodyMedium.copyWith(
+          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? const Icon(Icons.check_circle, color: AppColors.primary)
+          : null,
+      onTap: () => controller.updateMinRating(value),
     );
   }
 }

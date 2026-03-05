@@ -157,10 +157,8 @@ class BookingsController extends GetxController {
     isActioning.value = true;
     try {
       final id = booking['id'];
-      final response = await ApiClient().dio.put(
-        '/bookings/$id',
-        data: {'payment_status': 'paid', 'status': 'confirmed'},
-      );
+      // Match website/backend: POST /bookings/:id/finalize-payment (cash/COD)
+      final response = await ApiClient().dio.post('/bookings/$id/finalize-payment');
       if (response.statusCode == 200) {
         await fetchBookings();
         Get.snackbar(
@@ -176,6 +174,7 @@ class BookingsController extends GetxController {
     }
   }
 
+  /// Manual booking (owner). Matches website API: start_time/end_time full datetime, total_price.
   Future<void> createManualBooking({
     required int groundId,
     required String customerName,
@@ -183,19 +182,30 @@ class BookingsController extends GetxController {
     required String startTime,
     required String endTime,
     required double totalAmount,
+    String? customerPhone,
+    String? customerEmail,
+    int players = 1,
   }) async {
     isActioning.value = true;
     try {
-      final data = {
+      // Backend expects start_time, end_time as full datetime (e.g. "2025-03-10 09:00:00")
+      final startStr = startTime.length <= 5 ? (startTime.length == 4 ? '0$startTime' : startTime) : startTime;
+      final endStr = endTime.length <= 5 ? (endTime.length == 4 ? '0$endTime' : endTime) : endTime;
+      final startDateTime = startTime.length <= 5 ? '$date $startStr:00' : startTime;
+      final endDateTime = endTime.length <= 5 ? '$date $endStr:00' : endTime;
+      final data = <String, dynamic>{
         'ground_id': groundId,
         'customer_name': customerName,
-        'date': date,
-        'start_time': startTime,
-        'end_time': endTime,
-        'total_amount': totalAmount,
+        'start_time': startDateTime,
+        'end_time': endDateTime,
+        'total_price': totalAmount,
+        'players': players,
         'status': 'confirmed',
         'payment_status': 'paid',
+        'payment_method': 'cash',
       };
+      if (customerPhone != null && customerPhone.isNotEmpty) data['customer_phone'] = customerPhone;
+      if (customerEmail != null && customerEmail.isNotEmpty) data['customer_email'] = customerEmail;
       final response = await ApiClient().dio.post('/bookings', data: data);
       if (response.statusCode == 200 || response.statusCode == 201) {
         await fetchBookings();

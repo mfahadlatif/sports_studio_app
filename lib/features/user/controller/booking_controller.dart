@@ -132,11 +132,14 @@ class BookingController extends GetxController {
       final deals = await _dealApiService.getPublicDeals();
       // FIX 4: Match on deal's `code` field (not title). Also check validity dates.
       final now = DateTime.now();
+      final ground = Get.arguments;
+      final groundSport = (ground?['type'] ?? '').toString().toLowerCase();
       final deal = deals.firstWhereOrNull(
         (d) =>
             (d.code?.toLowerCase() == code.toLowerCase()) &&
             d.isActive &&
-            d.validUntil.isAfter(now),
+            d.validUntil.isAfter(now) &&
+            _dealAppliesToSport(d.applicableSports, groundSport),
       );
 
       if (deal != null) {
@@ -158,6 +161,39 @@ class BookingController extends GetxController {
     } finally {
       isCheckingPromo.value = false;
     }
+  }
+
+  bool _dealAppliesToSport(String? applicableSportsRaw, String groundSport) {
+    if (groundSport.isEmpty) return true;
+    if (applicableSportsRaw == null) return true;
+    final raw = applicableSportsRaw.trim();
+    if (raw.isEmpty) return true;
+
+    // Backend stores applicable_sports as a string. Accept common formats:
+    // - "cricket"
+    // - "cricket,football"
+    // - '["cricket","football"]'
+    final lower = raw.toLowerCase();
+    if (lower == 'all') return true;
+
+    // JSON-ish list
+    if (lower.startsWith('[') && lower.endsWith(']')) {
+      final cleaned = lower.replaceAll('[', '').replaceAll(']', '');
+      final parts = cleaned
+          .split(',')
+          .map((p) => p.replaceAll('"', '').replaceAll("'", '').trim())
+          .where((p) => p.isNotEmpty)
+          .toList();
+      return parts.contains(groundSport);
+    }
+
+    // Comma-separated
+    final parts = lower
+        .split(',')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    return parts.contains(groundSport);
   }
 
   double get subtotal {

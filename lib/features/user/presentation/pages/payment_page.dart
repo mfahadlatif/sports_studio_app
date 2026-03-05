@@ -21,7 +21,7 @@ class PaymentPage extends StatefulWidget {
 
 class _PaymentPageState extends State<PaymentPage> {
   Timer? _timer;
-  int _secondsRemaining = 20 * 60; // 20 minutes lock
+  int _secondsRemaining = 20 * 60; // fallback (server provides payment_expires_at)
   // bool _isLoading = false; // Removed as per instruction
   String _selectedMethod = 'card'; // Default to Safepay (card)
 
@@ -33,7 +33,6 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   void initState() {
     super.initState();
-    _startTimer();
 
     // Initialize from arguments if provided from BookingSlotPage
     final args = Get.arguments;
@@ -45,6 +44,45 @@ class _PaymentPageState extends State<PaymentPage> {
             0;
         _promoCtrl.text = _appliedPromo['code'] ?? '';
       }
+    }
+
+    _bootstrapTimerFromServer();
+  }
+
+  Future<void> _bootstrapTimerFromServer() async {
+    try {
+      final args = Get.arguments;
+      final int? bookingId = (args != null && args is Map)
+          ? args['bookingId'] as int?
+          : null;
+      if (bookingId == null) {
+        _startTimer();
+        return;
+      }
+
+      final res = await ApiClient().dio.get('/bookings/$bookingId');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        final expiresRaw = data['payment_expires_at'];
+        final expiresAt = expiresRaw != null
+            ? DateTime.tryParse(expiresRaw.toString())
+            : null;
+
+        if (expiresAt != null) {
+          final remaining = expiresAt.difference(DateTime.now()).inSeconds;
+          if (mounted) {
+            setState(() {
+              _secondsRemaining = remaining.clamp(0, 20 * 60);
+            });
+          } else {
+            _secondsRemaining = remaining.clamp(0, 20 * 60);
+          }
+        }
+      }
+    } catch (_) {
+      // If server read fails, fall back to 20:00.
+    } finally {
+      _startTimer();
     }
   }
 
@@ -162,11 +200,7 @@ class _PaymentPageState extends State<PaymentPage> {
             () => SafepayWebViewPage(url: checkoutUrl),
           );
           if (result == true) {
-            _confirmBooking(
-              paymentMethod: 'safepay',
-              paymentStatus: 'paid',
-              totalPaid: amount,
-            );
+            await _finalizeAfterOnlinePayment();
           } else {
             AppUtils.showInfo(
               title: 'Payment Cancelled',
@@ -180,6 +214,26 @@ class _PaymentPageState extends State<PaymentPage> {
     } catch (e) {
       AppLoadingOverlay.hide(context);
       AppUtils.showError(message: 'Payment failed: $e');
+    }
+  }
+
+  Future<void> _finalizeAfterOnlinePayment() async {
+    AppLoadingOverlay.show(context, message: 'Finalizing payment...');
+    try {
+      final args = Get.arguments;
+      final int? bookingId = (args != null && args is Map)
+          ? args['bookingId'] as int?
+          : null;
+      if (bookingId == null) throw 'Invalid Booking ID';
+
+      await ApiClient().dio.post('/bookings/$bookingId/finalize-payment');
+
+      AppLoadingOverlay.hide(context);
+      Get.offAllNamed('/landing');
+      AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
+    } catch (e) {
+      AppLoadingOverlay.hide(context);
+      AppUtils.showError(message: 'Failed to finalize payment: $e');
     }
   }
 
@@ -204,7 +258,6 @@ class _PaymentPageState extends State<PaymentPage> {
           'payment_status': paymentStatus,
           'payment_method': paymentMethod,
           'total_price': totalPaid,
-          'coupon_id': _appliedPromo != null ? _appliedPromo['id'] : null,
         },
       );
 

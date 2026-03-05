@@ -92,18 +92,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     setState(() => _isUpdating = true);
     try {
       final id = _booking['id'];
-      final res = await ApiClient().dio.put(
-        '/bookings/$id',
-        data: {'payment_status': 'paid', 'status': 'confirmed'},
-      );
+      // Match website/backend: POST /bookings/:id/finalize-payment (cash/COD)
+      final res = await ApiClient().dio.post('/bookings/$id/finalize-payment');
       if (res.statusCode == 200) {
-        setState(
-          () => _booking = {
-            ..._booking,
-            'payment_status': 'paid',
-            'status': 'confirmed',
-          },
-        );
+        final updated = res.data is Map && res.data['booking'] != null
+            ? res.data['booking'] as Map<String, dynamic>
+            : res.data as Map<String, dynamic>;
+        setState(() => _booking = updated);
         if (Get.isRegistered<BookingsController>()) {
           Get.find<BookingsController>().fetchBookings();
         }

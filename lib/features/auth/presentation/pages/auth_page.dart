@@ -316,16 +316,17 @@ class AuthPage extends StatelessWidget {
             children: [
               if (Platform.isIOS) ...[
                 _socialButton(
-                  Icons.g_mobiledata,
+                  AppConstants.googleLogo,
                   'Continue with Google',
                   Colors.red,
                   onTap: controller.loginWithGoogle,
                   isFullWidth: true,
                   isLoading: controller.isGoogleLoading.value,
+                  
                 ),
                 const SizedBox(height: AppSpacing.m),
                 _socialButton(
-                  Icons.apple,
+                  AppConstants.appleLogo,
                   'Continue with Apple',
                   Colors.black,
                   onTap: controller.loginWithApple,
@@ -334,7 +335,7 @@ class AuthPage extends StatelessWidget {
                 ),
               ] else
                 _socialButton(
-                  Icons.g_mobiledata,
+                AppConstants.googleLogo,
                   'Continue with Google',
                   Colors.red,
                   onTap: controller.loginWithGoogle,
@@ -349,7 +350,7 @@ class AuthPage extends StatelessWidget {
   }
 
   Widget _socialButton(
-    IconData icon,
+    String icon,
     String label,
     Color color, {
     required VoidCallback onTap,
@@ -368,7 +369,11 @@ class AuthPage extends StatelessWidget {
               mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: color, size: 28),
+                Image.asset(  
+                  icon,
+                  height: 24,
+                  width: 24,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   label,

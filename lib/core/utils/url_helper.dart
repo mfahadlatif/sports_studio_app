@@ -6,21 +6,32 @@ class UrlHelper {
   static const String apiBase = '$publicBase/api';
   static const String mediaServe = '$apiBase/media/serve';
 
-  /// Converts ANY image URL/path from the API into a reliable URL.
+  /// Converts ANY image URL/path from the API into a reliable production URL.
   ///
   /// Strategy:
-  ///   - For paths containing /uploads/ → use media/serve PHP endpoint
-  ///     (bypasses static file serving, reads from disk via PHP)
+  ///   - For paths containing /uploads/ → use media/serve (production)
   ///   - For /storage/ paths → media/serve
   ///   - For external URLs (Unsplash, Google) → pass through as-is
+  ///   - For localhost/wrong-host URLs → extract path, use production media/serve
   ///   - For relative paths → media/serve
   static String sanitizeUrl(String? url) {
     if (url == null || url.isEmpty) return _placeholder();
 
-    // Already a media/serve URL — return as-is
-    if (url.contains('/api/media/serve')) return url;
+    // Already a production media/serve URL — return as-is
+    if (url.contains('/api/media/serve') && url.contains(domain)) return url;
 
-    // External CDN (Unsplash, Google Fonts, etc.) — always works, return as-is
+    // Media/serve with localhost — rewrite to production
+    if (url.contains('/api/media/serve') && (url.contains('localhost') || url.contains('127.0.0.1'))) {
+      try {
+        final uri = Uri.parse(url);
+        final path = uri.queryParameters['path'];
+        if (path != null && path.isNotEmpty) {
+          return '$mediaServe?path=${Uri.encodeComponent(path)}';
+        }
+      } catch (_) {}
+    }
+
+    // External CDN — pass through as-is
     if (url.startsWith('http') &&
         !url.contains(domain) &&
         !url.contains('localhost') &&
@@ -28,29 +39,29 @@ class UrlHelper {
       return url;
     }
 
-    // Our domain URL or localhost — extract relative path and route through media/serve
+    // Our domain, localhost, or relative — extract path and use production media/serve
     String relativePath = '';
 
     if (url.startsWith('http')) {
       if (url.contains('/uploads/')) {
-        // e.g. https://domain/backend/public/uploads/media/file.png
-        //   → uploads/media/file.png
         relativePath = 'uploads/' + url.split('/uploads/').last;
       } else if (url.contains('/storage/')) {
         relativePath = url.split('/storage/').last;
+      } else if (url.contains('media/serve')) {
+        try {
+          relativePath = Uri.parse(url).queryParameters['path'] ?? '';
+        } catch (_) {}
       } else {
-        // Some other absolute URL on our domain we can't parse — return as-is and hope
         return url;
       }
     } else {
-      // Relative path
       relativePath = url.startsWith('/') ? url.substring(1) : url;
       if (relativePath.startsWith('storage/')) {
         relativePath = relativePath.substring(8);
       }
     }
 
-    relativePath = relativePath.replaceAll(RegExp(r'^/+'), '');
+    relativePath = relativePath.split('?').first.replaceAll(RegExp(r'^/+'), '');
     if (relativePath.isEmpty) return _placeholder();
 
     return '$mediaServe?path=${Uri.encodeComponent(relativePath)}';
@@ -66,10 +77,12 @@ class UrlHelper {
     if (images is List) {
       return images
           .map((i) {
+            if (i == null) return '';
             if (i is Map) {
               return (i['url'] ??
                       i['image_url'] ??
                       i['image_path'] ??
+                      i['file_path'] ??
                       i['path'] ??
                       '')
                   .toString();

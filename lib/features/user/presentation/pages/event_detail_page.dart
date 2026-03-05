@@ -81,14 +81,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
       final date = startTime != null
           ? DateFormat('MMM dd, yyyy').format(startTime)
           : 'TBD';
-      final location = event?.location ?? 'Main Stadium';
+      final location = event?.location ?? '—';
       final registrationFee = event?.registrationFee ?? 0;
       final maxParticipants = event?.maxParticipants ?? 0;
       final currentParticipants = event?.participantsCount ?? 0;
 
       List<String> images = [];
-      if (event?.image != null) {
-        images = [event!.image!];
+      if (event != null) {
+        if (event.images.isNotEmpty) {
+          images = event.images;
+        } else if (event.image != null) {
+          images = [event.image!];
+        }
       }
 
       final isFull =
@@ -186,7 +190,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     ],
                                   ),
                                 ),
-                                if (event?.status == 'private')
+                                if (event?.eventType == 'private')
                                   IconButton(
                                     onPressed: () => _copyInviteLink(event),
                                     icon: const Icon(
@@ -466,8 +470,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     // Check Phone Verification
     final profileController = Get.find<ProfileController>();
-    final isVerified =
-        profileController.userProfile['is_phone_verified'] ?? false;
+    final isVerified = profileController.userProfile['phone_verified'] ??
+        profileController.userProfile['is_phone_verified'] ??
+        false;
 
     if (!isVerified) {
       Get.dialog(
@@ -485,12 +490,22 @@ class _EventDetailPageState extends State<EventDetailPage> {
     setState(() => _isJoining = true);
 
     try {
-      final response = await ApiClient().dio.post('/events/${event.id}/join');
+      final isPrivate = event.eventType == 'private';
+      final response = await ApiClient().dio.post(
+        '/event-participants',
+        data: {
+          'event_id': event.id,
+          'status': isPrivate ? 'pending' : 'confirmed',
+          'payment_status': (event.registrationFee ?? 0) > 0 ? 'unpaid' : 'paid',
+        },
+      );
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() => _hasJoined = true);
         Get.snackbar(
-          'Registered!',
-          'You have successfully joined this event.',
+          isPrivate ? 'Request sent!' : 'Registered!',
+          isPrivate
+              ? 'Your request was sent. Wait for organizer approval.'
+              : 'You have successfully joined this event.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green.withValues(alpha: 0.1),
           colorText: Colors.green,
@@ -499,14 +514,12 @@ class _EventDetailPageState extends State<EventDetailPage> {
         Get.snackbar('Error', 'Failed to join event. Please try again.');
       }
     } catch (e) {
-      // If endpoint not found, mock the success for demo
-      setState(() => _hasJoined = true);
       Get.snackbar(
-        'Registered!',
-        'You have successfully joined this event.',
+        'Error',
+        'Failed to join event. Please try again.',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.withValues(alpha: 0.1),
-        colorText: Colors.green,
+        backgroundColor: Colors.red.withValues(alpha: 0.1),
+        colorText: Colors.red,
       );
     } finally {
       setState(() => _isJoining = false);

@@ -8,8 +8,8 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_shimmer.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
 
 class ComplexDetailPage extends StatefulWidget {
   const ComplexDetailPage({super.key});
@@ -32,9 +32,30 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
 
   Future<void> _fetch() async {
     final args = Get.arguments;
-    final int complexId = args is Map ? args['id'] : args;
+    if (args == null) {
+      AppUtils.showError(message: 'Invalid arguments: No complex ID found');
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    dynamic rawId;
+    if (args is Map) {
+      rawId =
+          args['id'] ?? (args['complex'] is Map ? args['complex']['id'] : null);
+    } else {
+      rawId = args;
+    }
+
+    if (rawId == null) {
+      AppUtils.showError(message: 'Complex ID is missing');
+      setState(() => _isLoading = false);
+      return;
+    }
+
+    final String complexId = rawId.toString();
     setState(() => _isLoading = true);
     try {
+      debugPrint('🌐 [ComplexDetail] Fetching complex: $complexId');
       final res = await ApiClient().dio.get('/complexes/$complexId');
       if (res.statusCode == 200) {
         final data = res.data['data'] ?? res.data;
@@ -89,6 +110,15 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     }
   }
 
+  String _formatOperatingHours(dynamic open, dynamic close) {
+    final o = open?.toString().trim();
+    final c = close?.toString().trim();
+    if (o != null && o.isNotEmpty && c != null && c.isNotEmpty) {
+      return '${o.length > 5 ? o.substring(0, 5) : o} - ${c.length > 5 ? c.substring(0, 5) : c}';
+    }
+    return '—';
+  }
+
   Map<String, String> _getFacilityInfo(String id) {
     final configs = [
       {'id': 'parking', 'name': 'Parking', 'icon': '🅿️'},
@@ -141,9 +171,13 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     if (_complex != null) {
       if (_complex['images'] != null &&
           (_complex['images'] as List).isNotEmpty) {
-        images = List<String>.from(_complex['images']);
+        // Safely convert, skipping any null entries
+        images = (_complex['images'] as List)
+            .where((e) => e != null)
+            .map((e) => e.toString())
+            .toList();
       } else if (_complex['image_path'] != null) {
-        images.add(_complex['image_path']);
+        images.add(_complex['image_path'].toString());
       }
     }
 
@@ -718,7 +752,10 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  '06:00 - 23:00', // Mocked to match web's default
+                                  _formatOperatingHours(
+                                    ground['opening_time'],
+                                    ground['closing_time'],
+                                  ),
                                   style: AppTextStyles.label.copyWith(
                                     fontSize: 10,
                                   ),
@@ -890,158 +927,11 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     ),
   );
 
-  void _openEditComplexSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => _EditComplexSheet(complex: _complex, onSuccess: _fetch),
+  void _openEditComplexSheet() async {
+    final result = await Get.to(
+      () => AddComplexPage(complex: _complex),
+      transition: Transition.rightToLeft,
     );
+    if (result == true) _fetch();
   }
-}
-
-// ─── Edit Complex Bottom Sheet ────────────────────────────────────────────────
-class _EditComplexSheet extends StatefulWidget {
-  final dynamic complex;
-  final VoidCallback onSuccess;
-  const _EditComplexSheet({required this.complex, required this.onSuccess});
-
-  @override
-  State<_EditComplexSheet> createState() => _EditComplexSheetState();
-}
-
-class _EditComplexSheetState extends State<_EditComplexSheet> {
-  late final TextEditingController _nameCtrl;
-  late final TextEditingController _addressCtrl;
-  late final TextEditingController _descCtrl;
-  bool _isSaving = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameCtrl = TextEditingController(text: widget.complex['name'] ?? '');
-    _addressCtrl = TextEditingController(text: widget.complex['address'] ?? '');
-    _descCtrl = TextEditingController(
-      text: widget.complex['description'] ?? '',
-    );
-  }
-
-  Future<void> _save() async {
-    if (_nameCtrl.text.isEmpty || _addressCtrl.text.isEmpty) {
-      Get.snackbar('Error', 'Name and address are required');
-      return;
-    }
-    setState(() => _isSaving = true);
-    try {
-      final id = widget.complex['id'];
-      final res = await ApiClient().dio.put(
-        '/complexes/$id',
-        data: {
-          'name': _nameCtrl.text,
-          'address': _addressCtrl.text,
-          'description': _descCtrl.text,
-        },
-      );
-      if (res.statusCode == 200 || res.statusCode == 201) {
-        Get.back();
-        widget.onSuccess();
-        Get.snackbar('Success', 'Complex updated successfully');
-      }
-    } catch (_) {
-      Get.snackbar('Error', 'Failed to update complex');
-    } finally {
-      setState(() => _isSaving = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      initialChildSize: 0.7,
-      maxChildSize: 0.9,
-      minChildSize: 0.5,
-      builder: (ctx, scrollCtrl) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: SingleChildScrollView(
-          controller: scrollCtrl,
-          padding: const EdgeInsets.all(AppSpacing.l),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: AppSpacing.l),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text('Edit Complex', style: AppTextStyles.h2),
-              const SizedBox(height: AppSpacing.l),
-              _lbl('Complex Name *'),
-              _field(
-                _nameCtrl,
-                'e.g. Star Sports Complex',
-                Icons.business_outlined,
-              ),
-              const SizedBox(height: AppSpacing.m),
-              _lbl('Address *'),
-              _field(
-                _addressCtrl,
-                'e.g. Gulberg, Lahore',
-                Icons.location_on_outlined,
-              ),
-              const SizedBox(height: AppSpacing.m),
-              _lbl('Description'),
-              TextField(
-                controller: _descCtrl,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'Describe your facility...',
-                  filled: true,
-                  fillColor: AppColors.background,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              AppButton(
-                label: 'Update Complex',
-                onPressed: _save,
-                isLoading: _isSaving,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _lbl(String t) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.s),
-    child: Text(t, style: AppTextStyles.label),
-  );
-
-  Widget _field(TextEditingController c, String hint, IconData icon) =>
-      TextField(
-        controller: c,
-        decoration: InputDecoration(
-          hintText: hint,
-          prefixIcon: Icon(icon),
-          filled: true,
-          fillColor: AppColors.background,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      );
 }

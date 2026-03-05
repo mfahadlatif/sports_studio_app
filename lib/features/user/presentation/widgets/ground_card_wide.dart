@@ -17,7 +17,7 @@ class GroundCardWide extends StatelessWidget {
     final name = ground['name'] ?? 'Premium Cricket Arena';
     final price = ground['price_per_hour'] ?? '3,000';
     final complex = ground['complex'] ?? {};
-    final address = complex['address'] ?? 'Main Boulevard, Gulberg, Lahore';
+    final address = complex['address'] ?? '—';
 
     final imageUrl = UrlHelper.getFirstImage(
       ground['images'],

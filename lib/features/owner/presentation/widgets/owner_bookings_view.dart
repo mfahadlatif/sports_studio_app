@@ -490,10 +490,13 @@ class _ManualBookingSheet extends StatefulWidget {
 
 class _ManualBookingSheetState extends State<_ManualBookingSheet> {
   final _nameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
   final _startCtrl = TextEditingController();
   final _endCtrl = TextEditingController();
   final _amountCtrl = TextEditingController();
+  final _playersCtrl = TextEditingController(text: '1');
   int? _selectedGroundId;
 
   @override
@@ -550,6 +553,28 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                       _nameCtrl,
                       'e.g. Ahmed Khan',
                       icon: Icons.person_outline,
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
+                    // Phone (optional, match website)
+                    Text('Phone (optional)', style: AppTextStyles.label),
+                    const SizedBox(height: AppSpacing.s),
+                    _field(
+                      _phoneCtrl,
+                      'e.g. 0300 1234567',
+                      icon: Icons.phone_outlined,
+                      type: TextInputType.phone,
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
+                    // Email (optional)
+                    Text('Email (optional)', style: AppTextStyles.label),
+                    const SizedBox(height: AppSpacing.s),
+                    _field(
+                      _emailCtrl,
+                      'e.g. customer@example.com',
+                      icon: Icons.mail_outline,
+                      type: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: AppSpacing.m),
 
@@ -658,6 +683,17 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     ),
                     const SizedBox(height: AppSpacing.m),
 
+                    // Players (match website)
+                    Text('Number of Players', style: AppTextStyles.label),
+                    const SizedBox(height: AppSpacing.s),
+                    _field(
+                      _playersCtrl,
+                      'e.g. 1',
+                      icon: Icons.people_outline,
+                      type: TextInputType.number,
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
                     // Amount
                     Text('Total Amount (Rs.)', style: AppTextStyles.label),
                     const SizedBox(height: AppSpacing.s),
@@ -731,7 +767,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
         _startCtrl.text.isEmpty ||
         _endCtrl.text.isEmpty ||
         _amountCtrl.text.isEmpty) {
-      Get.snackbar('Error', 'Please fill in all fields');
+      Get.snackbar('Error', 'Please fill in all required fields');
       return;
     }
     Navigator.pop(ctx);
@@ -742,6 +778,9 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
       startTime: _startCtrl.text,
       endTime: _endCtrl.text,
       totalAmount: double.tryParse(_amountCtrl.text) ?? 0,
+      customerPhone: _phoneCtrl.text.isEmpty ? null : _phoneCtrl.text,
+      customerEmail: _emailCtrl.text.isEmpty ? null : _emailCtrl.text,
+      players: int.tryParse(_playersCtrl.text) ?? 1,
     );
   }
 }

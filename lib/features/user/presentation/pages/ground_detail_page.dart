@@ -265,11 +265,11 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   Widget _buildTitleSection(dynamic ground) {
-    final name = ground?['name'] ?? 'Premium Arena';
-    final type = ground?['type'] ?? 'Cricket';
+    final name = ground?['name'] ?? '—';
+    final type = ground?['type'] ?? '—';
     final complex = ground?['complex'] ?? {};
     final location =
-        ground?['location'] ?? complex['address'] ?? 'Lahore, Pakistan';
+        ground?['location'] ?? complex['address'] ?? '—';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,6 +332,16 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   Widget _buildQuickStats(dynamic ground) {
+    final dimensions = ground?['dimensions']?.toString();
+    final areaText = (dimensions != null && dimensions.isNotEmpty)
+        ? dimensions
+        : (ground?['length'] != null && ground?['width'] != null)
+            ? '${ground!['length']}m x ${ground['width']}m'
+            : '—';
+    final capacity = ground?['capacity'] ?? ground?['max_players'];
+    final capacityText = (capacity != null && capacity.toString().isNotEmpty)
+        ? '$capacity Players'
+        : '—';
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
@@ -342,19 +352,8 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _statItem(
-            Icons.aspect_ratio,
-            'Area',
-            ground?['dimensions'] ??
-                '${ground?['length'] ?? 100}m x ${ground?['width'] ?? 70}m',
-          ),
-          _statItem(
-            Icons.people_outline,
-            'Capacity',
-            (ground?['type']?.toString().toLowerCase() == 'cricket')
-                ? '22 Players'
-                : '14 Players',
-          ),
+          _statItem(Icons.aspect_ratio, 'Area', areaText),
+          _statItem(Icons.people_outline, 'Capacity', capacityText),
           _statItem(
             Icons.lightbulb_outline,
             'Lights',
@@ -453,8 +452,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
         Text('About Arena', style: AppTextStyles.h2),
         const SizedBox(height: AppSpacing.m),
         Text(
-          ground?['description'] ??
-              'This international standard sports facility offers a high-performance surface, professional measurement, and top-tier floodlighting.',
+          (ground?['description'] ?? '').toString().isNotEmpty
+              ? (ground!['description'] ?? '').toString()
+              : 'No description provided.',
           style: AppTextStyles.bodyMedium.copyWith(
             height: 1.6,
             color: Colors.grey[700],
@@ -486,12 +486,41 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
 
   Widget _buildLocationMap(dynamic ground) {
     final complex = ground?['complex'] ?? {};
-    final lat =
-        double.tryParse(complex['latitude']?.toString() ?? '') ?? 31.5204;
-    final lng =
-        double.tryParse(complex['longitude']?.toString() ?? '') ?? 74.3587;
-    final position = LatLng(lat, lng);
+    final lat = double.tryParse(complex['latitude']?.toString() ?? '');
+    final lng = double.tryParse(complex['longitude']?.toString() ?? '');
+    final hasValidCoords = lat != null && lng != null && lat != 0 && lng != 0;
 
+    if (!hasValidCoords) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Location', style: AppTextStyles.h2),
+          const SizedBox(height: AppSpacing.m),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.l),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.location_off_outlined, color: AppColors.textMuted),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    complex['address']?.toString() ?? 'Location not set',
+                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    final position = LatLng(lat!, lng!);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -579,10 +608,13 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
 
           return Column(
             children: controller.reviews.take(3).map((r) {
+              final name = r.userName ?? r.user?.name ?? 'User';
+              final comment = r.comment ?? '';
               return _reviewCard(
-                r.user?.name ?? 'User',
+                name,
                 r.rating.toString(),
-                r.comment,
+                comment,
+                r.createdAt,
               );
             }).toList(),
           );
@@ -591,7 +623,21 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     );
   }
 
-  Widget _reviewCard(String name, String rating, String text) {
+  String _formatTimeAgo(DateTime? dt) {
+    if (dt == null) return '';
+    final now = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays > 365) return '${(diff.inDays / 365).floor()}y ago';
+    if (diff.inDays > 30) return '${(diff.inDays / 30).floor()}mo ago';
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'Just now';
+  }
+
+  Widget _reviewCard(String name, String rating, String text, DateTime? createdAt) {
+    final displayName = name.isNotEmpty ? name : 'User';
+    final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
     return Container(
       margin: const EdgeInsets.only(top: AppSpacing.m),
       child: Column(
@@ -601,7 +647,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
             children: [
               CircleAvatar(
                 backgroundColor: Colors.grey[200],
-                child: Text(name[0]),
+                child: Text(initial),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -609,7 +655,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name,
+                      displayName,
                       style: AppTextStyles.bodyMedium.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -619,7 +665,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 ),
               ),
               Text(
-                '2 days ago',
+                _formatTimeAgo(createdAt),
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textMuted,
                 ),
@@ -627,10 +673,11 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            text,
-            style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey[600]),
-          ),
+          if (text.isNotEmpty)
+            Text(
+              text,
+              style: AppTextStyles.bodyMedium.copyWith(color: Colors.grey[600]),
+            ),
         ],
       ),
     );
