@@ -28,6 +28,8 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   final _priceCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _dimensionsCtrl = TextEditingController();
+  final _latCtrl = TextEditingController();
+  final _lngCtrl = TextEditingController();
 
   String _selectedSport = 'Cricket';
   String _selectedStatus = 'active';
@@ -92,6 +94,8 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     _priceCtrl.text = (g['price_per_hour'] ?? '').toString();
     _descCtrl.text = g['description'] ?? '';
     _dimensionsCtrl.text = g['dimensions'] ?? '';
+    _latCtrl.text = (g['latitude'] ?? '').toString();
+    _lngCtrl.text = (g['longitude'] ?? '').toString();
     _selectedSport = _normalizeType(g['type'] ?? 'Cricket');
     _selectedStatus = g['status'] ?? 'active';
     _hasLighting = g['has_lighting'] == true || g['has_lighting'] == 1;
@@ -169,6 +173,8 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         'has_lighting': _hasLighting ? 1 : 0,
         'amenities': _selectedAmenities.toList(),
         if (_complexId != null) 'complex_id': _complexId,
+        'latitude': _latCtrl.text.trim(),
+        'longitude': _lngCtrl.text.trim(),
         if (imagePaths.isNotEmpty) 'images': imagePaths,
       };
 
@@ -435,6 +441,8 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                   controller: _locationCtrl,
                   hintText: 'Search for a location...',
                   prefixIcon: Icons.location_on_outlined,
+                  latController: _latCtrl,
+                  lngController: _lngCtrl,
                 ),
                 const SizedBox(height: AppSpacing.m),
 

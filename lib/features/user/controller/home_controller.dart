@@ -5,6 +5,7 @@ import 'package:sports_studio/core/network/api_client.dart';
 class HomeController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxList<dynamic> premiumGrounds = <dynamic>[].obs;
+  final RxList<dynamic> hotDeals = <dynamic>[].obs;
 
   // Search & Advanced Filter State
   final RxString searchQuery = ''.obs;
@@ -21,6 +22,7 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     fetchPremiumGrounds();
+    fetchHotDeals();
   }
 
   Future<void> fetchPremiumGrounds() async {
@@ -28,16 +30,26 @@ class HomeController extends GetxController {
     try {
       final response = await ApiClient().dio.get('/public/grounds');
       if (response.statusCode == 200) {
-        final data = response.data;
-        if (data['data'] != null) {
-          premiumGrounds.value = data['data'];
-          _applyFilters();
-        }
+        final raw = response.data;
+        final List data = raw is List ? raw : (raw['data'] as List? ?? []);
+        premiumGrounds.value = data;
+        _applyFilters();
       }
     } catch (e) {
       print('Failed to fetch premium grounds: $e');
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  Future<void> fetchHotDeals() async {
+    try {
+      final response = await ApiClient().dio.get('/public/deals');
+        final raw = response.data;
+        final List data = raw is List ? raw : (raw['data'] as List? ?? []);
+        hotDeals.value = data;
+    } catch (e) {
+      print('Failed to fetch hot deals: $e');
     }
   }
 

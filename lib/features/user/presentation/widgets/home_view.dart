@@ -16,6 +16,7 @@ class HomeView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.put(HomeController());
     return Scaffold(
       body: SingleChildScrollView(
         child: Center(
@@ -107,40 +108,58 @@ class HomeView extends StatelessWidget {
                 SectionHeader(
                   title: 'Hot Deals',
                   subtitle: 'Exclusive discounts on your favorite grounds',
-                  onActionPressed: () {},
+                  onActionPressed: () => Get.toNamed('/deals'),
                 ),
-                SizedBox(
-                  height: 140,
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.m,
+                Obx(() {
+                  if (controller.hotDeals.isEmpty) {
+                    return SizedBox(
+                      height: 140,
+                      child: Center(
+                        child: Text(
+                          'No active deals at the moment',
+                          style: AppTextStyles.bodySmall,
+                        ),
+                      ),
+                    );
+                  }
+                  return SizedBox(
+                    height: 140,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.m,
+                      ),
+                      scrollDirection: Axis.horizontal,
+                      itemCount: controller.hotDeals.length,
+                      itemBuilder: (context, index) {
+                        final deal = controller.hotDeals[index];
+
+                        // Parse colors from color_theme or use defaults
+                        Color startColor = AppColors.primary;
+                        Color endColor = const Color(0xFF0F172A);
+
+                        if (deal['color_theme'] == 'orange') {
+                          startColor = Colors.orange;
+                          endColor = Colors.deepOrange;
+                        } else if (deal['color_theme'] == 'teal') {
+                          startColor = Colors.teal;
+                          endColor = Colors.teal.shade900;
+                        } else if (deal['color_theme'] == 'blue') {
+                          startColor = Colors.blue;
+                          endColor = Colors.blue.shade900;
+                        }
+
+                        return _buildHotDealCard(
+                          deal['code'] ?? 'DEAL',
+                          '${deal['discount_percentage']}% OFF',
+                          deal['description'] ??
+                              'Exclusive discount on grounds',
+                          startColor,
+                          endColor,
+                        );
+                      },
                     ),
-                    scrollDirection: Axis.horizontal,
-                    children: [
-                      _buildHotDealCard(
-                        'MORNING30',
-                        '30% OFF',
-                        'Valid until 10 AM on Weekdays',
-                        Colors.orange,
-                        Colors.deepOrange,
-                      ),
-                      _buildHotDealCard(
-                        'WEEKENDWARRIOR',
-                        '25% OFF',
-                        'Exclusive Weekend Tournaments',
-                        AppColors.primary,
-                        const Color(0xFF0F172A), // Dark slate
-                      ),
-                      _buildHotDealCard(
-                        'FIRSTBOOK',
-                        'Rs. 500 OFF',
-                        'On your first ground booking',
-                        Colors.teal,
-                        Colors.teal.shade900,
-                      ),
-                    ],
-                  ),
-                ),
+                  );
+                }),
                 const SizedBox(height: AppSpacing.l),
 
                 // Stats Section
@@ -352,76 +371,79 @@ class HomeView extends StatelessWidget {
     Color colorStart,
     Color colorEnd,
   ) {
-    return Container(
-      width: 250,
-      margin: const EdgeInsets.only(right: AppSpacing.m),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: LinearGradient(
-          colors: [colorStart, colorEnd],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: colorEnd.withAlpha(50),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return GestureDetector(
+      onTap: () => Get.toNamed('/deals'),
+      child: Container(
+        width: 250,
+        margin: const EdgeInsets.only(right: AppSpacing.m),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: LinearGradient(
+            colors: [colorStart, colorEnd],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            right: -20,
-            bottom: -20,
-            child: Icon(
-              Icons.local_offer,
-              size: 100,
-              color: Colors.white.withAlpha(20),
+          boxShadow: [
+            BoxShadow(
+              color: colorEnd.withAlpha(50),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(50),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    code,
-                    style: AppTextStyles.label.copyWith(
-                      color: Colors.white,
-                      letterSpacing: 2,
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned(
+              right: -20,
+              bottom: -20,
+              child: Icon(
+                Icons.local_offer,
+                size: 100,
+                color: Colors.white.withAlpha(20),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withAlpha(50),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      code,
+                      style: AppTextStyles.label.copyWith(
+                        color: Colors.white,
+                        letterSpacing: 2,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.s),
-                Text(
-                  discount,
-                  style: AppTextStyles.h2.copyWith(color: Colors.white),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: Colors.white.withAlpha(200),
+                  const SizedBox(height: AppSpacing.s),
+                  Text(
+                    discount,
+                    style: AppTextStyles.h2.copyWith(color: Colors.white),
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.white.withAlpha(200),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

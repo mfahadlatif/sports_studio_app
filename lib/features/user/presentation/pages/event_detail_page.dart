@@ -14,6 +14,8 @@ import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 import 'package:sports_studio/features/user/controller/events_controller.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EventDetailPage extends StatefulWidget {
   const EventDetailPage({super.key});
@@ -62,6 +64,19 @@ class _EventDetailPageState extends State<EventDetailPage> {
       print('Error fetching participants: $e');
     } finally {
       setState(() => _isLoadingParticipants = false);
+    }
+  }
+
+  void _openMaps(double lat, double lng) async {
+    final url = 'google.navigation:q=$lat,$lng';
+    final appleUrl = 'http://maps.apple.com/?daddr=$lat,$lng';
+
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else if (await canLaunchUrl(Uri.parse(appleUrl))) {
+      await launchUrl(Uri.parse(appleUrl));
+    } else {
+      Get.snackbar('Error', 'Could not open maps');
     }
   }
 
@@ -385,6 +400,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 height: 1.6,
                               ),
                             ),
+                            const SizedBox(height: AppSpacing.xl),
+
+                            _buildLocationMap(event),
 
                             const SizedBox(height: AppSpacing.xxl),
 
@@ -584,6 +602,103 @@ class _EventDetailPageState extends State<EventDetailPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildLocationMap(Event? event) {
+    if (event == null) return const SizedBox.shrink();
+
+    // Strategy: Use event lat/lng OR fallback to ground/complex lat/lng from booking
+    double? lat = event.latitude;
+    double? lng = event.longitude;
+
+    if ((lat == null || lat == 0) && event.booking?.ground?.complex != null) {
+      lat = event.booking!.ground!.complex!.latitude;
+      lng = event.booking!.ground!.complex!.longitude;
+    }
+
+    final hasValidCoords = lat != null && lng != null && lat != 0 && lng != 0;
+
+    if (!hasValidCoords) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Location', style: AppTextStyles.h3),
+          const SizedBox(height: AppSpacing.m),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.l),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border.withOpacity(0.5)),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.location_off_outlined,
+                  color: AppColors.textMuted,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    event.location ?? 'Coordinate location not set',
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    final position = LatLng(lat, lng);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Location', style: AppTextStyles.h3),
+        const SizedBox(height: AppSpacing.m),
+        Container(
+          height: 180,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.border.withOpacity(0.5)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: GoogleMap(
+              initialCameraPosition: CameraPosition(target: position, zoom: 15),
+              markers: {
+                Marker(
+                  markerId: const MarkerId('event_location'),
+                  position: position,
+                  infoWindow: InfoWindow(
+                    title: event.name,
+                    snippet: event.location ?? '',
+                  ),
+                ),
+              },
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              scrollGesturesEnabled: false,
+              tiltGesturesEnabled: false,
+              rotateGesturesEnabled: false,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => _openMaps(lat!, lng!),
+            icon: const Icon(Icons.directions_outlined, size: 20),
+            label: const Text('Get Directions'),
+            style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+          ),
+        ),
+      ],
     );
   }
 }

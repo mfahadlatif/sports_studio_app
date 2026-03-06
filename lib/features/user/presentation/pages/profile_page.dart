@@ -87,16 +87,17 @@ class ProfilePage extends StatelessWidget {
                         onTap: () => Get.toNamed('/edit-profile'),
                         color: Colors.teal,
                       ),
-                      _buildOption(
-                        icon: Icons.security_outlined,
-                        title: 'Account Security',
-                        subtitle: 'Manage password and privacy',
-                        onTap: () => Get.toNamed(
-                          '/setting-detail',
-                          arguments: {'title': 'Security & Privacy'},
+                      if (!profileController.isSocialUser)
+                        _buildOption(
+                          icon: Icons.security_outlined,
+                          title: 'Account Security',
+                          subtitle: 'Manage password and privacy',
+                          onTap: () => Get.toNamed(
+                            '/setting-detail',
+                            arguments: {'title': 'Security & Privacy'},
+                          ),
+                          color: Colors.indigo,
                         ),
-                        color: Colors.indigo,
-                      ),
                       _buildOption(
                         icon: Icons.notifications_none_outlined,
                         title: 'Notifications',

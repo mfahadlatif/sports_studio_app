@@ -7,6 +7,8 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/events_controller.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/core/models/models.dart';
+import 'package:intl/intl.dart';
 
 class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
@@ -78,18 +80,22 @@ class EventsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEventCard(dynamic event) {
-    final title = event['title'] ?? 'Sports Event';
-    final date = event['date'] ?? 'Upcoming';
-    final location = event['location'] ?? '—';
+  Widget _buildEventCard(Event event) {
+    final title = event.name;
+    final date = DateFormat('MMM dd, yyyy • hh:mm a').format(event.startTime);
+    final location = event.location ?? '—';
 
+    // Get images - checking the 'images' property of the model
     final imageUrl = UrlHelper.getFirstImage(
-      event['images'],
-      fallbackPath: event['event_path']?.toString(),
+      event.images,
+      fallbackPath: event.image,
     );
 
     return GestureDetector(
-      onTap: () => Get.toNamed('/event-detail', arguments: event),
+      onTap: () => Get.toNamed(
+        '/event-detail',
+        arguments: event,
+      ), // Pass the full Event object
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         decoration: BoxDecoration(
@@ -111,7 +117,7 @@ class EventsPage extends StatelessWidget {
                 top: Radius.circular(16),
               ),
               child: Hero(
-                tag: 'event_image_${event['id'] ?? ''}',
+                tag: 'event_image_${event.id}',
                 child: CachedNetworkImage(
                   imageUrl: imageUrl,
                   height: 160,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:sports_studio/core/theme/app_theme.dart';
 import 'package:sports_studio/features/landing/presentation/landing_page.dart';
 import 'package:sports_studio/features/auth/presentation/pages/auth_page.dart';
@@ -40,6 +41,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
 
   const storage = FlutterSecureStorage();
   final String? hasSeenOnboarding = await storage.read(

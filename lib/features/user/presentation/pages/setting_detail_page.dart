@@ -58,17 +58,46 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
                 const SizedBox(height: AppSpacing.xl),
                 if (isEditProfile)
                   _buildEditProfileForm()
+                else if (controller.isSocialUser)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Column(
+                        children: [
+                          Icon(Icons.info_outline, size: 48, color: Colors.blue),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Social Login Active',
+                            style: AppTextStyles.h3,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'You are logged in with ${controller.userProfile['google_id'] != null ? 'Google' : 'Apple'}. Password management is handled by your provider.',
+                            textAlign: TextAlign.center,
+                            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
                 else
                   _buildSecurityForm(),
                 const SizedBox(height: 40),
                 Obx(
-                  () => AppButton(
-                    label: isEditProfile ? 'Save Changes' : 'Update Password',
-                    onPressed: () => isEditProfile
-                        ? _handleUpdateProfile()
-                        : _handleChangePassword(),
-                    isLoading: controller.isUpdatingProfile.value,
-                  ),
+                  () {
+                    // Hide button if we're on security page and it's a social user
+                    if (!isEditProfile && controller.isSocialUser) {
+                      return const SizedBox.shrink();
+                    }
+                    
+                    return AppButton(
+                      label: isEditProfile ? 'Save Changes' : 'Update Password',
+                      onPressed: () => isEditProfile
+                          ? _handleUpdateProfile()
+                          : _handleChangePassword(),
+                      isLoading: controller.isUpdatingProfile.value,
+                    );
+                  },
                 ),
                 const SizedBox(height: AppSpacing.xxl),
               ],

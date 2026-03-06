@@ -53,7 +53,7 @@ class TeamsPage extends StatelessWidget {
                   _buildSearchHeader(controller),
                   const SizedBox(height: AppSpacing.l),
                   Obx(() {
-                    if (controller.isLoadingTeam.value) {
+                    if (controller.isLoadingTeams.value) {
                       return const Padding(
                         padding: EdgeInsets.all(50),
                         child: AppProgressIndicator(),
@@ -216,57 +216,61 @@ class TeamsPage extends StatelessWidget {
 
   Widget _buildAvatars(List members) {
     if (members.isEmpty) return const SizedBox.shrink();
-    return SizedBox(
-      height: 32,
-      child: Stack(
-        children: [
-          for (int i = 0; i < members.length.clamp(0, 3); i++)
-            Positioned(
-              left: i * 18.0,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    (members[i].user?.name ?? '?')[0].toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
+    final count = members.length.clamp(0, 3);
+    final hasMore = members.length > 3;
+    
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (int i = 0; i < count; i++)
+          Align(
+            widthFactor: 0.6,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  (members[i].user?.name ?? '').trim().isEmpty 
+                      ? '?' 
+                      : (members[i].user?.name ?? '?')[0].toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
             ),
-          if (members.length > 3)
-            Positioned(
-              left: 3 * 18.0,
-              child: Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Center(
-                  child: Text(
-                    '+${members.length - 3}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
+          ),
+        if (hasMore)
+          Align(
+            widthFactor: 0.6,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE9F7F1),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Center(
+                child: Text(
+                  '+${members.length - 3}',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
                   ),
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 

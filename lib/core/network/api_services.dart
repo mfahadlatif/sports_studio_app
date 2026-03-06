@@ -361,7 +361,9 @@ class EventApiService {
         final raw = response.data;
         final List data = raw is List ? raw : (raw['data'] as List? ?? []);
         print('✅ [EventAPI] Events: ${data.length}');
-        return data.map((json) => Event.fromJson(json)).toList();
+        return data
+            .map<Event>((json) => Event.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -393,7 +395,9 @@ class EventApiService {
         final raw = response.data;
         final List data = raw is List ? raw : (raw['data'] as List? ?? []);
         print('✅ [EventAPI] User events: ${data.length}');
-        return data.map((json) => Event.fromJson(json)).toList();
+        return data
+            .map<Event>((json) => Event.fromJson(json as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -558,6 +562,19 @@ class FavoriteApiService {
 class TeamApiService {
   final ApiClient _client = ApiClient();
 
+  Map<String, dynamic>? _extractTeamMap(dynamic raw) {
+    try {
+      if (raw is Map<String, dynamic>) {
+        final data = raw['data'];
+        if (data is Map) return Map<String, dynamic>.from(data);
+        final team = raw['team'];
+        if (team is Map) return Map<String, dynamic>.from(team);
+        return raw;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<List<Team>> getUserTeams() async {
     try {
       print('🌐 [TeamAPI] Fetching user teams...');
@@ -580,8 +597,12 @@ class TeamApiService {
       print('🌐 [TeamAPI] Creating team: ${teamData['name']}');
       final response = await _client.dio.post('/teams', data: teamData);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ [TeamAPI] Team created: ${response.data['id']}');
-        return Team.fromJson(response.data);
+        final map = _extractTeamMap(response.data);
+        if (map != null) {
+          print('✅ [TeamAPI] Team created: ${map['id']}');
+          return Team.fromJson(map);
+        }
+        throw Exception('Invalid create team response');
       }
       throw Exception('Failed to create team');
     } catch (e) {
@@ -594,9 +615,11 @@ class TeamApiService {
     try {
       print('🌐 [TeamAPI] Updating team $id...');
       final response = await _client.dio.put('/teams/$id', data: teamData);
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ [TeamAPI] Team updated: $id');
-        return Team.fromJson(response.data);
+        final map = _extractTeamMap(response.data);
+        if (map != null) return Team.fromJson(map);
+        throw Exception('Invalid update team response');
       }
       throw Exception('Failed to update team');
     } catch (e) {
@@ -662,7 +685,9 @@ class TeamApiService {
       final response = await _client.dio.get('/teams/$id');
       if (response.statusCode == 200) {
         print('✅ [TeamAPI] Team fetched: $id');
-        return Team.fromJson(response.data);
+        final map = _extractTeamMap(response.data);
+        if (map != null) return Team.fromJson(map);
+        throw Exception('Invalid team response');
       }
       throw Exception('Team not found');
     } catch (e) {

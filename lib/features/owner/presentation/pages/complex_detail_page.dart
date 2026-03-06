@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -53,21 +54,50 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     }
 
     final String complexId = rawId.toString();
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       debugPrint('🌐 [ComplexDetail] Fetching complex: $complexId');
-      final res = await ApiClient().dio.get('/complexes/$complexId');
+      final res = await ApiClient().dio.get(
+        '/complexes/$complexId',
+        options: Options(
+          receiveTimeout: const Duration(seconds: 15),
+          sendTimeout: const Duration(seconds: 15),
+        ),
+      );
+      if (!mounted) return;
       if (res.statusCode == 200) {
-        final data = res.data['data'] ?? res.data;
+        final raw = res.data;
+        final data = raw is Map ? (raw['data'] ?? raw) : null;
+        final map = data is Map ? data : null;
         setState(() {
-          _complex = data;
-          _grounds = List<dynamic>.from(data['grounds'] ?? []);
+          _complex = map;
+          _grounds = map != null
+              ? List<dynamic>.from(map['grounds'] ?? [])
+              : <dynamic>[];
         });
+      } else {
+        setState(() => _complex = null);
+        AppUtils.showError(message: 'Failed to load complex details');
+      }
+    } on DioException catch (e) {
+      debugPrint('❌ [ComplexDetail] DioException: ${e.type} ${e.message}');
+      if (mounted) {
+        setState(() => _complex = null);
+        final msg = e.type == DioExceptionType.connectionTimeout ||
+                e.type == DioExceptionType.receiveTimeout
+            ? 'Request timed out. Please try again.'
+            : 'Failed to load complex details';
+        AppUtils.showError(message: msg);
       }
     } catch (e) {
-      AppUtils.showError(message: 'Failed to load complex details');
+      debugPrint('❌ [ComplexDetail] Error: $e');
+      if (mounted) {
+        setState(() => _complex = null);
+        AppUtils.showError(message: 'Failed to load complex details');
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

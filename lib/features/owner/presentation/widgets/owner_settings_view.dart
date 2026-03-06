@@ -51,7 +51,10 @@ class OwnerSettingsView extends StatelessWidget {
               'Update your password',
               onTap: () => Get.toNamed(
                 '/setting-detail',
-                arguments: {'title': 'Change Password', 'description': 'Update your password'},
+                arguments: {
+                  'title': 'Change Password',
+                  'description': 'Update your password',
+                },
               ),
             ),
             _buildSettingsTile(
@@ -60,7 +63,10 @@ class OwnerSettingsView extends StatelessWidget {
               'Payouts and bank accounts',
               onTap: () => Get.toNamed(
                 '/setting-detail',
-                arguments: {'title': 'Payment Methods', 'description': 'Payouts and bank accounts'},
+                arguments: {
+                  'title': 'Payment Methods',
+                  'description': 'Payouts and bank accounts',
+                },
               ),
             ),
             _buildSettingsTile(
@@ -69,7 +75,10 @@ class OwnerSettingsView extends StatelessWidget {
               'Set when grounds are open',
               onTap: () => Get.toNamed(
                 '/setting-detail',
-                arguments: {'title': 'Operating Hours', 'description': 'Set when grounds are open'},
+                arguments: {
+                  'title': 'Operating Hours',
+                  'description': 'Set when grounds are open',
+                },
               ),
             ),
           ]),
@@ -87,7 +96,10 @@ class OwnerSettingsView extends StatelessWidget {
               'Default app language',
               onTap: () => Get.toNamed(
                 '/setting-detail',
-                arguments: {'title': 'Language', 'description': 'Default app language'},
+                arguments: {
+                  'title': 'Language',
+                  'description': 'Default app language',
+                },
               ),
             ),
             _buildSettingsTile(
@@ -96,7 +108,10 @@ class OwnerSettingsView extends StatelessWidget {
               'Appearance settings',
               onTap: () => Get.toNamed(
                 '/setting-detail',
-                arguments: {'title': 'Dark Mode', 'description': 'Appearance settings'},
+                arguments: {
+                  'title': 'Dark Mode',
+                  'description': 'Appearance settings',
+                },
               ),
             ),
           ]),
@@ -108,7 +123,10 @@ class OwnerSettingsView extends StatelessWidget {
               'FAQs and troubleshooting',
               onTap: () => Get.toNamed(
                 '/setting-detail',
-                arguments: {'title': 'Help Center', 'description': 'FAQs and troubleshooting'},
+                arguments: {
+                  'title': 'Help Center',
+                  'description': 'FAQs and troubleshooting',
+                },
               ),
             ),
             _buildSettingsTile(

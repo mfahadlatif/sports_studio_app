@@ -340,42 +340,55 @@ class BookingSlotPage extends StatelessWidget {
                 itemCount: controller.allSlots.length,
                 itemBuilder: (context, index) {
                   final slot = controller.allSlots[index];
-                  final isSelected = controller.selectedSlots.contains(slot);
-                  final isBooked = controller.bookedSlots.contains(slot);
+                  return Obx(() {
+                    final isSelected = controller.selectedSlots.contains(slot);
+                    final isBooked = controller.bookedSlots.contains(slot);
 
-                  return GestureDetector(
-                    onTap: isBooked ? null : () => controller.toggleSlot(slot),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: isBooked
-                            ? Colors.grey[300]
-                            : (isSelected ? AppColors.primary : Colors.white),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
+                    return GestureDetector(
+                      onTap: isBooked ? null : () => controller.toggleSlot(slot),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
                           color: isBooked
-                              ? Colors.transparent
-                              : (isSelected
-                                    ? AppColors.primary
-                                    : AppColors.border),
+                              ? Colors.grey[200]
+                              : (isSelected ? AppColors.primary : Colors.white),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isBooked
+                                ? Colors.transparent
+                                : (isSelected
+                                      ? AppColors.primary
+                                      : AppColors.border),
+                            width: isSelected ? 2 : 1,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: AppColors.primary.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          isBooked ? 'TAKEN' : slot,
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: isBooked
+                                ? AppColors.textMuted
+                                : (isSelected
+                                      ? Colors.white
+                                      : AppColors.textPrimary),
+                            fontWeight: (isSelected || isBooked)
+                                ? FontWeight.bold
+                                : FontWeight.w600,
+                            fontSize: isBooked ? 10 : 13,
+                          ),
                         ),
                       ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        isBooked ? 'TAKEN' : slot,
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: isBooked
-                              ? AppColors.textMuted
-                              : (isSelected
-                                    ? Colors.white
-                                    : AppColors.textPrimary),
-                          fontWeight: (isSelected || isBooked)
-                              ? FontWeight.bold
-                              : FontWeight.normal,
-                          fontSize: isBooked ? 10 : null,
-                        ),
-                      ),
-                    ),
-                  );
+                    );
+                  });
                 },
               ),
             ),

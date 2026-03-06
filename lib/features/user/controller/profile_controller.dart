@@ -293,16 +293,18 @@ class ProfileController extends GetxController {
   }
 
   void populateProfileForm() {
-    final user = userProfile.value;
-    nameController.text = user['name'] ?? '';
-    emailController.text = user['email'] ?? '';
-    phoneController.text = user['phone'] ?? '';
-    fullPhone.value = user['phone'] ?? '';
-    businessNameController.text = user['business_name'] ?? '';
+    final user = userProfile;
+    nameController.text = user['name']?.toString() ?? '';
+    emailController.text = user['email']?.toString() ?? '';
+    phoneController.text = user['phone']?.toString() ?? '';
+    fullPhone.value = user['phone']?.toString() ?? '';
+    businessNameController.text = user['business_name']?.toString() ?? '';
   }
 
   bool get isPhoneVerified {
-    return userProfile.value['phone_verified'] ?? false;
+    return userProfile['is_phone_verified'] == 1 || 
+           userProfile['is_phone_verified'] == true ||
+           userProfile['phone_verified'] == true;
   }
 
   bool get hasUnreadNotifications {
@@ -310,19 +312,24 @@ class ProfileController extends GetxController {
   }
 
   String get userName {
-    return userProfile.value['name'] ?? 'User';
+    return userProfile['name']?.toString() ?? 'User';
   }
 
   String get userEmail {
-    return userProfile.value['email'] ?? '';
+    return userProfile['email']?.toString() ?? '';
   }
 
   String? get userPhone {
-    return userProfile.value['phone'];
+    return userProfile['phone']?.toString();
   }
 
   String? get userAvatar {
-    return userProfile.value['avatar'];
+    return userProfile['avatar']?.toString();
+  }
+
+  bool get isSocialUser {
+    return userProfile['google_id'] != null ||
+        userProfile['apple_id'] != null;
   }
 
   @override

@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as dio_form;
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 
 class AddComplexPage extends StatefulWidget {
@@ -37,6 +38,17 @@ class _AddComplexPageState extends State<AddComplexPage> {
   final ImagePicker _picker = ImagePicker();
 
   bool get _isEdit => widget.complex != null;
+
+  List<String> get _existingImageUrls {
+    if (!_isEdit || widget.complex == null) return [];
+    final c = widget.complex as Map<String, dynamic>;
+    final list = UrlHelper.getParsedImages(c['images']);
+    if (list.isNotEmpty) return list.map(UrlHelper.sanitizeUrl).toList();
+    if (c['image_path'] != null && c['image_path'].toString().isNotEmpty) {
+      return [UrlHelper.sanitizeUrl(c['image_path'].toString())];
+    }
+    return [];
+  }
 
   final List<Map<String, String>> _facilityConfigs = [
     {'id': 'parking', 'name': 'Parking', 'icon': '🅿️'},
@@ -217,41 +229,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     prefixIcon: Icons.map_outlined,
                     latController: _latCtrl,
                     lngController: _lngCtrl,
-                  ),
-                  const SizedBox(height: AppSpacing.m),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _lbl('Latitude'),
-                            _textField(
-                              _latCtrl,
-                              'e.g. 31.5204',
-                              Icons.pin_drop_outlined,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.m),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _lbl('Longitude'),
-                            _textField(
-                              _lngCtrl,
-                              'e.g. 74.3587',
-                              Icons.explore_outlined,
-                              keyboardType: TextInputType.number,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
                   ),
                   const SizedBox(height: AppSpacing.m),
 
@@ -456,6 +433,19 @@ class _AddComplexPageState extends State<AddComplexPage> {
     );
   }
 
+  Widget _imagePlaceholder() {
+    return Container(
+      width: 100,
+      height: 100,
+      color: AppColors.primaryLight,
+      child: const Icon(
+        Icons.add_photo_alternate_outlined,
+        color: AppColors.primary,
+        size: 32,
+      ),
+    );
+  }
+
   // ── Image Section ────────────────────────────────────────────────
   Widget _buildImageSection() {
     return Column(
@@ -509,14 +499,62 @@ class _AddComplexPageState extends State<AddComplexPage> {
             ),
           ),
         ),
+        if (_existingImageUrls.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.m),
+          Text(
+            'Current photos',
+            style: AppTextStyles.label.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 100,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _existingImageUrls.length,
+              itemBuilder: (context, index) {
+                final url = _existingImageUrls[index];
+                return Container(
+                  margin: const EdgeInsets.only(right: 10),
+                  width: 100,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadius,
+                    ),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(
+                      AppConstants.borderRadius,
+                    ),
+                    child: url.startsWith('http')
+                        ? Image.network(
+                            url,
+                            fit: BoxFit.cover,
+                            width: 100,
+                            height: 100,
+                            errorBuilder: (_, __, ___) => _imagePlaceholder(),
+                          )
+                        : _imagePlaceholder(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.m),
+        ],
         if (_pickedImages.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.m),
+          Text(
+            'New photos',
+            style: AppTextStyles.label.copyWith(color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 6),
           SizedBox(
             height: 100,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _pickedImages.length,
               itemBuilder: (context, index) {
+                final file = File(_pickedImages[index].path);
                 return Stack(
                   children: [
                     Container(
@@ -526,9 +564,17 @@ class _AddComplexPageState extends State<AddComplexPage> {
                         borderRadius: BorderRadius.circular(
                           AppConstants.borderRadius,
                         ),
-                        image: DecorationImage(
-                          image: FileImage(File(_pickedImages[index].path)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.borderRadius,
+                        ),
+                        child: Image.file(
+                          file,
                           fit: BoxFit.cover,
+                          width: 100,
+                          height: 100,
+                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
                         ),
                       ),
                     ),

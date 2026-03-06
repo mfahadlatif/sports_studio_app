@@ -20,7 +20,7 @@ class SportsComplexesPage extends StatefulWidget {
 
 class _SportsComplexesPageState extends State<SportsComplexesPage> {
   bool _isLoading = true;
-  List<dynamic> _complexes = [];
+  List<Complex> _complexes = [];
   String _searchQuery = '';
 
   @override
@@ -35,7 +35,13 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
       final res = await ApiClient().dio.get('/complexes');
       if (res.statusCode == 200) {
         final data = res.data['data'] ?? res.data;
-        setState(() => _complexes = data is List ? data : []);
+        final list = data is List ? data : [];
+        setState(() {
+          _complexes = list
+              .map((e) => e is Map ? Complex.fromJson(Map<String, dynamic>.from(e)) : null)
+              .whereType<Complex>()
+              .toList();
+        });
       }
     } catch (_) {
     } finally {
@@ -43,10 +49,10 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     }
   }
 
-  Future<void> _deleteComplex(dynamic complex) async {
+  Future<void> _deleteComplex(Complex complex) async {
     Get.defaultDialog(
       title: 'Delete Complex?',
-      middleText: 'Remove "${complex['name']}" and all its grounds?',
+      middleText: 'Remove "${complex.name}" and all its grounds?',
       textConfirm: 'Delete',
       textCancel: 'Cancel',
       confirmTextColor: Colors.white,
@@ -55,11 +61,11 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
         Get.back();
         try {
           final res = await ApiClient().dio.delete(
-            '/complexes/${complex['id']}',
+            '/complexes/${complex.id}',
           );
           if (res.statusCode == 200 || res.statusCode == 204) {
             setState(
-              () => _complexes.removeWhere((c) => c['id'] == complex['id']),
+              () => _complexes.removeWhere((c) => c.id == complex.id),
             );
             AppUtils.showSuccess(message: 'Complex removed successfully');
           }
@@ -70,23 +76,19 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     );
   }
 
-  void _openForm({dynamic complex}) async {
+  void _openForm({Complex? complex}) async {
     final result = await Get.to(
-      () => AddComplexPage(complex: complex),
+      () => AddComplexPage(complex: complex?.toJson()),
       transition: Transition.rightToLeft,
     );
     if (result == true) _fetchComplexes();
   }
 
-  List<dynamic> get _filtered => _complexes
+  List<Complex> get _filtered => (_complexes as List<Complex>)
       .where(
         (c) =>
-            (c['name'] ?? '').toString().toLowerCase().contains(
-              _searchQuery.toLowerCase(),
-            ) ||
-            (c['address'] ?? '').toString().toLowerCase().contains(
-              _searchQuery.toLowerCase(),
-            ),
+            (c.name).toLowerCase().contains(_searchQuery.toLowerCase()) ||
+            (c.address).toLowerCase().contains(_searchQuery.toLowerCase()),
       )
       .toList();
 
@@ -199,29 +201,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                 children: [
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: _complexImageUrl(complex),
-                      width: 44,
-                      height: 44,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: AppColors.primaryLight,
-                        width: 44,
-                        height: 44,
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.business_outlined,
-                          color: AppColors.primary,
-                          size: 22,
-                        ),
-                      ),
-                    ),
+                    child: _complexThumbnail(complex),
                   ),
                   const SizedBox(width: AppSpacing.m),
                   Expanded(
@@ -375,8 +355,53 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     );
   }
 
-  String _complexImageUrl(Complex complex) {
-    return UrlHelper.getFirstImage(complex.images, fallbackPath: null);
+  Widget _complexThumbnail(Complex complex) {
+    final urls = complex.images != null && complex.images!.isNotEmpty
+        ? UrlHelper.getParsedImages(complex.images)
+        : <String>[];
+    final firstUrl = urls.isNotEmpty ? UrlHelper.sanitizeUrl(urls.first) : null;
+    final hasValidUrl = firstUrl != null &&
+        firstUrl.isNotEmpty &&
+        !firstUrl.contains('unsplash.com');
+    if (!hasValidUrl) {
+      return Container(
+        width: 44,
+        height: 44,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(
+          Icons.business_outlined,
+          color: AppColors.primary,
+          size: 22,
+        ),
+      );
+    }
+    return CachedNetworkImage(
+      imageUrl: firstUrl!,
+      width: 44,
+      height: 44,
+      fit: BoxFit.cover,
+      placeholder: (context, url) => Container(
+        color: AppColors.primaryLight,
+        width: 44,
+        height: 44,
+      ),
+      errorWidget: (context, url, error) => Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.primaryLight,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(
+          Icons.business_outlined,
+          color: AppColors.primary,
+          size: 22,
+        ),
+      ),
+    );
   }
 
   Widget _emptyState() => Center(

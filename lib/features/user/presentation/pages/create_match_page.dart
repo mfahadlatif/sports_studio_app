@@ -15,6 +15,7 @@ import 'package:dio/dio.dart' as dio_form;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 
 class CreateMatchPage extends StatefulWidget {
   const CreateMatchPage({super.key});
@@ -29,6 +30,8 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   final _locationCtrl = TextEditingController();
   final _feeCtrl = TextEditingController();
   final _limitCtrl = TextEditingController(text: '22');
+  final _latCtrl = TextEditingController();
+  final _lngCtrl = TextEditingController();
 
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
@@ -73,6 +76,8 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     _limitCtrl.dispose();
     _rulesCtrl.dispose();
     _safetyCtrl.dispose();
+    _latCtrl.dispose();
+    _lngCtrl.dispose();
     for (var s in _scheduleControllers) {
       s['time']?.dispose();
       s['title']?.dispose();
@@ -197,6 +202,8 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         'schedule': scheduleData.isEmpty ? '[]' : jsonEncode(scheduleData),
         'status': 'published',
         'event_type': _eventType,
+        'latitude': _latCtrl.text.trim(),
+        'longitude': _lngCtrl.text.trim(),
       };
 
       print('Payload: $dataMap');
@@ -312,10 +319,12 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                 ),
                 const SizedBox(height: AppSpacing.m),
                 _lbl('Location (Optional)'),
-                _textField(
-                  _locationCtrl,
-                  'e.g. Central Park (Leave empty to use Ground location)',
-                  Icons.location_on_outlined,
+                AddressAutocompleteField(
+                  controller: _locationCtrl,
+                  hintText: 'e.g. Central Park (Leave empty to use Ground location)',
+                  prefixIcon: Icons.location_on_outlined,
+                  latController: _latCtrl,
+                  lngController: _lngCtrl,
                 ),
 
                 const SizedBox(height: AppSpacing.l),

@@ -33,9 +33,12 @@ class BookingsController extends GetxController {
         '/bookings',
         options: Options(headers: headers),
       );
+      print('🌐 [Bookings] Raw response: ${bookingResponse.data}');
       final List groundBookingsRaw = (bookingResponse.data is Map)
-          ? (bookingResponse.data['data'] ?? [])
-          : (bookingResponse.data ?? []);
+          ? (bookingResponse.data['data'] as List? ?? [])
+          : (bookingResponse.data as List? ?? []);
+      
+      print('✅ [Bookings] Ground bookings count: ${groundBookingsRaw.length}');
 
       final groundBookings = groundBookingsRaw
           .map(
@@ -83,32 +86,40 @@ class BookingsController extends GetxController {
       }
 
       final List combined = [...groundBookings, ...eventParticipations];
+      print('✅ [Bookings] Total combined matches: ${combined.length}');
 
       // Sort by date descending
       combined.sort((a, b) {
-        final dateA = DateTime.tryParse(a['start'] ?? '') ?? DateTime.now();
-        final dateB = DateTime.tryParse(b['start'] ?? '') ?? DateTime.now();
+        final dateA = DateTime.tryParse(a['start']?.toString() ?? '') ?? DateTime.now();
+        final dateB = DateTime.tryParse(b['start']?.toString() ?? '') ?? DateTime.now();
         return dateB.compareTo(dateA);
       });
 
       allData.value = combined;
 
       upcomingBookings.value = combined.where((b) {
-        final status = b['status']?.toString().toLowerCase();
+        final status = b['status']?.toString().toLowerCase() ?? '';
+        // Broaden to include all active/future states
         return status == 'confirmed' ||
             status == 'pending' ||
-            status == 'accepted';
+            status == 'accepted' ||
+            status == 'upcoming' ||
+            status == 'approved' ||
+            status == 'paid' ||
+            status == 'booked';
       }).toList();
 
       pastBookings.value = combined.where((b) {
-        final status = b['status']?.toString().toLowerCase();
-        return status == 'completed';
+        final status = b['status']?.toString().toLowerCase() ?? '';
+        return status == 'completed' || status == 'past' || status == 'played';
       }).toList();
 
       cancelledBookings.value = combined.where((b) {
-        final status = b['status']?.toString().toLowerCase();
-        return status == 'cancelled' || status == 'rejected';
+        final status = b['status']?.toString().toLowerCase() ?? '';
+        return status == 'cancelled' || status == 'rejected' || status == 'failed' || status == 'refunded';
       }).toList();
+      
+      print('✅ [Bookings] Split: Upcoming: ${upcomingBookings.length}, Past: ${pastBookings.length}, Cancelled: ${cancelledBookings.length}');
     } catch (e) {
       print('Fetch Bookings Error: $e');
       Get.snackbar('Error', 'Failed to fetch bookings');

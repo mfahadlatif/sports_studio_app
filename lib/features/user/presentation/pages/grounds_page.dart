@@ -5,6 +5,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/presentation/widgets/ground_card_wide.dart';
 import 'package:sports_studio/features/user/controller/home_controller.dart';
+import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 
@@ -39,6 +40,7 @@ class _GroundsPageState extends State<GroundsPage>
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(HomeController());
+    Get.put(FavoritesController()); // Ensure favorites are initialized for cards
 
     return Scaffold(
       backgroundColor: Colors.grey[50], // Very light grey for modern feel

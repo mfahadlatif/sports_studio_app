@@ -92,16 +92,22 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                       return;
                     }
                     FocusScope.of(context).unfocus();
-                    final success = await controller.requestVerification(
-                      controller.dialCode.value + phoneController.text.trim(),
+                    final formattedPhone = controller.formatPhone(
+                      controller.dialCode.value,
+                      phoneController.text.trim(),
                     );
+                    final success =
+                        await controller.requestVerification(formattedPhone);
                     if (success) {
                       setState(() => showOtpField = true);
                     }
                   },
                 ),
               ] else ...[
-                Text('Enter 6-digit Code', style: AppTextStyles.label),
+                Text(
+                  'Enter the 6-digit code sent to ${controller.formatPhone(controller.dialCode.value, phoneController.text.trim())}',
+                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: otpController,
@@ -122,10 +128,6 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.m),
-                Text(
-                  'Sent to ${phoneController.text}',
-                  style: AppTextStyles.bodySmall,
-                ),
                 const SizedBox(height: AppSpacing.l),
                 Row(
                   children: [
@@ -147,21 +149,24 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
                         label: 'Verify',
                         isLoading: controller.isLoading.value,
                         onPressed: () async {
-                          if (otpController.text.trim().length < 4) {
+                          if (otpController.text.trim().length != 6) {
                             AppUtils.showWarning(
-                              message: 'Please enter the code sent to you',
+                              message: 'Please enter the 6-digit code',
                             );
                             return;
                           }
                           FocusScope.of(context).unfocus();
+                          final formattedPhone = controller.formatPhone(
+                            controller.dialCode.value,
+                            phoneController.text.trim(),
+                          );
                           final success = await controller.verifyPhone(
-                            controller.dialCode.value +
-                                phoneController.text.trim(),
+                            formattedPhone,
                             otpController.text.trim(),
                           );
                           if (success) {
                             widget.onVerified();
-                            Get.back();
+                            Get.back(); // This closes the dialog
                           }
                         },
                       ),

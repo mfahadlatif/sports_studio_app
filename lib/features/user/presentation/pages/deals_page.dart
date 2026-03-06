@@ -29,9 +29,12 @@ class _DealsPageState extends State<DealsPage> {
     try {
       final res = await ApiClient().dio.get('/public/deals');
       if (res.statusCode == 200) {
-        setState(() => _deals = res.data is List ? res.data : []);
+        final raw = res.data;
+        final List data = raw is List ? raw : (raw['data'] as List? ?? []);
+        setState(() => _deals = data);
       }
-    } catch (_) {
+    } catch (e) {
+      print('❌ [Deals] Fetch error: $e');
       // Show demo deals if API not available
       setState(() {
         _deals = [
@@ -105,13 +108,29 @@ class _DealsPageState extends State<DealsPage> {
         ? DateTime.tryParse(deal['valid_until'].toString())
         : null;
 
-    final List<List<Color>> gradients = [
+    final List<List<Color>> gradientsList = [
       [Colors.orange.shade400, Colors.deepOrange.shade700],
       [AppColors.primary, const Color(0xFF0F172A)],
       [Colors.teal.shade400, Colors.teal.shade900],
       [Colors.purple.shade400, Colors.purple.shade900],
+      [Colors.blue.shade400, Colors.blue.shade900],
+      [Colors.pink.shade400, Colors.pink.shade900],
     ];
-    final grad = gradients[index % gradients.length];
+
+    List<Color> grad = gradientsList[index % gradientsList.length];
+    
+    // Handle API provided color themes
+    if (deal['color_theme'] == 'orange') {
+      grad = [Colors.orange.shade400, Colors.deepOrange.shade700];
+    } else if (deal['color_theme'] == 'teal') {
+      grad = [Colors.teal.shade400, Colors.teal.shade900];
+    } else if (deal['color_theme'] == 'blue') {
+      grad = [Colors.blue.shade400, Colors.blue.shade900];
+    } else if (deal['color_theme'] == 'purple') {
+      grad = [Colors.purple.shade400, Colors.purple.shade900];
+    } else if (deal['color_theme'] == 'pink') {
+      grad = [Colors.pink.shade400, Colors.pink.shade900];
+    }
 
     return Container(
       margin: const EdgeInsets.only(bottom: AppSpacing.m),

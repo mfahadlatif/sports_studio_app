@@ -47,7 +47,20 @@ class FavoritesController extends GetxController {
     return favorites.any((favorite) => favorite.groundId == groundId);
   }
 
-  Future<void> toggleFavorite(int groundId) async {
+  Future<void> toggleFavorite(dynamic groundInput) async {
+    int groundId;
+    if (groundInput is int) {
+      groundId = groundInput;
+    } else if (groundInput is Map) {
+      groundId = int.tryParse(groundInput['id'].toString()) ?? 0;
+    } else if (groundInput is Ground) {
+      groundId = groundInput.id;
+    } else {
+      return;
+    }
+
+    if (groundId == 0) return;
+
     try {
       if (isFavorite(groundId)) {
         await _favoriteApiService.removeFavorite(groundId);

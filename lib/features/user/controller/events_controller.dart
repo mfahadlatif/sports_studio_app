@@ -341,8 +341,8 @@ class EventsController extends GetxController {
     eventEndDate.value = event.endTime;
     eventVisibility.value = event.status;
     eventImages.value = event.image != null ? [event.image!] : [];
-    eventLatitude.value = 0.0; // Removed from model
-    eventLongitude.value = 0.0; // Removed from model
+    eventLatitude.value = event.latitude ?? 0.0;
+    eventLongitude.value = event.longitude ?? 0.0;
   }
 
   void addEventImage(String imagePath) {

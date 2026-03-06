@@ -35,10 +35,11 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   bool _isLoading = false;
   bool _showSuggestions = false;
   Timer? _debounce;
-  final _focusNode = FocusNode();
-
-  // Nominatim endpoint — same as web
-  static const _nominatimUrl = 'https://nominatim.openstreetmap.org/search';
+  final _focusNode = FocusNode();  // Google Places URLs
+  static const _autocompleteUrl =
+      'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+  static const _detailsUrl =
+      'https://maps.googleapis.com/maps/api/place/details/json';
 
   @override
   void initState() {
@@ -65,7 +66,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   }
 
   Future<void> _fetchSuggestions(String query) async {
-    if (query.length < 3) {
+    if (query.isEmpty) {
       setState(() {
         _suggestions.clear();
         _showSuggestions = false;
@@ -76,36 +77,31 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
     setState(() => _isLoading = true);
     try {
       final res = await Dio().get(
-        _nominatimUrl,
+        _autocompleteUrl,
         queryParameters: {
-          'format': 'json',
-          'q': query,
-          'addressdetails': 1,
-          'limit': 5,
+          'input': query,
+          'key': AppConstants.googlePlacesApiKey,
+          'language': 'en',
+          'types': 'geocode|establishment', // Mixed for best coverage
         },
-        options: Options(
-          headers: {
-            // Nominatim requires a descriptive User-Agent
-            'User-Agent': 'SportsStudioApp/1.0',
-            'Accept-Language': 'en',
-          },
-        ),
       );
 
       if (mounted) {
         final data = res.data;
-        setState(() {
-          if (data is List && data.isNotEmpty) {
+        if (data is Map && data['status'] == 'OK') {
+          setState(() {
             _suggestions
               ..clear()
-              ..addAll(data);
+              ..addAll(data['predictions']);
             _showSuggestions = true;
-          } else {
+          });
+        } else {
+          setState(() {
             _suggestions.clear();
             _showSuggestions = false;
-          }
-          _isLoading = false;
-        });
+          });
+        }
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) {
@@ -120,40 +116,63 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
 
   void _onChanged(String value) {
     _debounce?.cancel();
-    if (value.length < 3) {
+    if (value.isEmpty) {
       setState(() {
         _suggestions.clear();
         _showSuggestions = false;
       });
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 500), () {
+    _debounce = Timer(const Duration(milliseconds: 600), () {
       _fetchSuggestions(value);
     });
   }
 
-  void _onSuggestionTap(dynamic item) {
-    // Nominatim returns display_name, lat, lon
-    final address = item['display_name']?.toString() ?? '';
-    final lat = double.tryParse(item['lat']?.toString() ?? '');
-    final lng = double.tryParse(item['lon']?.toString() ?? '');
+  Future<void> _onSuggestionTap(dynamic item) async {
+    final String description = item['description'] ?? '';
+    final String placeId = item['place_id'] ?? '';
 
-    widget.controller.text = address;
-
-    if (widget.latController != null && lat != null) {
-      widget.latController!.text = lat.toStringAsFixed(7);
-    }
-    if (widget.lngController != null && lng != null) {
-      widget.lngController!.text = lng.toStringAsFixed(7);
-    }
-
-    setState(() {
-      _suggestions.clear();
-      _showSuggestions = false;
-    });
-
+    // Set address immediately (UI feels faster)
+    widget.controller.text = description;
     _focusNode.unfocus();
-    widget.onSelect?.call(address, lat, lng);
+    setState(() => _showSuggestions = false);
+
+    if (placeId.isEmpty) return;
+
+    // Fetch details to get lat/lng
+    setState(() => _isLoading = true);
+    try {
+      final res = await Dio().get(
+        _detailsUrl,
+        queryParameters: {
+          'place_id': placeId,
+          'key': AppConstants.googlePlacesApiKey,
+          'fields': 'geometry,formatted_address',
+        },
+      );
+
+      if (mounted) {
+        final details = res.data;
+        if (details is Map && details['status'] == 'OK') {
+          final result = details['result'];
+          final lat = result['geometry']['location']['lat'];
+          final lng = result['geometry']['location']['lng'];
+
+          if (widget.latController != null) {
+            widget.latController!.text = lat.toString();
+          }
+          if (widget.lngController != null) {
+            widget.lngController!.text = lng.toString();
+          }
+
+          widget.onSelect?.call(description, lat, lng);
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ [GooglePlaces] Error fetching details: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -167,7 +186,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           focusNode: _focusNode,
           onChanged: _onChanged,
           onTap: () {
-            if (widget.controller.text.length >= 3 && _suggestions.isNotEmpty) {
+            if (widget.controller.text.isNotEmpty && _suggestions.isNotEmpty) {
               setState(() => _showSuggestions = true);
             }
           },
@@ -207,7 +226,6 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             ),
           ),
         ),
-
         if (_showSuggestions && _suggestions.isNotEmpty) ...[
           const SizedBox(height: 6),
           Material(
@@ -215,7 +233,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
             borderRadius: BorderRadius.circular(12),
             shadowColor: Colors.black.withOpacity(0.12),
             child: Container(
-              constraints: const BoxConstraints(maxHeight: 240),
+              constraints: const BoxConstraints(maxHeight: 280),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -224,24 +242,45 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
               child: ListView.separated(
                 shrinkWrap: true,
                 padding: EdgeInsets.zero,
-                itemCount: _suggestions.length,
+                itemCount: _suggestions.length + 1, // Add Google branding
                 separatorBuilder: (_, __) =>
                     const Divider(height: 1, color: AppColors.border),
                 itemBuilder: (context, index) {
+                  // Branding at the bottom
+                  if (index == _suggestions.length) {
+                    return Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Opacity(
+                            opacity: 0.6,
+                            child: Image.asset(
+                              'assets/google-logo.png',
+                              height: 12,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Powered by Google',
+                            style: AppTextStyles.label.copyWith(
+                              fontSize: 9,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
                   final item = _suggestions[index];
-                  final displayName = item['display_name']?.toString() ?? '';
-                  final title = displayName.split(',').first.trim();
-                  final subtitle = displayName;
+                  final mainText =
+                      item['structured_formatting']?['main_text'] ?? '';
+                  final secondaryText =
+                      item['structured_formatting']?['secondary_text'] ?? '';
 
                   return InkWell(
                     onTap: () => _onSuggestionTap(item),
-                    borderRadius: index == 0
-                        ? const BorderRadius.vertical(top: Radius.circular(12))
-                        : index == _suggestions.length - 1
-                        ? const BorderRadius.vertical(
-                            bottom: Radius.circular(12),
-                          )
-                        : BorderRadius.zero,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -261,7 +300,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  title,
+                                  mainText,
                                   style: AppTextStyles.bodySmall.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary,
@@ -271,7 +310,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  subtitle,
+                                  secondaryText,
                                   style: AppTextStyles.label.copyWith(
                                     color: AppColors.textMuted,
                                     fontWeight: FontWeight.normal,

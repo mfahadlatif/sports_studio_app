@@ -48,9 +48,10 @@ class AddGroundController extends GetxController {
   Future<void> fetchComplexes({int? preSelectedId}) async {
     try {
       isLoadingComplexes.value = true;
-      final groundsController = Get.find<GroundsController>();
+      final groundsController = Get.isRegistered<GroundsController>()
+          ? Get.find<GroundsController>()
+          : Get.put(GroundsController());
 
-      // Try to get from existing controller first
       if (groundsController.complexes.isEmpty) {
         await groundsController.fetchComplexesAndGrounds();
       }

@@ -311,6 +311,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
   final _codeCtrl = TextEditingController();
   final _dateCtrl = TextEditingController();
   int? _selectedGroundId;
+  String? _selectedColorTheme;
   bool _isSaving = false;
 
   bool get _isEdit => widget.deal != null;
@@ -326,6 +327,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
       _codeCtrl.text = d['code'] ?? '';
       _dateCtrl.text = (d['valid_until'] ?? '').toString().split('T')[0];
       _selectedGroundId = d['ground_id'];
+      _selectedColorTheme = d['color_theme'];
     }
   }
 
@@ -346,6 +348,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
         'code': _codeCtrl.text,
         'valid_until': _dateCtrl.text,
         if (_selectedGroundId != null) 'ground_id': _selectedGroundId,
+        'color_theme': _selectedColorTheme,
       };
 
       final id = widget.deal?['id'];
@@ -483,6 +486,31 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                           icon: Icons.calendar_today_outlined,
                         ),
                       ),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    _label('Color Theme (Optional)'),
+                    DropdownButtonFormField<String>(
+                      value: _selectedColorTheme,
+                      hint: const Text('Default Theme'),
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: AppColors.background,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        prefixIcon: const Icon(Icons.palette_outlined),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: null, child: Text('Default')),
+                        DropdownMenuItem(value: 'orange', child: Text('Orange')),
+                        DropdownMenuItem(value: 'teal', child: Text('Teal')),
+                        DropdownMenuItem(value: 'blue', child: Text('Blue')),
+                        DropdownMenuItem(value: 'purple', child: Text('Purple')),
+                        DropdownMenuItem(value: 'pink', child: Text('Pink')),
+                      ],
+                      onChanged: (val) =>
+                          setState(() => _selectedColorTheme = val),
                     ),
                     const SizedBox(height: AppSpacing.m),
                     _label('Promo Code (Optional)'),

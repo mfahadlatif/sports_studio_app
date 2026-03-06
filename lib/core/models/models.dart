@@ -11,6 +11,9 @@ class Complex {
   final String status;
   final List<Ground>? grounds;
   final User? owner;
+  final List<String>? amenities;
+  final double? latitude;
+  final double? longitude;
 
   Complex({
     required this.id,
@@ -23,6 +26,9 @@ class Complex {
     this.status = 'active',
     this.grounds,
     this.owner,
+    this.amenities,
+    this.latitude,
+    this.longitude,
   });
 
   factory Complex.fromJson(Map<String, dynamic> json) {
@@ -41,6 +47,9 @@ class Complex {
       owner: json['owner'] != null && json['owner'] is Map<String, dynamic>
           ? User.fromJson(json['owner'])
           : null,
+      amenities: _parseJsonList<String>(json['amenities']),
+      latitude: double.tryParse(json['latitude']?.toString() ?? ''),
+      longitude: double.tryParse(json['longitude']?.toString() ?? ''),
     );
   }
 
@@ -56,6 +65,9 @@ class Complex {
       'status': status,
       'grounds': grounds?.map((g) => g.toJson()).toList(),
       'owner': owner?.toJson(),
+      'amenities': amenities,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }
@@ -77,6 +89,8 @@ class Ground {
   final Complex? complex;
   final String? openingTime;
   final String? closingTime;
+  final double? latitude;
+  final double? longitude;
 
   Ground({
     required this.id,
@@ -95,6 +109,8 @@ class Ground {
     this.complex,
     this.openingTime,
     this.closingTime,
+    this.latitude,
+    this.longitude,
   });
 
   factory Ground.fromJson(Map<String, dynamic> json) {
@@ -121,6 +137,8 @@ class Ground {
           : null,
       openingTime: json['opening_time'],
       closingTime: json['closing_time'],
+      latitude: double.tryParse(json['latitude']?.toString() ?? ''),
+      longitude: double.tryParse(json['longitude']?.toString() ?? ''),
     );
   }
 
@@ -142,6 +160,8 @@ class Ground {
       'complex': complex?.toJson(),
       'opening_time': openingTime,
       'closing_time': closingTime,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }
@@ -188,22 +208,22 @@ class Booking {
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       userId: int.tryParse(json['user_id']?.toString() ?? '') ?? 0,
       groundId: int.tryParse(json['ground_id']?.toString() ?? '') ?? 0,
-      startTime: DateTime.tryParse(json['start_time'] ?? '') ?? DateTime.now(),
-      endTime: DateTime.tryParse(json['end_time'] ?? '') ?? DateTime.now(),
+      startTime: DateTime.tryParse(json['start_time']?.toString() ?? '') ?? DateTime.now(),
+      endTime: DateTime.tryParse(json['end_time']?.toString() ?? '') ?? DateTime.now(),
       totalPrice:
           double.tryParse(json['total_price']?.toString() ?? '0') ?? 0.0,
       players: int.tryParse(json['players']?.toString() ?? '') ?? 1,
-      status: json['status'] ?? 'pending',
-      paymentStatus: json['payment_status'] ?? 'pending',
+      status: json['status']?.toString() ?? 'pending',
+      paymentStatus: json['payment_status']?.toString() ?? 'pending',
       paymentMethod: json['payment_method']?.toString(),
       paymentExpiresAt: json['payment_expires_at'] != null
           ? DateTime.tryParse(json['payment_expires_at'].toString())
           : null,
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'])
+          ? DateTime.tryParse(json['updated_at'].toString())
           : null,
       ground: json['ground'] != null && json['ground'] is Map<String, dynamic>
           ? Ground.fromJson(json['ground'])
@@ -264,6 +284,8 @@ class Event {
   final Booking? booking;
   final int? participantsCount;
   final bool? userJoined;
+  final double? latitude;
+  final double? longitude;
 
   Event({
     required this.id,
@@ -290,6 +312,8 @@ class Event {
     this.booking,
     this.participantsCount,
     this.userJoined,
+    this.latitude,
+    this.longitude,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -299,33 +323,31 @@ class Event {
       bookingId: json['booking_id'] != null
           ? int.tryParse(json['booking_id'].toString())
           : null,
-      name: json['name'] ?? '',
-      slug: json['slug'],
-      description: json['description'],
-      startTime: DateTime.tryParse(json['start_time'] ?? '') ?? DateTime.now(),
-      endTime: DateTime.tryParse(json['end_time'] ?? '') ?? DateTime.now(),
+      name: json['name']?.toString() ?? '',
+      slug: json['slug']?.toString(),
+      description: json['description']?.toString(),
+      startTime: DateTime.tryParse(json['start_time']?.toString() ?? '') ?? DateTime.now(),
+      endTime: DateTime.tryParse(json['end_time']?.toString() ?? '') ?? DateTime.now(),
       registrationFee:
           double.tryParse(json['registration_fee']?.toString() ?? '0') ?? 0.0,
       maxParticipants: json['max_participants'] != null
           ? int.tryParse(json['max_participants'].toString())
           : null,
       eventType: json['event_type']?.toString() ?? 'public',
-      status: json['status'] ?? 'upcoming',
+      status: json['status']?.toString() ?? 'upcoming',
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'])
+          ? DateTime.tryParse(json['updated_at'].toString())
           : null,
-      image: json['image'],
-      location: json['location'],
-      rules: json['rules'],
-      safetyPolicy: json['safety_policy'],
-      schedule: json['schedule'],
+      image: json['image']?.toString(),
+      location: json['location']?.toString(),
+      rules: json['rules']?.toString(),
+      safetyPolicy: json['safety_policy']?.toString(),
+      schedule: json['schedule']?.toString(),
       images: (json['images'] is List)
-          ? List<String>.from(
-              (json['images'] as List).map((e) => e.toString()),
-            )
+          ? List<String>.from((json['images'] as List).map((e) => e.toString()))
           : const [],
       organizer:
           json['organizer'] != null && json['organizer'] is Map<String, dynamic>
@@ -339,6 +361,8 @@ class Event {
           ? int.tryParse(json['participants_count'].toString())
           : null,
       userJoined: json['user_joined'] == 1 || json['user_joined'] == true,
+      latitude: double.tryParse(json['latitude']?.toString() ?? ''),
+      longitude: double.tryParse(json['longitude']?.toString() ?? ''),
     );
   }
 
@@ -368,6 +392,8 @@ class Event {
       'booking': booking?.toJson(),
       'participants_count': participantsCount,
       'user_joined': userJoined,
+      'latitude': latitude,
+      'longitude': longitude,
     };
   }
 }
@@ -394,10 +420,10 @@ class Team {
   factory Team.fromJson(Map<String, dynamic> json) {
     return Team(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: json['name'] ?? '',
-      sport: json['sport'],
-      logo: json['logo'],
-      description: json['description'],
+      name: json['name']?.toString() ?? '',
+      sport: json['sport']?.toString(),
+      logo: json['logo']?.toString(),
+      description: json['description']?.toString(),
       ownerId: int.tryParse(json['owner_id']?.toString() ?? '') ?? 0,
       members: json['members'] != null && json['members'] is List
           ? (json['members'] as List)
@@ -430,8 +456,8 @@ class TeamMember {
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       teamId: int.tryParse(json['team_id']?.toString() ?? '') ?? 0,
       userId: int.tryParse(json['user_id']?.toString() ?? '') ?? 0,
-      role: json['role'] ?? 'player',
-      status: json['status'] ?? 'active',
+      role: json['role']?.toString() ?? 'player',
+      status: json['status']?.toString() ?? 'active',
       user: json['user'] != null && json['user'] is Map<String, dynamic>
           ? User.fromJson(json['user'])
           : null,
@@ -485,31 +511,32 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
-      name: json['name'] ?? '',
-      email: json['email'] ?? '',
-      emailVerifiedAt: json['email_verified_at'],
-      password: json['password'],
-      rememberToken: json['remember_token'],
+      name: json['name']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      emailVerifiedAt: json['email_verified_at']?.toString(),
+      password: json['password']?.toString(),
+      rememberToken: json['remember_token']?.toString(),
       createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'])
+          ? DateTime.tryParse(json['created_at'].toString())
           : null,
       updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'])
+          ? DateTime.tryParse(json['updated_at'].toString())
           : null,
       phone: json['phone']?.toString(),
-      businessName: json['business_name'],
-      notificationPreferences: json['notification_preferences'],
-      role: json['role'] ?? 'user',
-      isActive: json['is_active'] == 1 || json['is_active'] == true,
-      avatar: json['avatar'],
+      businessName: json['business_name']?.toString(),
+      notificationPreferences: json['notification_preferences'] is Map<String, dynamic> 
+          ? json['notification_preferences'] as Map<String, dynamic>
+          : null,
+      role: json['role']?.toString() ?? 'user',
+      isActive: json['is_active'] == 1 || json['is_active'] == true || json['is_active']?.toString() == '1',
+      avatar: json['avatar']?.toString(),
       googleId: json['google_id']?.toString(),
       appleId: json['apple_id']?.toString(),
-      fcmToken: json['fcm_token'],
+      fcmToken: json['fcm_token']?.toString(),
       phoneVerifiedAt: json['phone_verified_at'] != null
-          ? DateTime.tryParse(json['phone_verified_at'])
+          ? DateTime.tryParse(json['phone_verified_at'].toString())
           : null,
-      isPhoneVerified:
-          json['is_phone_verified'] == 1 || json['is_phone_verified'] == true,
+      isPhoneVerified: json['is_phone_verified'] == 1 || json['is_phone_verified'] == true || json['is_phone_verified']?.toString() == '1',
     );
   }
 
@@ -554,6 +581,23 @@ class Favorite {
   });
 
   factory Favorite.fromJson(Map<String, dynamic> json) {
+    // Check if the JSON is directly a ground object (backend sometimes plucks ground)
+    final bool isDirectGround =
+        json.containsKey('id') &&
+        !json.containsKey('ground_id') &&
+        !json.containsKey('userId') &&
+        !json.containsKey('user_id');
+
+    if (isDirectGround) {
+      final ground = Ground.fromJson(json);
+      return Favorite(
+        id: 0, // We don't have the favorite record ID
+        groundId: ground.id,
+        userId: 0,
+        ground: ground,
+      );
+    }
+
     return Favorite(
       id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
       groundId: int.tryParse(json['ground_id']?.toString() ?? '') ?? 0,

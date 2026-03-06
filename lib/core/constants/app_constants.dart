@@ -16,7 +16,7 @@ class AppConstants {
   /// Google Places / Maps API key for address autocomplete and map features.
   /// Replace the placeholder with your real key, or keep using the same key
   /// you configured in the Android manifest if desired.
-  static const String googlePlacesApiKey = 'YOUR_GOOGLE_PLACES_API_KEY';
+  static const String googlePlacesApiKey = 'AIzaSyBzjoXEYxmIe6ZLzzEOZhundPX1cBiGwiA';
 
   // Assets
   static const String appIcon = 'assets/app_icon.jpeg';
