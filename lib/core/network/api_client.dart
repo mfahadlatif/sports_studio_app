@@ -2,16 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
-  // PRODUCTION URL (Hostinger) — After moving backend outside public_html
-  // API is now at domain root (no /backend/public prefix)
-  // static const String baseUrl =
-  //     'https://lightcoral-goose-424965.hostingersite.com/api';
-
-  // PRE-MOVE URL (keep for reference):
-  static const String baseUrl = 'https://lightcoral-goose-424965.hostingersite.com/backend/public/api';
+  // PRODUCTION URL (Hostinger)
+  // static const String baseUrl = 'https://lightcoral-goose-424965.hostingersite.com/backend/public/api';
 
   // Localhost — Android Emulator uses 10.0.2.2, iOS Simulator uses localhost
-  // static const String baseUrl = 'http://10.0.2.2/cricket-oasis-bookings/backend/public/api';
+  static const String baseUrl = 'http://10.0.2.2/cricket-oasis-bookings/backend/public/api';
   final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   FlutterSecureStorage get storage => _storage;

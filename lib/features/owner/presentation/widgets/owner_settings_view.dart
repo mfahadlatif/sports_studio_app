@@ -42,7 +42,7 @@ class OwnerSettingsView extends StatelessWidget {
             _buildSettingsTile(
               Icons.business_outlined,
               'Business Profile',
-              'Name, email, phone, business name',
+              'Name, email, and phone number',
               onTap: () => Get.toNamed('/edit-profile'),
             ),
             _buildSettingsTile(

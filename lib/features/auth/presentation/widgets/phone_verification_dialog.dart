@@ -45,139 +45,235 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.l),
-        child: Obx(
-          () => Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Verify Phone', style: AppTextStyles.h2),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Get.back(),
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Obx(
+            () => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header with Illustration-like Icon
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.1),
+                    shape: BoxShape.circle,
                   ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.m),
-              Text(
-                'A verified phone number is required for booking.',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.l),
-
-              if (!showOtpField) ...[
-                PhoneTextfield(
-                  controller: phoneController,
-                  countryCode: controller.countryCode,
-                  dialCode: controller.dialCode,
-                  label: 'Phone Number',
-                  isRequired: true,
+                  child: Icon(
+                    showOtpField ? Icons.vibration : Icons.phone_iphone_rounded,
+                    size: 40,
+                    color: AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.l),
-                AppButton(
-                  label: 'Send Verification Code',
-                  isLoading: controller.isLoading.value,
-                  onPressed: () async {
-                    if (phoneController.text.trim().isEmpty) {
-                      AppUtils.showWarning(
-                        message: 'Please enter your phone number',
-                      );
-                      return;
-                    }
-                    FocusScope.of(context).unfocus();
-                    final formattedPhone = controller.formatPhone(
-                      controller.dialCode.value,
-                      phoneController.text.trim(),
-                    );
-                    final success =
-                        await controller.requestVerification(formattedPhone);
-                    if (success) {
-                      setState(() => showOtpField = true);
-                    }
-                  },
-                ),
-              ] else ...[
+                
                 Text(
-                  'Enter the 6-digit code sent to ${controller.formatPhone(controller.dialCode.value, phoneController.text.trim())}',
-                  style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                  showOtpField ? 'Verify OTP' : 'Phone Verification',
+                  style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: otpController,
-                  keyboardType: TextInputType.number,
-                  maxLength: 6,
+                const SizedBox(height: AppSpacing.s),
+                Text(
+                  showOtpField 
+                    ? 'Enter the 6-digit code we sent to your phone'
+                    : 'We need to verify your number to proceed with bookings',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    letterSpacing: 8,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '000000',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    counterText: '',
+                  style: AppTextStyles.bodyMedium.copyWith(
+                    color: AppColors.textMuted,
+                    height: 1.5,
                   ),
                 ),
-                const SizedBox(height: AppSpacing.m),
-                const SizedBox(height: AppSpacing.l),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => setState(() => showOtpField = false),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: const Text('Edit Number'),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.m),
-                    Expanded(
-                      child: AppButton(
-                        label: 'Verify',
-                        isLoading: controller.isLoading.value,
-                        onPressed: () async {
-                          if (otpController.text.trim().length != 6) {
-                            AppUtils.showWarning(
-                              message: 'Please enter the 6-digit code',
-                            );
-                            return;
-                          }
-                          FocusScope.of(context).unfocus();
-                          final formattedPhone = controller.formatPhone(
-                            controller.dialCode.value,
-                            phoneController.text.trim(),
-                          );
-                          final success = await controller.verifyPhone(
-                            formattedPhone,
-                            otpController.text.trim(),
-                          );
-                          if (success) {
-                            widget.onVerified();
-                            Get.back(); // This closes the dialog
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: AppSpacing.xl),
+
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: !showOtpField ? _buildPhoneInput() : _buildOtpInput(),
                 ),
+
+                const SizedBox(height: AppSpacing.xl),
+                _buildActionButtons(),
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildPhoneInput() {
+    return Column(
+      key: const ValueKey('phone_input'),
+      children: [
+        PhoneTextfield(
+          controller: phoneController,
+          countryCode: controller.countryCode,
+          dialCode: controller.dialCode,
+          label: 'Your Number',
+          isRequired: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOtpInput() {
+    return Column(
+      key: const ValueKey('otp_input'),
+      children: [
+        Text(
+          controller.formatPhone(controller.dialCode.value, phoneController.text.trim()),
+          style: AppTextStyles.bodyLarge.copyWith(
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.l),
+        TextField(
+          controller: otpController,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          textAlign: TextAlign.center,
+          autofocus: true,
+          style: const TextStyle(
+            letterSpacing: 12,
+            fontSize: 32,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textPrimary,
+          ),
+          decoration: InputDecoration(
+            hintText: '●●●●●●',
+            hintStyle: TextStyle(
+              color: Colors.grey.shade300,
+              letterSpacing: 12,
+            ),
+            filled: true,
+            fillColor: Colors.grey.shade50,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: BorderSide(color: Colors.grey.shade200),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(20),
+              borderSide: const BorderSide(color: AppColors.primary, width: 2),
+            ),
+            counterText: '',
+          ),
+        ),
+        const SizedBox(height: AppSpacing.m),
+        TextButton(
+          onPressed: () => setState(() => showOtpField = false),
+          child: Text(
+            'Edit Phone Number',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.primary,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Column(
+      children: [
+        Row(
+          children: [
+            if (showOtpField)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: OutlinedButton(
+                    onPressed: () => Get.back(),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 18),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      side: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+                  ),
+                ),
+              ),
+            Expanded(
+              flex: 2,
+              child: AppButton(
+                label: showOtpField ? 'Confirm & Verify' : 'Get Verification Code',
+                isLoading: controller.isLoading.value,
+                onPressed: () async {
+                  if (!showOtpField) {
+                    _handleSendCode();
+                  } else {
+                    _handleVerify();
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+        if (!showOtpField) ...[
+          const SizedBox(height: AppSpacing.m),
+          GestureDetector(
+            onTap: () => Get.back(),
+            child: Text(
+              'Not now, maybe later',
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _handleSendCode() async {
+    if (phoneController.text.trim().isEmpty) {
+      AppUtils.showWarning(message: 'Please enter your phone number');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final formattedPhone = controller.formatPhone(
+      controller.dialCode.value,
+      phoneController.text.trim(),
+    );
+    final success = await controller.requestVerification(formattedPhone);
+    if (success) {
+      setState(() => showOtpField = true);
+    }
+  }
+
+  void _handleVerify() async {
+    if (otpController.text.trim().length != 6) {
+      AppUtils.showWarning(message: 'Please enter the 6-digit code');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final formattedPhone = controller.formatPhone(
+      controller.dialCode.value,
+      phoneController.text.trim(),
+    );
+    final success = await controller.verifyPhone(
+      formattedPhone,
+      otpController.text.trim(),
+    );
+    if (success) {
+      widget.onVerified();
+      Get.back();
+    }
   }
 }

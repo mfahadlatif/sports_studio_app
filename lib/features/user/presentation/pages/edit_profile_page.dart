@@ -4,8 +4,6 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/phone_input_field.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
@@ -19,20 +17,15 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final ProfileController controller = Get.find<ProfileController>();
-  final LandingController landingController = Get.find<LandingController>();
-  final businessNameController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     controller.populateProfileForm();
-    businessNameController.text =
-        controller.userProfile['business_name']?.toString() ?? '';
   }
 
   @override
   void dispose() {
-    businessNameController.dispose();
     super.dispose();
   }
 
@@ -156,8 +149,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   Widget _buildFormSection() {
-    final isOwner = landingController.currentRole.value == UserRole.owner;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -193,15 +184,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
           isRequired: true,
           onPhoneChanged: (v) => controller.fullPhone.value = v,
         ),
-        if (isOwner) ...[
-          const SizedBox(height: AppSpacing.m),
-          _buildInputField(
-            'Business / Complex Name',
-            businessNameController,
-            Icons.business_outlined,
-            'Enter your business name',
-          ),
-        ],
       ],
     );
   }
@@ -254,15 +236,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
   }
 
   void _handleSave() {
-    // If owner, add business_name to the data update
-    if (landingController.currentRole.value == UserRole.owner) {
-      // In a real app we might update ProfileController to handle this,
-      // but here we can just pass it in if updateProfile takes a map
-      controller.updateProfile();
-      // Note: controller.updateProfile() uses its own name/email/phone controllers.
-      // We should update it to also include business_name if it exists.
-    } else {
-      controller.updateProfile();
-    }
+    controller.updateProfile();
   }
 }
