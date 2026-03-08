@@ -150,7 +150,7 @@ class _BookingCard extends StatelessWidget {
       timeRange = '${booking['start_time']} - ${booking['end_time']}';
     }
 
-    final totalAmount = booking['price'] ?? 0;
+    final totalAmount = double.tryParse((booking['price'] ?? 0).toString()) ?? 0.0;
     final status = booking['status'] ?? 'pending';
     final paymentStatus = booking['payment_status'] ?? 'unpaid';
 
@@ -259,13 +259,13 @@ class _BookingCard extends StatelessWidget {
           ),
           const Divider(height: 1, indent: 20, endIndent: 20),
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.l),
-            child: Row(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.m),
+            child: Wrap(
+              spacing: AppSpacing.m,
+              runSpacing: AppSpacing.s,
               children: [
                 _InfoItem(Icons.calendar_today_outlined, dateStr),
-                const SizedBox(width: AppSpacing.l),
                 _InfoItem(Icons.access_time, timeRange),
-                const SizedBox(width: AppSpacing.l),
                 if (!isEvent)
                   _InfoItem(
                     Icons.payment_outlined,
@@ -390,10 +390,18 @@ class _InfoItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 16, color: color ?? AppColors.textSecondary),
         const SizedBox(width: 8),
-        Text(text, style: AppTextStyles.bodySmall.copyWith(color: color)),
+        Flexible(
+          child: Text(
+            text,
+            style: AppTextStyles.bodySmall.copyWith(color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }

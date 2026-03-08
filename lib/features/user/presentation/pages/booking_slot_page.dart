@@ -491,7 +491,7 @@ class BookingSlotPage extends StatelessWidget {
                     label: 'Confirm Booking',
                     onPressed: controller.selectedSlots.isEmpty
                         ? null
-                        : () => controller.createBooking(),
+                        : () => controller.bookWithSafepay(),
                     isLoading: controller.isBooking.value,
                   ),
                 ),

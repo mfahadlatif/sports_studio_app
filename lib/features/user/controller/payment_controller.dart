@@ -2,6 +2,8 @@ import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/core/services/safepay_service.dart';
+import 'package:sports_studio/widgets/safepay_payment_widget.dart';
 
 class PaymentController extends GetxController {
   final RxBool isProcessingPayment = false.obs;
@@ -11,9 +13,9 @@ class PaymentController extends GetxController {
   final RxString paymentToken = ''.obs;
   final RxMap<String, dynamic> paymentData = <String, dynamic>{}.obs;
 
-  final PaymentApiService _paymentApiService = PaymentApiService();
   final BookingApiService _bookingApiService = BookingApiService();
   final TransactionApiService _transactionApiService = TransactionApiService();
+  final SafepayService _safepayService = Get.find<SafepayService>();
 
   @override
   void onInit() {
@@ -31,7 +33,7 @@ class PaymentController extends GetxController {
           .getUserTransactions();
       transactions.value = transactionList;
     } catch (e) {
-      AppUtils.showError(message: 'Failed to fetch transactions: $e');
+      AppUtils.showError(message: e);
     }
   }
 
@@ -47,48 +49,36 @@ class PaymentController extends GetxController {
 
     isProcessingPayment.value = true;
     try {
-      // FIX 1: Backend only accepts {amount, currency} — not booking_id or callback_url
-      final response = await _paymentApiService.initiateSafepayPayment({
-        'amount': amount,
-        'currency': 'PKR',
-      });
+      final response = await _safepayService.initiateCheckout(
+        amount: amount,
+      );
 
-      // FIX 1: Backend returns {tracker, environment, sandbox_url, production_url}
+      if (response == null) return;
+
       final tracker = response['tracker'];
-      final env = response['environment'] ?? 'sandbox';
+      final token = response['token'];
 
       if (tracker == null) {
-        AppUtils.showError(
-          message: 'Failed to get payment tracker from Safepay',
-        );
+        AppUtils.showError(message: 'Failed to initialize payment with Safepay');
         return;
       }
 
-      final checkoutBase = env == 'sandbox'
-          ? 'https://sandbox.api.getsafepay.com/checkout/pay'
-          : 'https://api.getsafepay.com/checkout/pay';
-
-      final checkoutUrl =
-          '$checkoutBase?tracker=$tracker&environment=$env&source=mobile';
-
       paymentToken.value = tracker;
-      paymentData.value = response;
 
-      // Navigate to payment WebView page
-      final result = await Get.toNamed(
-        '/payment-webview',
-        arguments: {
-          'url': checkoutUrl,
-          'bookingId': bookingId,
-          'amount': amount,
-        },
+      // Navigate to Safepay Checkout Package Widget
+      final result = await Get.to(
+        () => SafepayPaymentWidget(
+          amount: amount,
+          tracker: tracker,
+          token: token,
+        ),
       );
 
       if (result == true) {
-        // Payment completed in WebView — finalize booking
+        // Payment completed — finalize booking
         await _bookingApiService.finalizePayment(bookingId);
         AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
-        Get.offAllNamed('/my-bookings');
+        Get.offAllNamed('/landing');
       } else {
         AppUtils.showInfo(
           title: 'Cancelled',
@@ -96,7 +86,7 @@ class PaymentController extends GetxController {
         );
       }
     } catch (e) {
-      AppUtils.showError(message: 'Payment initiation failed: $e');
+      AppUtils.showError(message: e);
     } finally {
       isProcessingPayment.value = false;
     }
@@ -105,10 +95,9 @@ class PaymentController extends GetxController {
   Future<void> verifySafepayPayment(String token) async {
     isVerifyingPayment.value = true;
     try {
-      // FIX 1: Pass token to backend verify endpoint
-      final response = await _paymentApiService.verifySafepayPayment(token);
+      final isValid = await _safepayService.verifyPayment(token);
 
-      if (response['status'] == 'valid') {
+      if (isValid) {
         AppUtils.showSuccess(message: 'Payment verified successfully!');
         if (currentBooking.value != null) {
           await _bookingApiService.finalizePayment(currentBooking.value!.id);
@@ -120,7 +109,7 @@ class PaymentController extends GetxController {
         );
       }
     } catch (e) {
-      AppUtils.showError(message: 'Payment verification failed: $e');
+      AppUtils.showError(message: e);
     } finally {
       isVerifyingPayment.value = false;
     }
@@ -157,7 +146,7 @@ class PaymentController extends GetxController {
       AppUtils.showSuccess(message: 'Payment cancelled');
       Get.offAllNamed('/my-bookings');
     } catch (e) {
-      AppUtils.showError(message: 'Failed to cancel payment: $e');
+      AppUtils.showError(message: e);
     }
   }
 

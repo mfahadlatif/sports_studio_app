@@ -3,10 +3,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class ApiClient {
   // PRODUCTION URL (Hostinger)
-  // static const String baseUrl = 'https://lightcoral-goose-424965.hostingersite.com/backend/public/api';
+  static const String baseUrl = 'https://lightcoral-goose-424965.hostingersite.com/backend/public/api';
 
   // Localhost — Android Emulator uses 10.0.2.2, iOS Simulator uses localhost
-  static const String baseUrl = 'http://10.0.2.2/cricket-oasis-bookings/backend/public/api';
+  // static const String baseUrl = 'http://10.0.2.2/cricket-oasis-bookings/backend/public/api';
   final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   FlutterSecureStorage get storage => _storage;
@@ -15,8 +15,8 @@ class ApiClient {
     : _dio = Dio(
         BaseOptions(
           baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(seconds: 10),
+          connectTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
           headers: {'Accept': 'application/json'},
         ),
       ) {

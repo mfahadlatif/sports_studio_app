@@ -67,6 +67,13 @@ class ProfilePage extends StatelessWidget {
                         color: Colors.purple,
                       ),
                       _buildOption(
+                        icon: Icons.event_note_outlined,
+                        title: 'My Managed Events',
+                        subtitle: 'Edit or delete events you organized',
+                        onTap: () => Get.toNamed('/managed-events'),
+                        color: Colors.pink,
+                      ),
+                      _buildOption(
                         icon: Icons.local_offer_outlined,
                         title: 'Active Promo Codes',
                         subtitle: 'Exclusive deals just for you',

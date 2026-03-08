@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/features/user/controller/profile_controller.dart';
 
 class TeamsController extends GetxController {
   final RxBool isLoadingTeams = false.obs;
@@ -12,6 +13,7 @@ class TeamsController extends GetxController {
   final RxList<Team> teams = <Team>[].obs;
   final Rxn<Team> selectedTeam = Rxn<Team>();
   final RxString searchQuery = ''.obs;
+  final RxBool isUpdating = false.obs;
 
   // Team creation form controllers
   final teamNameController = TextEditingController();
@@ -67,11 +69,11 @@ class TeamsController extends GetxController {
       };
 
       final team = await _teamApiService.createTeam(teamData);
+      Get.back(); // Close bottom sheet first
       AppUtils.showSuccess(
         message: 'Team "${team.name}" created successfully!',
       );
       clearTeamForm();
-      Get.back();
       fetchTeams();
     } catch (e) {
       AppUtils.showError(message: 'Failed to create team: $e');
@@ -96,9 +98,9 @@ class TeamsController extends GetxController {
       };
 
       final team = await _teamApiService.updateTeam(teamId, teamData);
+      Get.back(); // Close bottom sheet first
       AppUtils.showSuccess(message: 'Team updated successfully!');
       selectedTeam.value = team;
-      Get.back();
       fetchTeams();
     } catch (e) {
       AppUtils.showError(message: 'Failed to update team: $e');
@@ -138,12 +140,11 @@ class TeamsController extends GetxController {
 
   Future<void> leaveTeam(int teamId) async {
     try {
-      // Get current user ID from profile or auth
-      // This would need to be implemented based on your auth system
-      await _teamApiService.removeTeamMember(
-        teamId,
-        0,
-      ); // Replace 0 with actual user ID
+      final profileController = Get.find<ProfileController>();
+      final userId = profileController.userProfile['id'];
+      if (userId == null) return;
+      
+      await _teamApiService.removeTeamMember(teamId, userId);
       AppUtils.showSuccess(message: 'Left team successfully');
       fetchTeams();
     } catch (e) {
@@ -229,9 +230,10 @@ class TeamsController extends GetxController {
   }
 
   bool isUserTeamOwner(Team team) {
-    // This would need to be implemented based on your auth system
-    // Check if current user ID matches team.ownerId
-    return false; // Placeholder
+    if (!Get.isRegistered<ProfileController>()) return false;
+    final profileController = Get.find<ProfileController>();
+    final userId = profileController.userProfile['id'];
+    return team.ownerId == userId;
   }
 
   bool isUserTeamMember(Team team) {

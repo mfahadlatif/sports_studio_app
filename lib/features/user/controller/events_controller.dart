@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/features/user/controller/profile_controller.dart';
 
 class EventsController extends GetxController {
   final RxBool isLoadingEvents = false.obs;
@@ -59,7 +60,9 @@ class EventsController extends GetxController {
   Future<void> fetchUserEvents() async {
     isLoadingEvents.value = true;
     try {
-      final eventList = await _eventApiService.getUserEvents();
+      final profileController = Get.find<ProfileController>();
+      final userId = profileController.userProfile['id'];
+      final eventList = await _eventApiService.getUserEvents(organizerId: userId);
       userEvents.value = eventList;
     } catch (e) {
       AppUtils.showError(message: 'Failed to fetch user events: $e');
@@ -134,7 +137,7 @@ class EventsController extends GetxController {
     }
   }
 
-  Future<void> updateEvent(int eventId) async {
+  Future<void> updateEvent(int id, String slug) async {
     if (eventNameController.text.trim().isEmpty) {
       AppUtils.showError(message: 'Event name is required');
       return;
@@ -164,8 +167,13 @@ class EventsController extends GetxController {
         'event_type': eventVisibility.value,
       };
 
-      final event = await _eventApiService.updateEvent(eventId, eventData);
+      final event = await _eventApiService.updateEvent(slug, eventData);
       AppUtils.showSuccess(message: 'Event updated successfully!');
+      
+      // Update in lists
+      final idx = userEvents.indexWhere((e) => e.id == id);
+      if (idx != -1) userEvents[idx] = event;
+      
       selectedEvent.value = event;
       Get.back();
     } catch (e) {
@@ -175,12 +183,12 @@ class EventsController extends GetxController {
     }
   }
 
-  Future<void> deleteEvent(int eventId) async {
+  Future<void> deleteEvent(int id, String slug) async {
     try {
-      await _eventApiService.deleteEvent(eventId);
+      await _eventApiService.deleteEvent(slug);
       AppUtils.showSuccess(message: 'Event deleted successfully');
-      userEvents.removeWhere((event) => event.id == eventId);
-      events.removeWhere((event) => event.id == eventId);
+      userEvents.removeWhere((event) => event.id == id);
+      events.removeWhere((event) => event.id == id);
       Get.back();
     } catch (e) {
       AppUtils.showError(message: 'Failed to delete event: $e');
@@ -339,8 +347,8 @@ class EventsController extends GetxController {
     eventRegistrationFeeController.text = event.registrationFee.toString();
     eventStartDate.value = event.startTime;
     eventEndDate.value = event.endTime;
-    eventVisibility.value = event.status;
-    eventImages.value = event.image != null ? [event.image!] : [];
+    eventVisibility.value = event.eventType;
+    eventImages.value = event.images.isNotEmpty ? List<String>.from(event.images) : (event.image != null ? [event.image!] : []);
     eventLatitude.value = event.latitude ?? 0.0;
     eventLongitude.value = event.longitude ?? 0.0;
   }

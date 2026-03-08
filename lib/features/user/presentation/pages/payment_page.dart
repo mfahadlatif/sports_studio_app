@@ -7,10 +7,11 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/widgets/app_loading_overlay.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/core/services/safepay_service.dart';
+import 'package:sports_studio/widgets/safepay_payment_widget.dart';
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -177,27 +178,24 @@ class _PaymentPageState extends State<PaymentPage> {
     // Safepay logic
     AppLoadingOverlay.show(context, message: 'Redirecting to Safepay...');
     try {
-      final response = await ApiClient().dio.post(
-        '/safepay/init', // Corrected endpoint based on original code
-        data: {'amount': amount, 'currency': 'PKR'},
+      final safepayService = Get.find<SafepayService>();
+      final response = await safepayService.initiateCheckout(
+        amount: amount,
       );
+
+      final tracker = response?['tracker'];
+      final token = response?['token'];
 
       AppLoadingOverlay.hide(context);
 
-      if (response.statusCode == 200) {
-        final String tracker = response.data['tracker'];
-        final String env = response.data['environment'] ?? 'sandbox';
-        final String baseUrl = env == 'sandbox'
-            ? 'https://sandbox.api.getsafepay.com/checkout/pay'
-            : 'https://api.getsafepay.com/checkout/pay';
-
-        // 2. Open WebView for Payment
-        final checkoutUrl =
-            '$baseUrl?tracker=$tracker&environment=$env&source=mobile';
-
+      if (tracker != null) {
         if (mounted) {
           final result = await Get.to(
-            () => SafepayWebViewPage(url: checkoutUrl),
+            () => SafepayPaymentWidget(
+              amount: amount,
+              tracker: tracker,
+              token: token,
+            ),
           );
           if (result == true) {
             await _finalizeAfterOnlinePayment();
@@ -208,8 +206,6 @@ class _PaymentPageState extends State<PaymentPage> {
             );
           }
         }
-      } else {
-        throw 'Failed to initialize Safepay';
       }
     } catch (e) {
       AppLoadingOverlay.hide(context);
@@ -550,26 +546,3 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 }
 
-class SafepayWebViewPage extends StatelessWidget {
-  final String url;
-  const SafepayWebViewPage({super.key, required this.url});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Safepay Payment'), centerTitle: true),
-      body: InAppWebView(
-        initialUrlRequest: URLRequest(url: WebUri(url)),
-        onUpdateVisitedHistory: (controller, url, isReload) {
-          // Detect success based on 'sig' parameter or common success paths
-          final urlStr = url.toString();
-          if (urlStr.contains('sig=') ||
-              urlStr.contains('success') ||
-              urlStr.contains('complete')) {
-            Get.back(result: true);
-          }
-        },
-      ),
-    );
-  }
-}

@@ -387,10 +387,15 @@ class EventApiService {
     }
   }
 
-  Future<List<Event>> getUserEvents() async {
+  Future<List<Event>> getUserEvents({int? organizerId}) async {
     try {
       print('🌐 [EventAPI] Fetching user events...');
-      final response = await _client.dio.get('/events');
+      final response = await _client.dio.get(
+        '/events',
+        queryParameters: {
+          if (organizerId != null) 'organizer_id': organizerId,
+        },
+      );
       if (response.statusCode == 200) {
         final raw = response.data;
         final List data = raw is List ? raw : (raw['data'] as List? ?? []);
@@ -421,12 +426,11 @@ class EventApiService {
     }
   }
 
-  Future<Event> updateEvent(int id, Map<String, dynamic> eventData) async {
+  Future<Event> updateEvent(String slug, Map<String, dynamic> eventData) async {
     try {
-      print('🌐 [EventAPI] Updating event $id...');
-      final response = await _client.dio.put('/events/$id', data: eventData);
+      print('🌐 [EventAPI] Updating event $slug...');
+      final response = await _client.dio.put('/events/$slug', data: eventData);
       if (response.statusCode == 200) {
-        print('✅ [EventAPI] Event updated: $id');
         return Event.fromJson(response.data);
       }
       throw Exception('Failed to update event');
@@ -436,14 +440,13 @@ class EventApiService {
     }
   }
 
-  Future<void> deleteEvent(int id) async {
+  Future<void> deleteEvent(String slug) async {
     try {
-      print('🌐 [EventAPI] Deleting event $id...');
-      final response = await _client.dio.delete('/events/$id');
+      print('🌐 [EventAPI] Deleting event $slug...');
+      final response = await _client.dio.delete('/events/$slug');
       if (response.statusCode != 204) {
         throw Exception('Failed to delete event');
       }
-      print('✅ [EventAPI] Event deleted: $id');
     } catch (e) {
       print('❌ [EventAPI] deleteEvent error: $e');
       throw Exception('Failed to delete event: $e');
@@ -1092,7 +1095,7 @@ class UserApiService {
       throw Exception('Failed to fetch user profile');
     } catch (e) {
       print('❌ [UserAPI] getCurrentUser error: $e');
-      throw Exception('Failed to fetch user profile: $e');
+      rethrow;
     }
   }
 
@@ -1141,7 +1144,7 @@ class UserApiService {
       throw Exception('Failed to update profile');
     } catch (e) {
       print('❌ [UserAPI] updateProfile error: $e');
-      throw Exception('Failed to update profile: $e');
+      rethrow;
     }
   }
 

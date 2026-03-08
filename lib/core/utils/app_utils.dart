@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:dio/dio.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 
 class AppUtils {
@@ -31,12 +32,32 @@ class AppUtils {
 
   static void showError({
     String title = 'Error',
-    required String message,
+    required dynamic message,
     Duration? duration,
   }) {
+    String errorMessage = '';
+
+    if (message is DioException) {
+      errorMessage = _handleDioError(message);
+    } else {
+      final msgStr = message.toString();
+      // If the string contains technical Dio error info, clean it up
+      if (msgStr.contains('DioException') || msgStr.contains('timeout')) {
+        if (msgStr.contains('timeout')) {
+          errorMessage = 'Connection timed out. Please check your internet.';
+        } else if (msgStr.contains('connection')) {
+          errorMessage = 'Network error. Please check your connection.';
+        } else {
+          errorMessage = 'Something went wrong. Please try again later.';
+        }
+      } else {
+        errorMessage = msgStr;
+      }
+    }
+
     Get.snackbar(
       title,
-      message,
+      errorMessage,
       backgroundColor: AppColors.error,
       colorText: Colors.white,
       icon: const Icon(Icons.error_outline, color: Colors.white),
@@ -53,6 +74,27 @@ class AppUtils {
         ),
       ],
     );
+  }
+
+  static String _handleDioError(DioException error) {
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return 'Connection timed out. Please check your internet and try again.';
+      case DioExceptionType.badResponse:
+        final data = error.response?.data;
+        if (data != null && data is Map && data.containsKey('message')) {
+          return data['message'];
+        }
+        return 'Server error (${error.response?.statusCode}). Please try again later.';
+      case DioExceptionType.cancel:
+        return 'Request was cancelled.';
+      case DioExceptionType.connectionError:
+        return 'No internet connection found. Please check your WiFi or mobile data.';
+      default:
+        return 'Something went wrong. Please try again.';
+    }
   }
 
   static void showInfo({

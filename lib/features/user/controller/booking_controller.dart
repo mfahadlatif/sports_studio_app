@@ -2,10 +2,10 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/core/services/data_fetch_service.dart';
+import 'package:sports_studio/core/services/safepay_service.dart';
+import 'package:sports_studio/widgets/safepay_payment_widget.dart';
 
 class BookingController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
@@ -44,8 +44,8 @@ class BookingController extends GetxController {
 
   final BookingApiService _bookingApiService = BookingApiService();
   final DealApiService _dealApiService = DealApiService();
-  final PaymentApiService _paymentApiService = PaymentApiService();
   final DataFetchService _dataFetchService = Get.find<DataFetchService>();
+  final SafepayService _safepayService = Get.find<SafepayService>();
 
   @override
   void onInit() {
@@ -228,22 +228,6 @@ class BookingController extends GetxController {
       return;
     }
 
-    // Check Phone Verification
-    final profileController = Get.find<ProfileController>();
-    final isVerified = profileController.userProfile['phone_verified'] ?? false;
-
-    if (!isVerified) {
-      Get.dialog(
-        PhoneVerificationDialog(
-          initialPhone:
-              profileController.userProfile['phone']?.toString() ?? '',
-          onVerified: () {
-            // Verification successful, user can now retry booking
-          },
-        ),
-      );
-      return;
-    }
 
     isBooking.value = true;
     try {
@@ -286,31 +270,110 @@ class BookingController extends GetxController {
     }
   }
 
-  Future<void> initiatePayment(int bookingId, double amount) async {
-    try {
-      final paymentData = {
-        'amount': amount,
-        'booking_id': bookingId,
-        'callback_url': 'sportsstudio://payment-success',
-      };
+  /// Start a booking with direct Safepay payment flow.
+  /// This implements: "if completed payment then book the ground"
+  Future<void> bookWithSafepay() async {
+    final ground = Get.arguments;
+    if (ground == null || ground['id'] == null) {
+      AppUtils.showError(message: 'Ground data is missing.');
+      return;
+    }
 
-      final response = await _paymentApiService.initiateSafepayPayment(
-        paymentData,
+
+    if (selectedSlots.isEmpty) {
+      AppUtils.showError(message: 'Please select at least one time slot.');
+      return;
+    }
+
+    isBooking.value = true;
+    try {
+      // Step 1: Initiate Safepay via Service to get tracker
+      final response = await _safepayService.initiateCheckout(
+        amount: totalPrice,
       );
 
-      // Launch Safepay payment URL
-      // You'll need to implement URL launcher here
-      AppUtils.showSuccess(message: 'Payment initiated successfully');
+      final tracker = response?['tracker'];
+      final token = response?['token'];
+
+      if (tracker == null) {
+        AppUtils.showError(message: 'Failed to generate payment tracker. Please try again.');
+        isBooking.value = false;
+        return;
+      }
+
+      // Step 2: Open Safepay Widget (Package)
+      final result = await Get.to(() => SafepayPaymentWidget(
+        amount: totalPrice,
+        tracker: tracker,
+        token: token,
+      ));
+
+      if (result == true) {
+        // Step 3: Payment successful - Now actually create the booking
+        final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate.value);
+        final startTimeStr = DateFormat('HH:mm').format(
+          DateFormat('hh:mm a').parse(selectedSlots.first),
+        );
+        final endTimeStr = DateFormat('HH:mm').format(
+          DateFormat('hh:mm a').parse(selectedSlots.last).add(const Duration(hours: 1)),
+        );
+
+        final bookingData = {
+          'ground_id': ground['id'],
+          'start_time': '$formattedDate $startTimeStr:00',
+          'end_time': '$formattedDate $endTimeStr:00',
+          'total_price': totalPrice,
+          'players': players.value,
+          'payment_method': 'safepay',
+          'payment_status': 'paid',
+        };
+
+        final booking = await _bookingApiService.createBooking(bookingData);
+        
+        // Finalize if needed (some backends require a separate call)
+        try {
+          await _bookingApiService.finalizePayment(booking.id);
+        } catch (_) {}
+
+        AppUtils.showSuccess(message: 'Payment and booking successful!');
+        Get.offAllNamed('/landing');
+        selectedSlots.clear();
+      } else {
+        AppUtils.showInfo(title: 'Cancelled', message: 'Payment cancelled. Booking was not completed.');
+      }
     } catch (e) {
-      AppUtils.showError(message: 'Failed to initiate payment: $e');
+      AppUtils.showError(message: e);
+    } finally {
+      isBooking.value = false;
+    }
+  }
+
+  Future<void> initiatePayment(int bookingId, double amount) async {
+    try {
+      final response = await _safepayService.initiateCheckout(
+        amount: amount,
+      );
+      
+      final tracker = response?['tracker'];
+
+      if (tracker != null) {
+        final token = response?['token'];
+        Get.to(() => SafepayPaymentWidget(
+              amount: amount,
+              tracker: tracker,
+              token: token,
+            ));
+        AppUtils.showSuccess(message: 'Payment initiated successfully');
+      }
+    } catch (e) {
+      AppUtils.showError(message: e);
     }
   }
 
   Future<void> verifyPayment(String token) async {
     try {
-      final response = await _paymentApiService.verifySafepayPayment(token);
-
-      if (response['status'] == 'success') {
+      final isValid = await _safepayService.verifyPayment(token);
+      if (isValid) {
         AppUtils.showSuccess(message: 'Payment verified successfully');
         Get.offAllNamed('/my-bookings');
       } else {

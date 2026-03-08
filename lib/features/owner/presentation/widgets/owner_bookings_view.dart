@@ -130,7 +130,7 @@ class OwnerBookingsView extends StatelessWidget {
     final date = booking['date'] ?? '';
     final startTime = booking['start_time'] ?? '';
     final endTime = booking['end_time'] ?? '';
-    final totalAmount = booking['total_amount'] ?? booking['total_price'] ?? 0;
+    final totalAmount = double.tryParse((booking['total_amount'] ?? booking['total_price'] ?? 0).toString()) ?? 0.0;
     final status = booking['status'] ?? 'pending';
     final paymentStatus = booking['payment_status'] ?? 'unpaid';
 

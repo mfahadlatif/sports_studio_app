@@ -22,6 +22,7 @@ import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/teams_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
@@ -36,12 +37,15 @@ import 'package:sports_studio/features/admin/presentation/pages/admin_users_page
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/core/services/app_initialization_service.dart';
 import 'package:sports_studio/core/services/data_fetch_service.dart';
+import 'package:sports_studio/core/services/safepay_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await dotenv.load(fileName: ".env");
 
   const storage = FlutterSecureStorage();
   final String? hasSeenOnboarding = await storage.read(
@@ -62,6 +66,7 @@ void main() async {
   // Initialize app services
   Get.put(AppInitializationService(), permanent: true);
   Get.put(DataFetchService(), permanent: true);
+  await Get.putAsync(() => SafepayService().init(), permanent: true);
 
   // Restore Role from storage
   final String? savedRole = await storage.read(key: 'user_role');
@@ -180,6 +185,11 @@ class SportsStudioApp extends StatelessWidget {
         GetPage(
           name: '/teams',
           page: () => const TeamsPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/managed-events',
+          page: () => const ManagedEventsPage(),
           transition: Transition.rightToLeft,
         ),
         GetPage(

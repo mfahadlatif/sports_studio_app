@@ -24,40 +24,7 @@ class HomeView extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 1000),
             child: Column(
               children: [
-                const SizedBox(height: AppSpacing.m),
-                // Premium Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: AppColors.primary.withOpacity(0.2),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.auto_awesome,
-                        color: AppColors.primary,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'FIND YOUR NEXT MATCH',
-                        style: AppTextStyles.label.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                
                 const HeroSection(),
                 const SizedBox(height: AppSpacing.m),
 

@@ -87,30 +87,7 @@ class FavoritesPage extends StatelessWidget {
                     itemCount: controller.favoriteGrounds.length,
                     itemBuilder: (ctx, i) {
                       final ground = controller.favoriteGrounds[i];
-                      return Stack(
-                        children: [
-                          GroundCardWide(ground: ground),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: GestureDetector(
-                              onTap: () => controller.toggleFavorite(ground.id),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: const BoxDecoration(
-                                  color: Colors.red,
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.favorite,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
+                      return GroundCardWide(ground: ground);
                     },
                   ),
                 ),

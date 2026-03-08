@@ -49,7 +49,7 @@ class BookingsController extends GetxController {
               'sport_type': b['ground']?['type'] ?? 'Sports',
               'start': b['start_time'],
               'end': b['end_time'],
-              'price': b['total_price'] ?? b['total_amount'] ?? 0,
+              'price': double.tryParse((b['total_price'] ?? b['total_amount'] ?? 0).toString()) ?? 0.0,
             },
           )
           .toList();
@@ -74,7 +74,7 @@ class BookingsController extends GetxController {
                 'sport_type': 'Event',
                 'start': p['event']?['start_time'],
                 'end': p['event']?['end_time'],
-                'price': p['event']?['registration_fee'] ?? 0,
+                'price': double.tryParse((p['event']?['registration_fee'] ?? 0).toString()) ?? 0.0,
                 'status': p['status'] == 'accepted'
                     ? 'confirmed'
                     : (p['status'] == 'pending' ? 'pending' : 'cancelled'),

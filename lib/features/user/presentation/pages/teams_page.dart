@@ -17,32 +17,64 @@ class TeamsPage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showCreateTeamDialog(context, controller),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: AppColors.primaryGradient,
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x6621AF6F),
+                blurRadius: 15,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.add_rounded, color: Colors.white, size: 30),
+        ),
+      ),
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 120,
-            floating: true,
+            expandedHeight: 140,
+            floating: false,
             pinned: true,
             elevation: 0,
             backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                'Community Teams',
-                style: AppTextStyles.h2.copyWith(color: Colors.white),
-              ),
-              centerTitle: false,
-              titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
-            ),
-            actions: [
-              IconButton(
-                onPressed: () => _showCreateTeamDialog(context, controller),
-                icon: const CircleAvatar(
-                  backgroundColor: Colors.white,
-                  child: Icon(Icons.add, color: AppColors.primary),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: AppColors.primaryGradient,
+                ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      right: -30,
+                      top: -30,
+                      child: CircleAvatar(
+                        radius: 80,
+                        backgroundColor: Colors.white.withOpacity(0.1),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
-            ],
+              title: Text(
+                'Community Teams',
+                style: AppTextStyles.h2.copyWith(
+                  color: Colors.white,
+                  letterSpacing: -0.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              centerTitle: false,
+              titlePadding: const EdgeInsets.only(left: 20, bottom: 20),
+            ),
           ),
           SliverToBoxAdapter(
             child: Padding(
@@ -72,7 +104,7 @@ class TeamsPage extends StatelessWidget {
                           const SizedBox(height: 16),
                       itemBuilder: (context, index) {
                         final Team team = controller.teams[index];
-                        return _teamCard(team, controller);
+                        return _teamCard(context, team, controller);
                       },
                     );
                   }),
@@ -86,129 +118,189 @@ class TeamsPage extends StatelessWidget {
   }
 
   Widget _buildSearchHeader(TeamsController controller) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Find teams or sports...',
-          border: InputBorder.none,
-          icon: Icon(Icons.search, color: AppColors.primary.withOpacity(0.6)),
-          hintStyle: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textSecondary.withOpacity(0.5),
-          ),
+    return TextField(
+      onChanged: (v) => controller.updateSearchQuery(v),
+      style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        hintText: 'Search teams or sports...',
+        border: InputBorder.none,
+        hintStyle: AppTextStyles.bodyMedium.copyWith(
+          color: AppColors.textMuted,
+          fontWeight: FontWeight.normal,
         ),
-        style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.bold),
-        onChanged: (v) => controller.updateSearchQuery(v),
+        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
+        suffixIcon: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 18),
+        ),
       ),
     );
   }
 
-  Widget _teamCard(Team team, TeamsController controller) {
+  Widget _teamCard(BuildContext context, Team team, TeamsController controller) {
     final members = team.members ?? [];
-    return InkWell(
-      onTap: () {
-        controller.selectedTeam.value = team;
-        // Navigation to team details could be added here
-      },
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: AppColors.border.withOpacity(0.5)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.emoji_events,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    team.sport ?? 'General',
-                    style: AppTextStyles.label.copyWith(fontSize: 10),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(team.name, style: AppTextStyles.h2),
-            if (team.description != null && team.description!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                team.description!,
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-            const SizedBox(height: 20),
-            const Divider(),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(28),
+          onTap: () {
+            controller.selectedTeam.value = team;
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildAvatars(members),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${members.length} Members',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.stars_rounded, color: AppColors.primary, size: 14),
+                          const SizedBox(width: 4),
+                          Text(
+                            team.sport?.toUpperCase() ?? 'GENERAL',
+                            style: AppTextStyles.label.copyWith(
+                              color: AppColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (controller.isUserTeamOwner(team))
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            controller.isUpdating.value = true;
+                            controller.populateTeamForm(team);
+                            _showCreateTeamDialog(context, controller, isUpdating: true, teamId: team.id);
+                          } else if (value == 'delete') {
+                            _showDeleteConfirmation(context, controller, team);
+                          }
+                        },
+                        icon: const Icon(Icons.more_horiz_rounded, color: AppColors.textMuted),
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_outlined, size: 20),
+                                SizedBox(width: 8),
+                                Text('Edit Team'),
+                              ],
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                SizedBox(width: 8),
+                                Text('Delete Team', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      const Icon(
+                        Icons.more_horiz_rounded,
+                        color: AppColors.textMuted,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  team.name,
+                  style: AppTextStyles.h3.copyWith(fontSize: 20),
+                ),
+                if (team.description != null && team.description!.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    team.description!,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      height: 1.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                const SizedBox(height: 20),
+                const Divider(height: 1, color: AppColors.border),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        _buildAvatars(members),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${members.length} Members',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              'Active squad',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textMuted,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 18,
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
                 ),
-                const Icon(
-                  Icons.arrow_forward_ios,
-                  size: 14,
-                  color: AppColors.textSecondary,
-                ),
               ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -276,135 +368,193 @@ class TeamsPage extends StatelessWidget {
 
   Widget _buildEmptyState(BuildContext context, TeamsController controller) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 60),
-          Icon(
-            Icons.people_alt_outlined,
-            size: 80,
-            color: AppColors.textSecondary.withOpacity(0.2),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No teams found',
-            style: AppTextStyles.h2.copyWith(color: AppColors.textSecondary),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              "You haven't joined or created any teams yet. Start by creating your first team!",
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const SizedBox(height: 60),
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.group_add_rounded,
+                size: 64,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 32),
+            Text(
+              'No teams found',
+              style: AppTextStyles.h2,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "You haven't joined or created any teams yet. Start by creating your first team and bring the competition!",
               textAlign: TextAlign.center,
               style: AppTextStyles.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
+                height: 1.5,
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: 200,
-            child: AppButton(
-              label: 'Create Team',
-              onPressed: () => _showCreateTeamDialog(context, controller),
-              leadingIcon: const Icon(Icons.add, color: Colors.white, size: 20),
+            const SizedBox(height: 40),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                label: 'Create Team Now',
+                onPressed: () => _showCreateTeamDialog(context, controller),
+                leadingIcon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 22),
+              ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context, TeamsController controller, Team team) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: const Text('Delete Team'),
+        content: Text('Are you sure you want to delete "${team.name}"? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Get.back(); // Close dialog
+              controller.deleteTeam(team.id);
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
     );
   }
 
-  void _showCreateTeamDialog(BuildContext context, TeamsController controller) {
-    controller.clearTeamForm();
-    controller.teamSportController.text = 'Cricket';
+  void _showCreateTeamDialog(BuildContext context, TeamsController controller, {bool isUpdating = false, int? teamId}) {
+    if (!isUpdating) {
+      controller.clearTeamForm();
+      controller.isUpdating.value = false;
+      controller.teamSportController.text = 'Cricket';
+    }
 
     Get.bottomSheet(
       isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       Container(
         padding: EdgeInsets.only(
           left: AppSpacing.l,
           right: AppSpacing.l,
-          top: AppSpacing.l,
+          top: 32,
           bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.xl,
         ),
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
         ),
         child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Create Your Team', style: AppTextStyles.h2),
-              const SizedBox(height: 8),
-              Text(
-                'Build your roster and start competing.',
-                style: AppTextStyles.bodySmall,
-              ),
-              const SizedBox(height: 20),
-              _lbl('Team Name'),
-              TextField(
-                controller: controller.teamNameController,
-                decoration: InputDecoration(
-                  hintText: 'e.g. Dream XI',
-                  filled: true,
-                  fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 24),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              Text(isUpdating ? 'Edit Team' : 'Create Your Team', style: AppTextStyles.h1),
+              const SizedBox(height: 8),
+              Text(
+                isUpdating ? 'Update your team details here.' : 'Build your roster and start competing today.',
+                style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 32),
+              _lbl('Team Name'),
+              TextField(
+                controller: controller.teamNameController,
+                style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+                decoration: InputDecoration(
+                  hintText: 'e.g. Dream XI',
+                  filled: true,
+                  fillColor: AppColors.inputBackground,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.all(20),
+                ),
+              ),
+              const SizedBox(height: 20),
               _lbl('Primary Sport'),
               DropdownButtonFormField<String>(
                 value: controller.teamSportController.text,
+                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
+                dropdownColor: Colors.white,
+                borderRadius: BorderRadius.circular(20),
                 items: ['Cricket', 'Football', 'Badminton', 'Padel', 'Tennis']
-                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s, style: AppTextStyles.bodyMedium)))
                     .toList(),
                 onChanged: (v) =>
                     controller.teamSportController.text = v ?? 'Cricket',
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: AppColors.inputBackground,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide.none,
                   ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               _lbl('Description (Optional)'),
               TextField(
                 controller: controller.teamDescriptionController,
-                maxLines: 3,
+                maxLines: 4,
+                style: AppTextStyles.bodyMedium,
                 decoration: InputDecoration(
-                  hintText: 'Brief about your team',
+                  hintText: 'Brief about your team mission...',
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: AppColors.inputBackground,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide.none,
                   ),
+                  contentPadding: const EdgeInsets.all(20),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 36),
               Obx(
                 () => AppButton(
-                  label: 'Create Team',
+                  label: isUpdating ? 'Save Changes' : 'Launch Team',
                   isLoading: controller.isCreatingTeam.value,
                   onPressed: () {
                     if (controller.teamNameController.text.isEmpty) {
                       Get.snackbar('Error', 'Please enter a team name');
                       return;
                     }
-                    controller.createTeam();
+                    if (isUpdating && teamId != null) {
+                      controller.updateTeam(teamId);
+                    } else {
+                      controller.createTeam();
+                    }
                   },
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
             ],
           ),
         ),

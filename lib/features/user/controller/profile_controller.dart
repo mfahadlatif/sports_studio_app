@@ -55,7 +55,7 @@ class ProfileController extends GetxController {
       emailController.text = user.email;
       phoneController.text = user.phone ?? '';
     } catch (e) {
-      AppUtils.showError(message: 'Failed to fetch profile: $e');
+      AppUtils.showError(message: e);
     } finally {
       isLoadingProfile.value = false;
     }
@@ -92,7 +92,7 @@ class ProfileController extends GetxController {
       AppUtils.showSuccess(message: 'Profile updated successfully');
       Get.back();
     } catch (e) {
-      AppUtils.showError(message: 'Failed to update profile: $e');
+      AppUtils.showError(message: e);
     } finally {
       isUpdatingProfile.value = false;
     }
@@ -124,7 +124,7 @@ class ProfileController extends GetxController {
       Get.back();
       clearPasswordFields();
     } catch (e) {
-      AppUtils.showError(message: 'Failed to change password: $e');
+      AppUtils.showError(message: e);
     } finally {
       isChangingPassword.value = false;
     }
@@ -154,7 +154,7 @@ class ProfileController extends GetxController {
       AppUtils.showSuccess(message: 'Profile picture updated');
     } catch (e) {
       print('❌ [ProfileCtrl] updateAvatar error: $e');
-      AppUtils.showError(message: 'Failed to update profile picture: $e');
+      AppUtils.showError(message: e);
     } finally {
       isUploadingAvatar.value = false;
     }
@@ -172,7 +172,7 @@ class ProfileController extends GetxController {
           .where((n) => n.readAt == null)
           .length;
     } catch (e) {
-      AppUtils.showError(message: 'Failed to fetch notifications: $e');
+      AppUtils.showError(message: e);
     }
   }
 
@@ -203,7 +203,7 @@ class ProfileController extends GetxController {
 
       AppUtils.showSuccess(message: 'Marked as read');
     } catch (e) {
-      AppUtils.showError(message: 'Failed to mark as read: $e');
+      AppUtils.showError(message: e);
     }
   }
 
@@ -230,7 +230,7 @@ class ProfileController extends GetxController {
 
       AppUtils.showSuccess(message: 'All notifications marked as read');
     } catch (e) {
-      AppUtils.showError(message: 'Failed to mark all as read: $e');
+      AppUtils.showError(message: e);
     }
   }
 
@@ -246,7 +246,7 @@ class ProfileController extends GetxController {
 
       AppUtils.showSuccess(message: 'Notification deleted');
     } catch (e) {
-      AppUtils.showError(message: 'Failed to delete notification: $e');
+      AppUtils.showError(message: e);
     }
   }
 
@@ -255,7 +255,7 @@ class ProfileController extends GetxController {
       await _userApiService.requestPhoneVerification(phone);
       AppUtils.showSuccess(message: 'Verification code sent to $phone');
     } catch (e) {
-      AppUtils.showError(message: 'Failed to send verification code: $e');
+      AppUtils.showError(message: e);
     }
   }
 
@@ -272,7 +272,7 @@ class ProfileController extends GetxController {
 
       return response;
     } catch (e) {
-      AppUtils.showError(message: 'Failed to verify phone: $e');
+      AppUtils.showError(message: e);
       rethrow;
     }
   }
@@ -281,7 +281,7 @@ class ProfileController extends GetxController {
     try {
       return await _userApiService.checkPhoneVerificationStatus();
     } catch (e) {
-      AppUtils.showError(message: 'Failed to check verification status: $e');
+      AppUtils.showError(message: e);
       rethrow;
     }
   }

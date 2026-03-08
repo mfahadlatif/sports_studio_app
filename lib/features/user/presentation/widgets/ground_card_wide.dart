@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
@@ -14,14 +15,20 @@ class GroundCardWide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = ground['name'] ?? 'Premium Cricket Arena';
-    final price = ground['price_per_hour'] ?? '3,000';
-    final complex = ground['complex'] ?? {};
-    final address = complex['address'] ?? '—';
+    // Safely handle both Ground model and Map
+    final isModel = ground is Ground;
+    
+    final name = (isModel ? ground.name : ground['name']) ?? 'Premium Cricket Arena';
+    final price = (isModel ? ground.pricePerHour.toString() : ground['price_per_hour']?.toString()) ?? '3,000';
+    
+    // Complex might be a model or a Map
+    final complexData = isModel ? ground.complex : ground['complex'];
+    final bool isComplexModel = complexData is Complex;
+    final address = (isComplexModel ? complexData.address : complexData?['address']) ?? '—';
 
     final imageUrl = UrlHelper.getFirstImage(
-      ground['images'],
-      fallbackPath: ground['image_path'],
+      isModel ? ground.images : ground['images'],
+      fallbackPath: isModel ? null : ground['image_path'],
     );
 
     return GestureDetector(
@@ -184,7 +191,8 @@ class _FavoriteButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<FavoritesController>();
-    final id = int.tryParse(ground['id'].toString()) ?? 0;
+    final isModel = ground is Ground;
+    final id = isModel ? ground.id : (int.tryParse(ground['id']?.toString() ?? '0') ?? 0);
 
     return Obx(() {
       final isFav = controller.isFavorite(id);
