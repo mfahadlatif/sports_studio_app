@@ -155,7 +155,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                         crossAxisCount: 2,
                         crossAxisSpacing: AppSpacing.m,
                         mainAxisSpacing: AppSpacing.m,
-                        childAspectRatio: 1.6,
+                        childAspectRatio: 1.3,
                         children: [
                           _statCard(
                             'Total Revenue',
@@ -506,7 +506,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
       ),
       child: Column(
         children: _paymentBreakdown.map((method) {
-          final name = method['payment_method']?.toString() ?? 'online';
+          final String name = method['payment_method']?.toString() ?? 'online';
           final revenue = (method['revenue'] as num?)?.toDouble() ?? 0;
           final count = method['count'] ?? 0;
           final pct = (method['percentage'] as num?)?.toDouble() ?? 0;

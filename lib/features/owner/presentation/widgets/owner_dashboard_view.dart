@@ -63,7 +63,7 @@ class OwnerDashboardView extends StatelessWidget {
                     crossAxisCount: 2,
                     crossAxisSpacing: AppSpacing.m,
                     mainAxisSpacing: AppSpacing.m,
-                    childAspectRatio: 1.4,
+                    childAspectRatio: 1.2,
                     children: [
                       _buildStatCard(
                         'Total Complexes',

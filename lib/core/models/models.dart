@@ -42,10 +42,13 @@ class Complex {
       images: _parseJsonList<String>(json['images']),
       status: json['status'] ?? 'active',
       grounds: json['grounds'] != null && json['grounds'] is List
-          ? (json['grounds'] as List).map((g) => Ground.fromJson(g)).toList()
+          ? (json['grounds'] as List)
+              .where((g) => g != null && g is Map<String, dynamic>)
+              .map((g) => Ground.fromJson(g as Map<String, dynamic>))
+              .toList()
           : null,
       owner: json['owner'] != null && json['owner'] is Map<String, dynamic>
-          ? User.fromJson(json['owner'])
+          ? User.fromJson(json['owner'] as Map<String, dynamic>)
           : null,
       amenities: _parseJsonList<String>(json['amenities']),
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
@@ -819,7 +822,14 @@ List<T>? _parseJsonList<T>(dynamic data) {
               .toList()
           as List<T>;
     }
-    return data.cast<T>();
+    if (T == String) {
+      return data
+          .map((e) => e?.toString() ?? '')
+          .where((e) => e.toString().isNotEmpty)
+          .toList()
+          .cast<T>();
+    }
+    return data.whereType<T>().toList();
   }
   if (data is String && data.isNotEmpty) {
     if (data.trim().startsWith('[') || data.trim().startsWith('{')) {

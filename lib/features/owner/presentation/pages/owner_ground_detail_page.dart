@@ -135,12 +135,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
   }
 
   Widget _buildAppBar() {
-    List<String> images = [];
-    if (_ground != null &&
-        _ground['images'] != null &&
-        (_ground['images'] as List).isNotEmpty) {
-      images = List<String>.from(_ground['images']);
-    }
+    List<String> images = UrlHelper.getParsedImages(_ground?['images']);
 
     if (images.isEmpty) {
       images.add(

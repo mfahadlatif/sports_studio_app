@@ -104,7 +104,13 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
 
     if (g['amenities'] != null) {
       if (g['amenities'] is List) {
-        _selectedAmenities.addAll((g['amenities'] as List).cast<String>());
+        final list = g['amenities'] as List;
+        _selectedAmenities.addAll(
+          list
+              .map((e) => e?.toString() ?? '')
+              .where((e) => e.isNotEmpty)
+              .toList(),
+        );
       }
     }
   }
@@ -641,12 +647,9 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   Widget _buildImagePicker() {
     // Show existing images from backend when editing, plus newly picked images.
     final List<String> existingImages =
-        (_isEdit &&
-            _existingGround != null &&
-            _existingGround['images'] != null &&
-            _existingGround['images'] is List)
-        ? List<String>.from(_existingGround['images'])
-        : [];
+        (_isEdit && _existingGround != null)
+            ? UrlHelper.getParsedImages(_existingGround['images'])
+            : [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

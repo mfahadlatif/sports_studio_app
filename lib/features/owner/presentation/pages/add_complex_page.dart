@@ -79,15 +79,20 @@ class _AddComplexPageState extends State<AddComplexPage> {
       _isActive = status == 'active' || status == 1 || status == true;
 
       // Pre-select amenities
-      List amenities = [];
       try {
-        amenities = c['amenities'] is List
-            ? c['amenities']
-            : (c['amenities'] is String
+        if (c['amenities'] != null) {
+          final List amenitiesList = c['amenities'] is List
+              ? c['amenities']
+              : (c['amenities'] is String
                   ? (c['amenities'] as String).split(',')
                   : []);
+          _selectedAmenities.addAll(
+            amenitiesList
+                .map((e) => e?.toString() ?? '')
+                .where((e) => e.isNotEmpty),
+          );
+        }
       } catch (_) {}
-      _selectedAmenities.addAll(amenities.map((e) => e.toString()));
     }
   }
 

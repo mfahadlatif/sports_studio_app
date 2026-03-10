@@ -110,7 +110,7 @@ class _OwnerDealsPageState extends State<OwnerDealsPage> {
         final deal = _deals[i];
         final discount = deal['discount_percentage'];
         final code = deal['code'] ?? '';
-        final validUntil = deal['valid_until'] ?? '';
+        final validUntil = DateFormat('MMM dd, yyyy').format(DateTime.parse(deal['valid_until'])) ?? '';
         final groundName = deal['ground']?['name'];
 
         return Container(
@@ -126,104 +126,111 @@ class _OwnerDealsPageState extends State<OwnerDealsPage> {
               ),
             ],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Column(
             children: [
-              // Discount badge circle
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: AppColors.primaryLight,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    '$discount%',
-                    style: AppTextStyles.h3.copyWith(
-                      color: AppColors.primary,
-                      fontSize: 14,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Discount badge circle
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '$discount%',
+                        style: AppTextStyles.h3.copyWith(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(
-                          child: Text(
-                            deal['title'] ?? 'Deal',
-                            style: AppTextStyles.bodyLarge,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                deal['title'] ?? 'Deal',
+                                style: AppTextStyles.bodyLarge,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Active',
+                                style: AppTextStyles.label.copyWith(
+                                  color: Colors.green,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'Active',
-                            style: AppTextStyles.label.copyWith(
-                              color: Colors.green,
-                              fontSize: 10,
+                        if (groundName != null)
+                          Text(
+                            'For: $groundName',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.primary,
                             ),
                           ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: 13,
+                              color: AppColors.textMuted,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Until $validUntil',
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ],
                         ),
+                        if (code.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'CODE: $code',
+                              style: AppTextStyles.label.copyWith(
+                                letterSpacing: 2,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: AppSpacing.s),
                       ],
                     ),
-                    if (groundName != null)
-                      Text(
-                        'For: $groundName',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.calendar_today_outlined,
-                          size: 13,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Until $validUntil',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (code.isNotEmpty)
-                      Container(
-                        margin: const EdgeInsets.only(top: 6),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          'CODE: $code',
-                          style: AppTextStyles.label.copyWith(
-                            letterSpacing: 2,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: AppSpacing.s),
-                    Row(
+                  ),
+                ],
+              ),
+                Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
@@ -257,9 +264,7 @@ class _OwnerDealsPageState extends State<OwnerDealsPage> {
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
+                  
             ],
           ),
         );

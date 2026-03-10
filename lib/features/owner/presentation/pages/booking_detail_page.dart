@@ -163,8 +163,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   );
 
   Widget _buildBody() {
-    final status = _booking['status'] ?? 'pending';
-    final paymentStatus = _booking['payment_status'] ?? 'unpaid';
+    final String status = (_booking['status'] ?? 'pending').toString();
+    final String paymentStatus = (_booking['payment_status'] ?? 'unpaid').toString();
     final userName =
         _booking['user']?['name'] ??
         _booking['customer_name'] ??
