@@ -10,6 +10,7 @@ class OwnerController extends GetxController {
   final RxInt totalBookings = 0.obs;
   final RxInt totalGrounds = 0.obs;
   final RxDouble monthlyRevenue = 0.0.obs;
+  final RxInt pendingReviewsCount = 0.obs;
 
   final RxList<dynamic> recentBookings = <dynamic>[].obs;
   final RxList<dynamic> complexes = <dynamic>[].obs;
@@ -40,6 +41,8 @@ class OwnerController extends GetxController {
             int.tryParse(data['total_grounds']?.toString() ?? '0') ?? 0;
         monthlyRevenue.value =
             double.tryParse(data['monthly_revenue']?.toString() ?? '0') ?? 0.0;
+        pendingReviewsCount.value =
+            int.tryParse(data['pending_reviews_count']?.toString() ?? '0') ?? 0;
         if (data['recent_bookings'] != null) {
           recentBookings.value = data['recent_bookings'];
         }

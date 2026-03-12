@@ -30,14 +30,14 @@ class _OwnerDealsPageState extends State<OwnerDealsPage> {
   Future<void> _fetchDeals() async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiClient().dio.get('/public/deals');
+      final res = await ApiClient().dio.get('/deals');
       if (res.statusCode == 200) {
         setState(() => _deals = res.data is List ? res.data : []);
       }
     } catch (_) {
       // Show empty if API fails
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

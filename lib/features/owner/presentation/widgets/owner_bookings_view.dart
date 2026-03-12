@@ -11,8 +11,16 @@ import 'package:sports_studio/features/owner/controller/grounds_controller.dart'
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
-class OwnerBookingsView extends StatelessWidget {
+class OwnerBookingsView extends StatefulWidget {
   const OwnerBookingsView({super.key});
+
+  @override
+  State<OwnerBookingsView> createState() => _OwnerBookingsViewState();
+}
+
+class _OwnerBookingsViewState extends State<OwnerBookingsView> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   Widget build(BuildContext context) {
@@ -24,17 +32,45 @@ class OwnerBookingsView extends StatelessWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(isOwner ? 'All Bookings' : 'My Bookings'),
+          title: _isSearching
+              ? TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  style: const TextStyle(color: AppColors.primary),
+                  onChanged: (val) => controller.searchQuery.value = val,
+                  decoration: const InputDecoration(
+                    hintText: 'Search by client, ID, ground...',
+                    border: InputBorder.none,
+                    hintStyle: TextStyle(color: AppColors.textMuted),
+                  ),
+                )
+              : Text(isOwner ? 'All Bookings' : 'My Bookings'),
           actions: [
-            if (isOwner)
-              TextButton.icon(
-                onPressed: () => _showManualBookingSheet(context, controller),
-                icon: const Icon(Icons.add, color: AppColors.primary),
-                label: Text(
-                  'Manual Entry',
-                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
-                ),
+            if (_isSearching)
+              IconButton(
+                onPressed: () {
+                  setState(() => _isSearching = false);
+                  _searchController.clear();
+                  controller.searchQuery.value = '';
+                },
+                icon: const Icon(Icons.close),
+              )
+            else ...[
+              IconButton(
+                onPressed: () => setState(() => _isSearching = true),
+                icon: const Icon(Icons.search),
               ),
+              if (isOwner)
+                TextButton.icon(
+                  onPressed: () => _showManualBookingSheet(context, controller),
+                  icon: const Icon(Icons.add, color: AppColors.primary),
+                  label: Text(
+                    'Manual Entry',
+                    style:
+                        AppTextStyles.label.copyWith(color: AppColors.primary),
+                  ),
+                ),
+            ],
           ],
           bottom: const TabBar(
             isScrollable: false,
@@ -196,11 +232,36 @@ class OwnerBookingsView extends StatelessWidget {
                           userName.toString(),
                           style: AppTextStyles.bodyLarge,
                         ),
-                        Text(
-                          groundName.toString(),
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textMuted,
-                          ),
+                        Row(
+                          children: [
+                            Text(
+                              groundName.toString(),
+                              style: AppTextStyles.bodySmall.copyWith(
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                            if (booking['event'] != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.blue.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  'EVENT',
+                                  style: TextStyle(
+                                    color: Colors.blue,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),

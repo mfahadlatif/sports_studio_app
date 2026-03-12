@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:io';
@@ -139,33 +140,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         '🌐 [AddGround] Starting submission... (Edit: $_isEdit, ComplexId: $_complexId)',
       );
 
-      // Upload ground images first
-      final List<String> imagePaths = [];
-      for (final img in _pickedImages) {
-        try {
-          debugPrint('📸 [AddGround] Uploading image: ${img.name}');
-          final uploadForm = dio_form.FormData.fromMap({
-            'file': await dio_form.MultipartFile.fromFile(
-              img.path,
-              filename: img.name,
-            ),
-          });
-          final uploadRes = await ApiClient().dio.post(
-            '/upload',
-            data: uploadForm,
-          );
-          if (uploadRes.statusCode == 200 &&
-              uploadRes.data is Map &&
-              uploadRes.data['path'] != null) {
-            final path = uploadRes.data['path'].toString();
-            imagePaths.add(path);
-            debugPrint('✅ [AddGround] Image uploaded: $path');
-          }
-        } catch (e) {
-          debugPrint('⚠️ [AddGround] Image upload failed: $e');
-        }
-      }
-
       final Map<String, dynamic> dataMap = {
         'name': _nameCtrl.text.trim(),
         'location': _locationCtrl.text.trim(),
@@ -181,29 +155,55 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         if (_complexId != null) 'complex_id': _complexId,
         'latitude': _latCtrl.text.trim(),
         'longitude': _lngCtrl.text.trim(),
-        if (imagePaths.isNotEmpty) 'images': imagePaths,
       };
 
       debugPrint('📤 [AddGround] Payload: $dataMap');
 
+      dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
+      
+      // Add existing images if editing, but ONLY if they are paths (strings)
+      // Actually, standardizing: if we send 'images' as a list of strings, 
+      // the backend will replace the list. If we don't send anything, it keeps them.
+      // But if we pick NEW images, we want to append or replace?
+      // Event logic REPLACES paths if provided as array, and APPENDS files.
+      
+      if (_isEdit && _existingGround != null) {
+        final existing = UrlHelper.getParsedImages(_existingGround['images']);
+        if (existing.isNotEmpty) {
+           formData.fields.add(MapEntry('images', jsonEncode(existing)));
+        }
+        formData.fields.add(const MapEntry('_method', 'PUT'));
+      }
+
+      if (_pickedImages.isNotEmpty) {
+        for (var file in _pickedImages) {
+          formData.files.add(
+            MapEntry(
+              'images[]',
+              await dio_form.MultipartFile.fromFile(
+                file.path,
+                filename: file.name,
+              ),
+            ),
+          );
+        }
+      }
+
       final res = _isEdit
           ? await ApiClient().dio.post(
-              '/grounds/${_existingGround['id']}?_method=PUT',
-              data: dataMap,
+              '/grounds/${_existingGround['id']}',
+              data: formData,
             )
-          : await ApiClient().dio.post('/grounds', data: dataMap);
+          : await ApiClient().dio.post('/grounds', data: formData);
 
       debugPrint('✅ [AddGround] Response: ${res.statusCode} | ${res.data}');
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        Get.snackbar(
-          'Success',
-          _isEdit ? 'Ground updated successfully' : 'Ground published!',
-          backgroundColor: Colors.green.withOpacity(0.1),
-          colorText: Colors.green,
-          snackPosition: SnackPosition.BOTTOM,
-        );
         Get.back(result: true);
+        AppUtils.showSuccess(
+          message:
+              _isEdit ? 'Ground updated successfully' : 'Ground published!',
+        );
       } else {
         AppUtils.showError(
           message:

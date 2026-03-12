@@ -144,7 +144,7 @@ class _PaymentPageState extends State<PaymentPage> {
   String get _formattedTime {
     final minutes = (_secondsRemaining / 60).floor().toString().padLeft(2, '0');
     final seconds = (_secondsRemaining % 60).toString().padLeft(2, '0');
-    return '$minutes:$seconds';
+    return '$minutes:$seconds minutes';
   }
 
   Future<void> _handlePayment() async {

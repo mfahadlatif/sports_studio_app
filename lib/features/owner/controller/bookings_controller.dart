@@ -10,13 +10,15 @@ class BookingsController extends GetxController {
   final RxList<dynamic> pastBookings = <dynamic>[].obs;
   final RxList<dynamic> cancelledBookings = <dynamic>[].obs;
 
-  // New list to hold raw combined data if needed
+  final RxString searchQuery = ''.obs;
   final RxList<dynamic> allData = <dynamic>[].obs;
 
   @override
   void onInit() {
     super.onInit();
     fetchBookings();
+    // Re-fetch when search query changes (with debounce)
+    debounce(searchQuery, (_) => fetchBookings(), time: const Duration(milliseconds: 500));
   }
 
   Future<void> fetchBookings() async {
@@ -28,9 +30,15 @@ class BookingsController extends GetxController {
         'Accept': 'application/json',
       };
 
+      final Map<String, dynamic> queryParams = {};
+      if (searchQuery.isNotEmpty) {
+        queryParams['search'] = searchQuery.value;
+      }
+
       // 1. Fetch Ground Bookings
       final bookingResponse = await ApiClient().dio.get(
         '/bookings',
+        queryParameters: queryParams,
         options: Options(headers: headers),
       );
       print('🌐 [Bookings] Raw response: ${bookingResponse.data}');

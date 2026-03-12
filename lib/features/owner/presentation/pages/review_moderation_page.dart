@@ -43,26 +43,18 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
         }
       }
 
-      // Fetch reviews per ground
       final allReviews = <Map<String, dynamic>>[];
-      for (final g in _grounds) {
-        try {
-          final rRes = await ApiClient().dio.get(
-            '/public/reviews?ground_id=${g['id']}',
-          );
-          if (rRes.statusCode == 200) {
-            final data = rRes.data is List
-                ? rRes.data
-                : (rRes.data['data'] ?? []);
-            for (final r in data) {
-              allReviews.add({
-                ...Map<String, dynamic>.from(r),
-                'ground_name': g['name'],
-                'status': r['status'] ?? 'active',
-              });
-            }
-          }
-        } catch (_) {}
+      // Fetch all reviews for owner's grounds in one go
+      final rRes = await ApiClient().dio.get('/owner/reviews');
+      if (rRes.statusCode == 200) {
+        final data = rRes.data is List ? rRes.data : (rRes.data['data'] ?? []);
+        for (final r in data) {
+          allReviews.add({
+            ...Map<String, dynamic>.from(r),
+            'ground_name': r['ground']?['name'] ?? 'Arena',
+            'status': r['status'] ?? 'active',
+          });
+        }
       }
 
       // Sort newest first

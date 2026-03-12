@@ -108,23 +108,25 @@ class ManagedEventsPage extends StatelessWidget {
     final dateStr = DateFormat('EEE, MMM dd').format(event.startTime);
     final timeStr = DateFormat('hh:mm a').format(event.startTime);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.m),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: Column(
-          children: [
+    return InkWell(
+      onTap: () => Get.toNamed('/event-detail', arguments: event),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.m),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            children: [
             Stack(
               children: [
                 CachedNetworkImage(
@@ -213,11 +215,11 @@ class ManagedEventsPage extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                   Row(
                     children: [
-                      _infoChip(Icons.calendar_today_outlined, dateStr),
+                      _infoChip(Icons.calendar_month_outlined, dateStr),
                       const SizedBox(width: 16),
-                      _infoChip(Icons.access_time, timeStr),
+                      _infoChip(Icons.schedule_outlined, timeStr),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -243,9 +245,21 @@ class ManagedEventsPage extends StatelessWidget {
                         children: [
                           const Icon(Icons.people_outline, size: 18, color: AppColors.primary),
                           const SizedBox(width: 6),
-                          Text(
-                            '${event.participantsCount ?? 0} Players',
-                            style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${event.participantsCount ?? 0} Players',
+                                style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                '${event.playersLeft} Slots Left',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: event.playersLeft == 0 ? Colors.red : AppColors.textSecondary,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -261,7 +275,7 @@ class ManagedEventsPage extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),);
   }
 
   Widget _infoChip(IconData icon, String label) {

@@ -126,9 +126,9 @@ class EventsController extends GetxController {
       };
 
       final event = await _eventApiService.createEvent(eventData);
-      AppUtils.showSuccess(message: 'Event created successfully!');
       clearEventForm();
       Get.back();
+      AppUtils.showSuccess(message: 'Event created successfully!');
       Get.toNamed('/event-details', arguments: event);
     } catch (e) {
       AppUtils.showError(message: 'Failed to create event: $e');
@@ -168,14 +168,9 @@ class EventsController extends GetxController {
       };
 
       final event = await _eventApiService.updateEvent(slug, eventData);
-      AppUtils.showSuccess(message: 'Event updated successfully!');
-      
-      // Update in lists
-      final idx = userEvents.indexWhere((e) => e.id == id);
-      if (idx != -1) userEvents[idx] = event;
-      
       selectedEvent.value = event;
       Get.back();
+      AppUtils.showSuccess(message: 'Event updated successfully!');
     } catch (e) {
       AppUtils.showError(message: 'Failed to update event: $e');
     } finally {
@@ -186,10 +181,10 @@ class EventsController extends GetxController {
   Future<void> deleteEvent(int id, String slug) async {
     try {
       await _eventApiService.deleteEvent(slug);
-      AppUtils.showSuccess(message: 'Event deleted successfully');
       userEvents.removeWhere((event) => event.id == id);
       events.removeWhere((event) => event.id == id);
       Get.back();
+      AppUtils.showSuccess(message: 'Event deleted successfully');
     } catch (e) {
       AppUtils.showError(message: 'Failed to delete event: $e');
     }
@@ -209,32 +204,12 @@ class EventsController extends GetxController {
       await _participantApiService.joinEvent(participantData);
       AppUtils.showSuccess(message: 'Successfully joined the event!');
 
-      // Update the event in the list
-      if (selectedEvent.value != null && selectedEvent.value!.id == eventId) {
-        final updatedEvent = selectedEvent.value!;
-        selectedEvent.value = Event(
-          id: updatedEvent.id,
-          name: updatedEvent.name,
-          description: updatedEvent.description,
-          startTime: updatedEvent.startTime,
-          endTime: updatedEvent.endTime,
-          registrationFee: updatedEvent.registrationFee,
-          maxParticipants: updatedEvent.maxParticipants,
-          organizerId: updatedEvent.organizerId,
-          rules: updatedEvent.rules,
-          safetyPolicy: updatedEvent.safetyPolicy,
-          schedule: updatedEvent.schedule,
-          location: updatedEvent.location,
-          image: updatedEvent.image,
-          slug: updatedEvent.slug,
-          bookingId: updatedEvent.bookingId,
-          status: updatedEvent.status,
-          participantsCount: (updatedEvent.participantsCount ?? 0) + 1,
-          userJoined: true,
-          organizer: updatedEvent.organizer,
-          booking: updatedEvent.booking,
-        );
-      }
+      // Update the event in the lists
+      _updateEventInLists(eventId, isJoining: true);
+      
+      // Refresh to get latest stats from backend if needed
+      fetchPublicEvents();
+      fetchUserEvents();
     } catch (e) {
       AppUtils.showError(message: 'Failed to join event: $e');
     } finally {
@@ -247,34 +222,63 @@ class EventsController extends GetxController {
       await _participantApiService.leaveEvent(participantId);
       AppUtils.showSuccess(message: 'Successfully left the event');
 
-      // Update the event in the list
+      // Update the event in the lists
       if (selectedEvent.value != null) {
-        final updatedEvent = selectedEvent.value!;
-        selectedEvent.value = Event(
-          id: updatedEvent.id,
-          name: updatedEvent.name,
-          description: updatedEvent.description,
-          startTime: updatedEvent.startTime,
-          endTime: updatedEvent.endTime,
-          registrationFee: updatedEvent.registrationFee,
-          maxParticipants: updatedEvent.maxParticipants,
-          organizerId: updatedEvent.organizerId,
-          rules: updatedEvent.rules,
-          safetyPolicy: updatedEvent.safetyPolicy,
-          schedule: updatedEvent.schedule,
-          location: updatedEvent.location,
-          image: updatedEvent.image,
-          slug: updatedEvent.slug,
-          bookingId: updatedEvent.bookingId,
-          status: updatedEvent.status,
-          participantsCount: (updatedEvent.participantsCount ?? 0) - 1,
-          userJoined: false,
-          organizer: updatedEvent.organizer,
-          booking: updatedEvent.booking,
-        );
+        _updateEventInLists(selectedEvent.value!.id, isJoining: false);
       }
+      
+      // Refresh to get latest stats
+      fetchPublicEvents();
+      fetchUserEvents();
     } catch (e) {
       AppUtils.showError(message: 'Failed to leave event: $e');
+    }
+  }
+
+  void _updateEventInLists(int eventId, {required bool isJoining}) {
+    // Helper to update a single event object
+    Event updateEvent(Event event) {
+      return Event(
+        id: event.id,
+        name: event.name,
+        description: event.description,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        registrationFee: event.registrationFee,
+        maxParticipants: event.maxParticipants,
+        organizerId: event.organizerId,
+        rules: event.rules,
+        safetyPolicy: event.safetyPolicy,
+        schedule: event.schedule,
+        location: event.location,
+        image: event.image,
+        slug: event.slug,
+        bookingId: event.bookingId,
+        status: event.status,
+        participantsCount: (event.participantsCount ?? 0) + (isJoining ? 1 : -1),
+        userJoined: isJoining,
+        organizer: event.organizer,
+        booking: event.booking,
+      );
+    }
+
+    // Update selectedEvent
+    if (selectedEvent.value != null && selectedEvent.value!.id == eventId) {
+      selectedEvent.value = updateEvent(selectedEvent.value!);
+    }
+
+    // Update events list
+    int index = events.indexWhere((e) => e.id == eventId);
+    if (index != -1) {
+      events[index] = updateEvent(events[index]);
+      events.refresh();
+    }
+
+    // Update userEvents list
+    int userIndex = userEvents.indexWhere((e) => e.id == eventId);
+    if (userIndex != -1) {
+      userEvents[userIndex] = updateEvent(userEvents[userIndex]);
+      userEvents.refresh();
     }
   }
 

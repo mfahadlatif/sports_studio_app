@@ -7,6 +7,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/booking_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class BookingSlotPage extends StatelessWidget {
   const BookingSlotPage({super.key});
@@ -80,8 +81,8 @@ class BookingSlotPage extends StatelessWidget {
               color: AppColors.primaryLight.withOpacity(0.5),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.sports_soccer_outlined,
+            child: Icon(
+              AppUtils.getSportIcon(ground['type']),
               color: AppColors.primary,
               size: 32,
             ),

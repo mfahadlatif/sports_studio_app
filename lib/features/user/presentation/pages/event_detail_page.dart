@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -30,6 +31,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
   bool _hasJoined = false;
   List<dynamic> _participants = [];
   bool _isLoadingParticipants = false;
+  final RxInt _currentPage = 0.obs;
+  final PageController _pageController = PageController();
+  Timer? _carouselTimer;
 
   @override
   void initState() {
@@ -49,6 +53,38 @@ class _EventDetailPageState extends State<EventDetailPage> {
         controller.getEventById(eventArgs.toString());
       }
     }
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _carouselTimer?.cancel();
+    _carouselTimer = Timer.periodic(const Duration(milliseconds: 4000), (timer) {
+      if (controller.selectedEvent.value != null) {
+        final event = controller.selectedEvent.value!;
+        List<String> images = event.images;
+        if (images.isEmpty && event.image != null) images = [event.image!];
+        
+        if (images.length > 1) {
+          int next = _currentPage.value + 1;
+          if (next >= images.length) next = 0;
+          
+          if (_pageController.hasClients) {
+            _pageController.animateToPage(
+              next,
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchParticipants(dynamic eventId) async {
@@ -119,6 +155,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
           .map((url) => UrlHelper.sanitizeUrl(url))
           .toList();
 
+      final profileController = Get.find<ProfileController>();
+
       return Scaffold(
         body: Stack(
           children: [
@@ -138,7 +176,9 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               height: 280,
                               width: double.infinity,
                               child: PageView.builder(
+                                controller: _pageController,
                                 itemCount: sanitizedImages.length,
+                                onPageChanged: (index) => _currentPage.value = index,
                                 itemBuilder: (context, index) {
                                   return CachedNetworkImage(
                                     imageUrl: sanitizedImages[index],
@@ -160,17 +200,25 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: List.generate(
                                     sanitizedImages.length,
-                                    (index) => Container(
-                                      width: 8,
-                                      height: 2,
+                                    (index) => Obx(() => Container(
+                                      width: _currentPage.value == index ? 16 : 8,
+                                      height: 4,
                                       margin: const EdgeInsets.symmetric(
                                         horizontal: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.8),
-                                        borderRadius: BorderRadius.circular(1),
+                                        color: _currentPage.value == index 
+                                          ? Colors.white 
+                                          : Colors.white.withOpacity(0.5),
+                                        borderRadius: BorderRadius.circular(2),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black26,
+                                            blurRadius: 2,
+                                          )
+                                        ]
                                       ),
-                                    ),
+                                    )),
                                   ),
                                 ),
                               ),
@@ -280,12 +328,23 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text('Participants', style: AppTextStyles.h3),
-                                  Text(
-                                    '$currentParticipants / $maxParticipants',
-                                    style: AppTextStyles.bodyMedium.copyWith(
-                                      color: AppColors.primary,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '$currentParticipants / $maxParticipants',
+                                        style: AppTextStyles.bodyMedium.copyWith(
+                                          color: AppColors.primary,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${event?.playersLeft} left',
+                                        style: AppTextStyles.bodySmall.copyWith(
+                                          color: (event?.playersLeft ?? 0) == 0 ? Colors.red : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -402,6 +461,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             ),
                             const SizedBox(height: AppSpacing.xl),
 
+                            // Organizer Management Section
+                            if (event?.organizerId == profileController.userProfile['id'] && _participants.any((p) => p['status'] == 'pending')) ...[
+                              Text('Pending Requests', style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
+                              const SizedBox(height: AppSpacing.m),
+                              ..._participants.where((p) => p['status'] == 'pending').map((p) => _buildRequestCard(p)),
+                              const SizedBox(height: AppSpacing.xl),
+                            ],
+
                             _buildLocationMap(event),
 
                             const SizedBox(height: AppSpacing.xxl),
@@ -429,7 +496,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       )
                                     : Text(
                                         _hasJoined
-                                            ? '✓ Registered'
+                                            ? '✓ Requested'
                                             : (isFull
                                                   ? 'Event Full'
                                                   : 'Join Event'),
@@ -440,6 +507,33 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       ),
                               ),
                             ),
+
+                            // Pay Registration Fee Button (If accepted but unpaid)
+                            if (_hasJoined && _participants.any((p) => p['user_id'] == profileController.userProfile['id'] && p['status'] == 'accepted' && p['payment_status'] == 'unpaid')) ...[
+                              const SizedBox(height: AppSpacing.m),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: OutlinedButton.icon(
+                                  onPressed: () {
+                                    final p = _participants.firstWhere((p) => p['user_id'] == profileController.userProfile['id']);
+                                    Get.toNamed('/payment', arguments: {
+                                      'bookingId': event?.id, // Using event ID as reference for payment tracker in some logic
+                                      'totalPrice': event?.registrationFee ?? 0.0,
+                                      'type': 'event_participant',
+                                      'participantId': p['id'],
+                                    });
+                                  },
+                                  icon: const Icon(Icons.payment),
+                                  label: const Text('Pay Registration Fee Online'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.green,
+                                    side: const BorderSide(color: Colors.green),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: AppSpacing.l),
                           ],
                         ),
@@ -449,6 +543,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 ),
               ),
             ),
+
 
             // Back button overlay
             SafeArea(
@@ -508,26 +603,27 @@ class _EventDetailPageState extends State<EventDetailPage> {
     setState(() => _isJoining = true);
 
     try {
-      final isPrivate = event.eventType == 'private';
+      final registrationFee = (event.registrationFee ?? 0);
+      
       final response = await ApiClient().dio.post(
         '/event-participants',
         data: {
           'event_id': event.id,
-          'status': isPrivate ? 'pending' : 'confirmed',
-          'payment_status': (event.registrationFee ?? 0) > 0 ? 'unpaid' : 'paid',
+          'status': 'pending', // All joins require organizer approval now
+          'payment_status': registrationFee > 0 ? 'unpaid' : 'paid',
+          'payment_method': 'cash', // Default to cash/manual until they pay online
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
         setState(() => _hasJoined = true);
         Get.snackbar(
-          isPrivate ? 'Request sent!' : 'Registered!',
-          isPrivate
-              ? 'Your request was sent. Wait for organizer approval.'
-              : 'You have successfully joined this event.',
+          'Request Sent!',
+          'Your request to join was sent. Wait for organizer approval.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green.withValues(alpha: 0.1),
           colorText: Colors.green,
         );
+        _fetchParticipants(event.id.toString()); // Refresh list
       } else {
         Get.snackbar('Error', 'Failed to join event. Please try again.');
       }
@@ -700,5 +796,81 @@ class _EventDetailPageState extends State<EventDetailPage> {
         ),
       ],
     );
+  }
+
+  Widget _buildRequestCard(dynamic participant) {
+    final user = participant['user'] ?? {};
+    final id = participant['id'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            backgroundColor: AppColors.primaryLight,
+            backgroundImage: (user['avatar'] != null && user['avatar'].toString().isNotEmpty)
+                ? NetworkImage(user['avatar'])
+                : null,
+            child: (user['avatar'] == null || user['avatar'].toString().isEmpty)
+                ? const Icon(Icons.person)
+                : null,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(user['name'] ?? 'User',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  participant['payment_status'] == 'paid'
+                      ? 'Paid'
+                      : 'Unpaid (Cash/Manual)',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: participant['payment_status'] == 'paid'
+                        ? Colors.green
+                        : Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () => _updateParticipantStatus(id, 'accepted'),
+            icon: const Icon(Icons.check_circle, color: Colors.green),
+          ),
+          IconButton(
+            onPressed: () => _updateParticipantStatus(id, 'rejected'),
+            icon: const Icon(Icons.cancel, color: Colors.red),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateParticipantStatus(int id, String status) async {
+    try {
+      final res = await ApiClient().dio.put(
+        '/event-participants/$id',
+        data: {'status': status},
+      );
+      if (res.statusCode == 200) {
+        Get.snackbar('Success', 'Request $status successfully');
+        final eventId = controller.selectedEvent.value?.id.toString();
+        _fetchParticipants(eventId);
+        if (eventId != null) {
+          controller.getEventById(eventId);
+        }
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update status');
+    }
   }
 }

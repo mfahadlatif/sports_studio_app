@@ -16,6 +16,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/widgets/address_autocomplete_field.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class CreateMatchPage extends StatefulWidget {
   const CreateMatchPage({super.key});
@@ -228,19 +229,8 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       print('Response: ${res.statusCode} - ${res.data}');
 
       if (res.statusCode == 200 || res.statusCode == 201) {
-        Get.closeAllSnackbars();
-        Get.snackbar(
-          'Success',
-          'Match organized successfully!',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.TOP,
-          duration: const Duration(seconds: 3),
-          margin: const EdgeInsets.all(16),
-        );
-        // Wait longer so user can see the snackbar
-        await Future.delayed(const Duration(seconds: 2));
-        if (mounted) Get.back(result: true);
+        Get.back(result: true);
+        AppUtils.showSuccess(message: 'Match organized successfully!');
       }
     } catch (e) {
       print('Submit error: $e');

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -24,11 +25,48 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   dynamic _complex;
   List<dynamic> _grounds = [];
   String _searchQuery = '';
+  final RxInt _currentPage = 0.obs;
+  final PageController _pageController = PageController();
+  Timer? _carouselTimer;
 
   @override
   void initState() {
     super.initState();
     _fetch();
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _carouselTimer?.cancel();
+    _carouselTimer = Timer.periodic(const Duration(milliseconds: 3800), (timer) {
+      if (_complex != null) {
+        List<String> images = [];
+        if (_complex['images'] != null && (_complex['images'] as List).isNotEmpty) {
+          images = (_complex['images'] as List).where((e) => e != null).map((e) => e.toString()).toList();
+        } else if (_complex['image_path'] != null) {
+          images.add(_complex['image_path'].toString());
+        }
+
+        if (images.length > 1) {
+          int next = _currentPage.value + 1;
+          if (next >= images.length) next = 0;
+          if (_pageController.hasClients) {
+            _pageController.animateToPage(
+              next,
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _carouselTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetch() async {
@@ -229,6 +267,8 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
         .toList();
 
     return PageView.builder(
+      controller: _pageController,
+      onPageChanged: (v) => _currentPage.value = v,
       itemCount: sanitized.length,
       itemBuilder: (context, index) {
         return CachedNetworkImage(
@@ -290,6 +330,30 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
               fit: StackFit.expand,
               children: [
                 _buildCarousel(),
+                if (_complex != null && 
+                   ((_complex['images'] as List?)?.length ?? 0) > 1)
+                  Positioned(
+                    bottom: 20,
+                    left: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        (_complex['images'] as List).length,
+                        (index) => Obx(() => Container(
+                          width: _currentPage.value == index ? 16 : 8,
+                          height: 4,
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          decoration: BoxDecoration(
+                            color: _currentPage.value == index 
+                              ? Colors.white 
+                              : Colors.white.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        )),
+                      ),
+                    ),
+                  ),
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(

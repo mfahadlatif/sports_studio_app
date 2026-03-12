@@ -148,4 +148,19 @@ class AppUtils {
       ],
     );
   }
+  static IconData getSportIcon(String? sport) {
+    if (sport == null) return Icons.sports_soccer_outlined;
+    final s = sport.toLowerCase();
+    if (s.contains('cricket')) return Icons.sports_cricket_outlined;
+    if (s.contains('football') || s.contains('soccer')) return Icons.sports_soccer_outlined;
+    if (s.contains('tennis')) return Icons.sports_tennis_outlined;
+    if (s.contains('basketball')) return Icons.sports_basketball_outlined;
+    if (s.contains('badminton')) return Icons.sports_tennis; 
+    if (s.contains('hockey')) return Icons.sports_hockey_outlined;
+    if (s.contains('volleyball')) return Icons.sports_volleyball_outlined;
+    if (s.contains('table tennis') || s.contains('tt')) return Icons.table_restaurant_outlined;
+    if (s.contains('swimming')) return Icons.pool;
+    if (s.contains('padel')) return Icons.sports_tennis;
+    return Icons.sports_soccer_outlined;
+  }
 }

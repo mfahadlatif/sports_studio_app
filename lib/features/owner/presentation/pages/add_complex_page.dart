@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -104,34 +105,54 @@ class _AddComplexPageState extends State<AddComplexPage> {
 
     setState(() => _isLoading = true);
     try {
+      final Map<String, dynamic> dataMap = {
+        'name': _nameCtrl.text.trim(),
+        'address': _addressCtrl.text.trim(),
+        'description': _descCtrl.text.trim(),
+        'status': _isActive ? 'active' : 'inactive',
+        'latitude': _latCtrl.text.trim(),
+        'longitude': _lngCtrl.text.trim(),
+        'amenities': _selectedAmenities.toList(),
+      };
+
       if (_isEdit) {
-        // Edit: PUT with JSON (no file re-upload unless images are picked)
         final id = widget.complex['id'];
-        final data = {
-          'name': _nameCtrl.text.trim(),
-          'address': _addressCtrl.text.trim(),
-          'description': _descCtrl.text.trim(),
-          'status': _isActive ? 'active' : 'inactive',
-          'latitude': _latCtrl.text.trim(),
-          'longitude': _lngCtrl.text.trim(),
-          'amenities': _selectedAmenities.toList(),
-        };
-        final res = await ApiClient().dio.put('/complexes/$id', data: data);
-        if (res.statusCode == 200 || res.statusCode == 201) {
-          _onSuccess('Complex updated successfully!');
+        
+        if (_pickedImages.isNotEmpty) {
+          // If images are picked, we must use FormData. 
+          // Laravel requires POST with _method=PUT for multipart updates.
+          final existing = UrlHelper.getParsedImages(widget.complex['images']);
+          dio_form.FormData formData = dio_form.FormData.fromMap({
+            ...dataMap,
+            '_method': 'PUT',
+            if (existing.isNotEmpty) 'images': jsonEncode(existing),
+          });
+          
+          for (var file in _pickedImages) {
+            formData.files.add(
+              MapEntry(
+                'images[]',
+                await dio_form.MultipartFile.fromFile(
+                  file.path,
+                  filename: file.name,
+                ),
+              ),
+            );
+          }
+          
+          final res = await ApiClient().dio.post('/complexes/$id', data: formData);
+          if (res.statusCode == 200 || res.statusCode == 201) {
+            _onSuccess('Complex updated successfully!');
+          }
+        } else {
+          // Normal JSON update if no new images
+          final res = await ApiClient().dio.put('/complexes/$id', data: dataMap);
+          if (res.statusCode == 200 || res.statusCode == 201) {
+            _onSuccess('Complex updated successfully!');
+          }
         }
       } else {
-        // Add: POST with FormData (supports image upload)
-        final Map<String, dynamic> dataMap = {
-          'name': _nameCtrl.text.trim(),
-          'address': _addressCtrl.text.trim(),
-          'description': _descCtrl.text.trim(),
-          'status': _isActive ? 'active' : 'inactive',
-          'latitude': _latCtrl.text.trim(),
-          'longitude': _lngCtrl.text.trim(),
-          'amenities': _selectedAmenities.toList(),
-        };
-
+        // Add: POST with FormData
         dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
         for (var file in _pickedImages) {
           formData.files.add(

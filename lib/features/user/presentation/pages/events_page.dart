@@ -140,15 +140,43 @@ class EventsPage extends StatelessWidget {
                   Text(title, style: AppTextStyles.h3),
                   const SizedBox(height: AppSpacing.s),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(
-                        Icons.calendar_today,
-                        size: 14,
-                        color: AppColors.primary,
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(date, style: AppTextStyles.bodySmall),
+                        ],
                       ),
-                      const SizedBox(width: 4),
-                      Text(date, style: AppTextStyles.bodySmall),
-                      const SizedBox(width: AppSpacing.m),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.people_outline,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${event.playersLeft} left',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: event.playersLeft == 0
+                                  ? Colors.red
+                                  : AppColors.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
                       const Icon(
                         Icons.location_on,
                         size: 14,

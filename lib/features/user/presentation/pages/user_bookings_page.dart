@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class UserBookingsPage extends StatelessWidget {
   const UserBookingsPage({super.key});
@@ -203,9 +204,10 @@ class _BookingCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Center(
-                    child: Text(
-                      isEvent ? '🎟️' : _getSportEmoji(sportType),
-                      style: const TextStyle(fontSize: 30),
+                    child: Icon(
+                      isEvent ? Icons.confirmation_number_outlined : AppUtils.getSportIcon(sportType),
+                      color: AppColors.primary,
+                      size: 30,
                     ),
                   ),
                 ),
@@ -308,8 +310,28 @@ class _BookingCard extends StatelessWidget {
                   ],
                 ),
                 if (!isEvent && (status == 'pending' || status == 'confirmed'))
-                  _CancelButton(
-                    onPressed: () => _confirmCancel(context, booking),
+                  Row(
+                    children: [
+                      if (paymentStatus == 'unpaid' && status == 'confirmed')
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ElevatedButton(
+                            onPressed: () => Get.toNamed('/payment', arguments: {
+                              'bookingId': booking['id'],
+                              'totalPrice': totalAmount,
+                            }),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text('Pay Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      _CancelButton(
+                        onPressed: () => _confirmCancel(context, booking),
+                      ),
+                    ],
                   ),
               ],
             ),
@@ -332,20 +354,6 @@ class _BookingCard extends StatelessWidget {
         controller.updateBookingStatus(booking, 'cancelled');
       },
     );
-  }
-
-  String _getSportEmoji(String type) {
-    final t = type.toLowerCase();
-    if (t.contains('cricket')) return '🏏';
-    if (t.contains('football')) return '⚽';
-    if (t.contains('soccer')) return '⚽';
-    if (t.contains('tennis')) return '🎾';
-    if (t.contains('padel')) return '🎾';
-    if (t.contains('volleyball')) return '🏐';
-    if (t.contains('hockey')) return '🏑';
-    if (t.contains('basketball')) return '🏀';
-    if (t.contains('badminton')) return '🏸';
-    return '🏆';
   }
 }
 

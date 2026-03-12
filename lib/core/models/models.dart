@@ -290,6 +290,11 @@ class Event {
   final double? latitude;
   final double? longitude;
 
+  int get playersLeft {
+    if (maxParticipants == null || maxParticipants == 0) return 0;
+    return (maxParticipants! - (participantsCount ?? 0)).clamp(0, maxParticipants!);
+  }
+
   Event({
     required this.id,
     required this.organizerId,
@@ -349,9 +354,7 @@ class Event {
       rules: json['rules']?.toString(),
       safetyPolicy: json['safety_policy']?.toString(),
       schedule: json['schedule']?.toString(),
-      images: (json['images'] is List)
-          ? List<String>.from((json['images'] as List).map((e) => e.toString()))
-          : const [],
+      images: _parseJsonList<String>(json['images']) ?? const [],
       organizer:
           json['organizer'] != null && json['organizer'] is Map<String, dynamic>
           ? User.fromJson(json['organizer'])

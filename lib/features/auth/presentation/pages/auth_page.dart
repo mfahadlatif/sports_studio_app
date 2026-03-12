@@ -314,34 +314,36 @@ class AuthPage extends StatelessWidget {
         Obx(
           () => Column(
             children: [
-              if (Platform.isIOS) ...[
-                _socialButton(
-                  AppConstants.googleLogo,
-                  'Continue with Google',
-                  Colors.red,
-                  onTap: controller.loginWithGoogle,
-                  isFullWidth: true,
-                  isLoading: controller.isGoogleLoading.value,
-                  
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _socialButton(
-                  AppConstants.appleLogo,
-                  'Continue with Apple',
-                  Colors.black,
-                  onTap: controller.loginWithApple,
-                  isFullWidth: true,
-                  isLoading: controller.isAppleLoading.value,
-                ),
-              ] else
-                _socialButton(
-                AppConstants.googleLogo,
-                  'Continue with Google',
-                  Colors.red,
-                  onTap: controller.loginWithGoogle,
-                  isFullWidth: true,
-                  isLoading: controller.isGoogleLoading.value,
-                ),
+              // if (Platform.isIOS) ...[
+              //   _socialButton(
+              //     AppConstants.googleLogo,
+              //     'Continue with Google',
+              //     Colors.red,
+              //     onTap: controller.loginWithGoogle,
+              //     isFullWidth: true,
+              //     isLoading: controller.isGoogleLoading.value,
+
+              //   ),
+              //   const SizedBox(height: AppSpacing.m),
+              //   _socialButton(
+              //     AppConstants.appleLogo,
+              //     'Continue with Apple',
+              //     Colors.black,
+              //     onTap: controller.loginWithApple,
+              //     isFullWidth: true,
+              //     isLoading: controller.isAppleLoading.value,
+              //   ),
+              // ] else
+              Platform.isIOS
+                  ? _socialButton(
+                      AppConstants.googleLogo,
+                      'Continue with Google',
+                      Colors.red,
+                      onTap: controller.loginWithGoogle,
+                      isFullWidth: true,
+                      isLoading: controller.isGoogleLoading.value,
+                    )
+                  : const SizedBox(),
             ],
           ),
         ),
@@ -369,11 +371,7 @@ class AuthPage extends StatelessWidget {
               mainAxisSize: isFullWidth ? MainAxisSize.max : MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(  
-                  icon,
-                  height: 24,
-                  width: 24,
-                ),
+                Image.asset(icon, height: 24, width: 24),
                 const SizedBox(width: 8),
                 Text(
                   label,
