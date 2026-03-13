@@ -37,8 +37,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
         if (groundData is Map<String, dynamic>) {
           controller.groundDetails.value = groundData;
           final id = groundData['id'];
-          if (id != null)
+          if (id != null) {
             controller.fetchReviews(id is int ? id : int.parse(id.toString()));
+          }
 
           final slug = groundData['slug'];
           if (slug != null) controller.fetchGroundBySlug(slug.toString());
@@ -520,7 +521,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
       );
     }
 
-    final position = LatLng(lat!, lng!);
+    final position = LatLng(lat, lng);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

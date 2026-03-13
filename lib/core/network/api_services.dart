@@ -18,9 +18,9 @@ class GroundApiService {
       final response = await _client.dio.get(
         '/public/grounds',
         queryParameters: {
-          if (complexId != null) 'complex_id': complexId,
-          if (type != null) 'type': type,
-          if (ownerId != null) 'owner_id': ownerId,
+          'complex_id': ?complexId,
+          'type': ?type,
+          'owner_id': ?ownerId,
           'page': page,
           'per_page': perPage,
         },
@@ -316,7 +316,7 @@ class BookingApiService {
       print('🌐 [BookingAPI] Fetching owner bookings...');
       final response = await _client.dio.get(
         '/owner/bookings',
-        queryParameters: {if (status != null) 'status': status},
+        queryParameters: {'status': ?status},
       );
       if (response.statusCode == 200) {
         final raw = response.data;
@@ -393,7 +393,7 @@ class EventApiService {
       final response = await _client.dio.get(
         '/events',
         queryParameters: {
-          if (organizerId != null) 'organizer_id': organizerId,
+          'organizer_id': ?organizerId,
         },
       );
       if (response.statusCode == 200) {
@@ -708,7 +708,7 @@ class ReviewApiService {
       print('🌐 [ReviewAPI] Fetching reviews for ground $groundId...');
       final response = await _client.dio.get(
         '/public/reviews',
-        queryParameters: {if (groundId != null) 'ground_id': groundId},
+        queryParameters: {'ground_id': ?groundId},
       );
 
       if (response.statusCode == 200) {

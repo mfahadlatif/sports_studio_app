@@ -43,10 +43,10 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   final _safetyCtrl = TextEditingController();
 
   // Basic schedule support
-  List<Map<String, TextEditingController>> _scheduleControllers = [];
+  final List<Map<String, TextEditingController>> _scheduleControllers = [];
   bool _isSubmitting = false;
 
-  List<XFile> _pickedImages = [];
+  final List<XFile> _pickedImages = [];
   final ImagePicker _picker = ImagePicker();
 
   final List<String> _sportTypes = [
@@ -816,7 +816,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       borderRadius: BorderRadius.circular(14),
     ),
     child: DropdownButtonFormField<String>(
-      value: _selectedSport,
+      initialValue: _selectedSport,
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.sports_outlined),
         border: OutlineInputBorder(

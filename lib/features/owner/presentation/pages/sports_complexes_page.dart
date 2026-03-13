@@ -84,7 +84,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     if (result == true) _fetchComplexes();
   }
 
-  List<Complex> get _filtered => (_complexes as List<Complex>)
+  List<Complex> get _filtered => (_complexes)
       .where(
         (c) =>
             (c.name).toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -380,7 +380,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
       );
     }
     return CachedNetworkImage(
-      imageUrl: firstUrl!,
+      imageUrl: firstUrl,
       width: 44,
       height: 44,
       fit: BoxFit.cover,

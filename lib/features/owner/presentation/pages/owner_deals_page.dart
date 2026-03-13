@@ -432,7 +432,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                     _label('Target Ground (Optional)'),
                     Obx(
                       () => DropdownButtonFormField<int>(
-                        value: _selectedGroundId,
+                        initialValue: _selectedGroundId,
                         hint: const Text('All Grounds'),
                         decoration: InputDecoration(
                           filled: true,
@@ -481,8 +481,9 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                             const Duration(days: 365),
                           ),
                         );
-                        if (p != null)
+                        if (p != null) {
                           _dateCtrl.text = DateFormat('yyyy-MM-dd').format(p);
+                        }
                       },
                       child: AbsorbPointer(
                         child: _field(
@@ -495,7 +496,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                     const SizedBox(height: AppSpacing.m),
                     _label('Color Theme (Optional)'),
                     DropdownButtonFormField<String>(
-                      value: _selectedColorTheme,
+                      initialValue: _selectedColorTheme,
                       hint: const Text('Default Theme'),
                       decoration: InputDecoration(
                         filled: true,

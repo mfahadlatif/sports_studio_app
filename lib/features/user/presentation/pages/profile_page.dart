@@ -392,7 +392,7 @@ class ProfilePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.logout, size: 20),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(
                 'Sign Out',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),

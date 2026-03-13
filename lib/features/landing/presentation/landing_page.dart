@@ -26,7 +26,7 @@ class LandingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Use put() which reuses existing instance if already registered
-    final controller = Get.put(LandingController(), permanent: true);
+    final controller = Get.find<LandingController>();
 
     final List<Widget> userPages = [
       const HomeView(),

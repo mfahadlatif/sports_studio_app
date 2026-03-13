@@ -188,7 +188,7 @@ class AddGroundPage extends StatelessWidget {
         );
       }
       return DropdownButtonFormField<Complex>(
-        value: controller.selectedComplex.value,
+        initialValue: controller.selectedComplex.value,
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.business),
           border: OutlineInputBorder(
@@ -251,7 +251,7 @@ class AddGroundPage extends StatelessWidget {
                 value.value = v;
                 if (onChanged != null) onChanged(v);
               },
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
             ),
           ),
         ],
@@ -548,7 +548,7 @@ class AddGroundPage extends StatelessWidget {
   ) {
     return Obx(
       () => DropdownButtonFormField<String>(
-        value: controller.selectedSport.value,
+        initialValue: controller.selectedSport.value,
         decoration: InputDecoration(
           prefixIcon: const Icon(Icons.sports_outlined),
           border: OutlineInputBorder(

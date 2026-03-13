@@ -104,8 +104,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
     } catch (_) {}
     setState(() {
       final idx = _notifications.indexWhere((n) => n['id'] == id);
-      if (idx != -1)
+      if (idx != -1) {
         _notifications[idx] = {..._notifications[idx], 'read': true};
+      }
     });
   }
 

@@ -203,7 +203,7 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
                 ),
                 const SizedBox(height: AppSpacing.s),
                 DropdownButtonFormField<String>(
-                  value: _groundFilter,
+                  initialValue: _groundFilter,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.filter_list_outlined),
                     filled: true,

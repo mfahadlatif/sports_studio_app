@@ -204,8 +204,4 @@ class PaymentController extends GetxController {
     fetchTransactions();
   }
 
-  @override
-  void onClose() {
-    super.onClose();
-  }
 }

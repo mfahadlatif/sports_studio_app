@@ -127,8 +127,8 @@ class GroundController extends GetxController {
         'ground_id': groundId,
         'rating': rating,
         'comment': comment,
-        if (userName != null) 'user_name': userName,
-        if (userEmail != null) 'user_email': userEmail,
+        'user_name': ?userName,
+        'user_email': ?userEmail,
       };
 
       await _reviewApiService.createPublicReview(reviewData);

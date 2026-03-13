@@ -47,12 +47,6 @@ class BookingController extends GetxController {
   final DataFetchService _dataFetchService = Get.find<DataFetchService>();
   final SafepayService _safepayService = Get.find<SafepayService>();
 
-  @override
-  void onInit() {
-    super.onInit();
-    // Don't fetch availability immediately, wait for ground to be set
-    // This prevents issues when controller is initialized without arguments
-  }
 
   /// Set ground and fetch availability for that ground
   void setGroundAndFetchAvailability(dynamic ground) {

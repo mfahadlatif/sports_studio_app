@@ -220,7 +220,7 @@ class AuthController extends GetxController {
         if (responseData is Map) {
           errorMessage = responseData['message'] ?? errorMessage;
           if (responseData['errors'] != null) {
-            errorMessage += '\n' + responseData['errors'].toString();
+            errorMessage += '\n${responseData['errors']}';
           }
         }
       }

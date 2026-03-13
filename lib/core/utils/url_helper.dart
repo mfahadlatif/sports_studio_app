@@ -44,7 +44,7 @@ class UrlHelper {
 
     if (url.startsWith('http')) {
       if (url.contains('/uploads/')) {
-        relativePath = 'uploads/' + url.split('/uploads/').last;
+        relativePath = 'uploads/${url.split('/uploads/').last}';
       } else if (url.contains('/storage/')) {
         relativePath = url.split('/storage/').last;
       } else if (url.contains('media/serve')) {

@@ -644,7 +644,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     const SizedBox(height: AppSpacing.s),
                     Obx(
                       () => DropdownButtonFormField<int>(
-                        value: _selectedGroundId,
+                        initialValue: _selectedGroundId,
                         hint: const Text('Choose a ground'),
                         decoration: InputDecoration(
                           filled: true,

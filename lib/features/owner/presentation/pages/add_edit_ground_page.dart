@@ -268,8 +268,9 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                     label: 'Add Complex',
                     onPressed: () async {
                       final result = await Get.toNamed('/add-complex');
-                      if (result == true)
+                      if (result == true) {
                         groundsController.fetchComplexesAndGrounds();
+                      }
                     },
                   ),
                 ] else ...[
@@ -545,7 +546,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                       Switch(
                         value: _hasLighting,
                         onChanged: (v) => setState(() => _hasLighting = v),
-                        activeColor: AppColors.primary,
+                        activeThumbColor: AppColors.primary,
                       ),
                     ],
                   ),
@@ -884,10 +885,11 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         return GestureDetector(
           onTap: () {
             setState(() {
-              if (isSelected)
+              if (isSelected) {
                 _selectedAmenities.remove(id);
-              else
+              } else {
                 _selectedAmenities.add(id);
+              }
             });
           },
           child: Container(
@@ -932,7 +934,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       borderRadius: BorderRadius.circular(14),
     ),
     child: DropdownButtonFormField<String>(
-      value: _selectedStatus,
+      initialValue: _selectedStatus,
       decoration: InputDecoration(
         prefixIcon: const Icon(Icons.toggle_on_outlined),
         border: OutlineInputBorder(

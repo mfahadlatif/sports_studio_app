@@ -316,7 +316,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               Icons.confirmation_number_outlined,
                               registrationFee == 0
                                   ? 'Free Entry'
-                                  : 'Rs. ${registrationFee} Registration Fee',
+                                  : 'Rs. $registrationFee Registration Fee',
                             ),
 
                             const SizedBox(height: AppSpacing.l),

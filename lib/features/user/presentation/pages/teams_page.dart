@@ -500,7 +500,7 @@ class TeamsPage extends StatelessWidget {
               const SizedBox(height: 20),
               _lbl('Primary Sport'),
               DropdownButtonFormField<String>(
-                value: controller.teamSportController.text,
+                initialValue: controller.teamSportController.text,
                 icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.primary),
                 dropdownColor: Colors.white,
                 borderRadius: BorderRadius.circular(20),
