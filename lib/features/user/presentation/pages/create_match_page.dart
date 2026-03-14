@@ -151,18 +151,15 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       return;
     }
 
-    // Check Phone Verification
+    // Check Phone Verification using the robust getter
     final profileController = Get.find<ProfileController>();
-    final isVerified =
-        profileController.userProfile['is_phone_verified'] ?? false;
-
-    if (!isVerified) {
+    if (!profileController.isPhoneVerified) {
       Get.dialog(
         PhoneVerificationDialog(
           initialPhone:
               profileController.userProfile['phone']?.toString() ?? '',
           onVerified: () {
-            // Profile refreshed, user can retry
+            profileController.fetchProfile();
           },
         ),
       );

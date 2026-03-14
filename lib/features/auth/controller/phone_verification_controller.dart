@@ -37,6 +37,15 @@ class PhoneVerificationController extends GetxController {
       if (response.statusCode == 200) {
         isVerified.value = response.data['is_verified'] ?? false;
         phoneNumber.value = response.data['phone'] ?? '';
+        
+        // Sync with ProfileController
+        try {
+          final profileController = Get.find<ProfileController>();
+          profileController.updateUserData({
+            'is_phone_verified': isVerified.value,
+            'phone': phoneNumber.value,
+          });
+        } catch (_) {}
       }
     } catch (e) {
       print('Error checking phone status: $e');

@@ -263,7 +263,11 @@ class ProfileController extends GetxController {
     try {
       final response = await _userApiService.verifyPhone(phone, code);
 
-      if (response['phone_verified'] == true) {
+      // Check for various success indicators in response
+      if (response['phone_verified'] == true || 
+          response['is_verified'] == true || 
+          response['is_phone_verified'] == true ||
+          response['user'] != null) {
         AppUtils.showSuccess(message: 'Phone verified successfully!');
         await fetchProfile(); // Refresh profile to update verification status
       } else {
@@ -302,9 +306,17 @@ class ProfileController extends GetxController {
   }
 
   bool get isPhoneVerified {
-    return userProfile['is_phone_verified'] == 1 || 
-           userProfile['is_phone_verified'] == true ||
-           userProfile['phone_verified'] == true;
+    // Check all possible keys and formats returned by different endpoints
+    final isVerified = userProfile['is_phone_verified'] ?? 
+                       userProfile['is_verified'] ?? 
+                       userProfile['phone_verified'];
+                       
+    if (isVerified == null) return false;
+    
+    return isVerified == 1 || 
+           isVerified == true ||
+           isVerified.toString() == '1' ||
+           isVerified.toString().toLowerCase() == 'true';
   }
 
   bool get hasUnreadNotifications {

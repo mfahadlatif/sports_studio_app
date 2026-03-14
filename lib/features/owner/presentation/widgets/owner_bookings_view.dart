@@ -164,8 +164,24 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
         'Walk-in Customer';
     final groundName = booking['ground']?['name'] ?? 'Ground';
     final date = booking['date'] ?? '';
-    final startTime = booking['start_time'] ?? '';
-    final endTime = booking['end_time'] ?? '';
+    final String rawStart = booking['start_time'] ?? '';
+    final String rawEnd = booking['end_time'] ?? '';
+    String startTime = rawStart;
+    String endTime = rawEnd;
+
+    try {
+      if (rawStart.isNotEmpty) {
+        final startDt = DateTime.parse(rawStart.contains(' ') ? rawStart.replaceFirst(' ', 'T') : rawStart);
+        startTime = DateFormat('hh:mm a').format(startDt);
+      }
+      if (rawEnd.isNotEmpty) {
+        final endDt = DateTime.parse(rawEnd.contains(' ') ? rawEnd.replaceFirst(' ', 'T') : rawEnd);
+        endTime = DateFormat('hh:mm a').format(endDt);
+      }
+    } catch (e) {
+      // Fallback to raw if parsing fails
+    }
+
     final totalAmount = double.tryParse((booking['total_amount'] ?? booking['total_price'] ?? 0).toString()) ?? 0.0;
     final String status = (booking['status'] ?? 'pending').toString();
     final String paymentStatus = (booking['payment_status'] ?? 'unpaid').toString();

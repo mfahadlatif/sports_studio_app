@@ -253,7 +253,7 @@ class ProfilePage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            if (!(user['is_phone_verified'] ?? false))
+            if (!profileController.isPhoneVerified)
               GestureDetector(
                 onTap: () {
                   Get.dialog(

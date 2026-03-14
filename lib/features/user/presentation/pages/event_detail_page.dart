@@ -583,11 +583,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     // Check Phone Verification
     final profileController = Get.find<ProfileController>();
-    final isVerified = profileController.userProfile['phone_verified'] ??
-        profileController.userProfile['is_phone_verified'] ??
-        false;
-
-    if (!isVerified) {
+    if (!profileController.isPhoneVerified) {
       Get.dialog(
         PhoneVerificationDialog(
           initialPhone:
