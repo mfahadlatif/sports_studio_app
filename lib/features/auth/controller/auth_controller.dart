@@ -10,6 +10,8 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/user/controller/favorites_controller.dart';
+import 'package:sports_studio/core/network/api_services.dart';
+import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 
 class AuthController extends GetxController {
   final RxBool isLogin = true.obs;
@@ -120,7 +122,7 @@ class AuthController extends GetxController {
     }
   }
 
-  void _navigateToHome(UserRole role) {
+  void _navigateToHome(UserRole role) async {
     // Refresh user-specific data
     if (Get.isRegistered<ProfileController>()) {
       Get.find<ProfileController>().fetchProfile();
@@ -136,7 +138,30 @@ class AuthController extends GetxController {
     landingController.currentRole.value = role;
     landingController.currentNavIndex.value = 0;
 
+    // Navigate to home first
     Get.offAllNamed('/');
+
+    // After landing, check phone verification in background
+    try {
+      final status =
+          await UserApiService().checkPhoneVerificationStatus();
+      final isVerified =
+          (status['phone_verified'] ?? status['is_verified'] ?? false) == true;
+      final phone = (status['phone'] ?? '').toString();
+
+      if (!isVerified && Get.context != null) {
+        showDialog(
+          context: Get.context!,
+          barrierDismissible: false,
+          builder: (_) => PhoneVerificationDialog(
+            initialPhone: phone,
+            onVerified: () {},
+          ),
+        );
+      }
+    } catch (_) {
+      // If status check fails, continue without blocking
+    }
   }
 
   Future<void> register() async {

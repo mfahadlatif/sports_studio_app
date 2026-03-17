@@ -185,6 +185,30 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           )
           .toList();
 
+      // Backend requires latitude/longitude keys. If user didn't pick a location,
+      // fall back to selected ground's complex coordinates (when available).
+      if ((_latCtrl.text.trim().isEmpty || _lngCtrl.text.trim().isEmpty) &&
+          _selectedGround != null) {
+        final complex = _selectedGround['complex'];
+        final complexLat = complex?['latitude']?.toString();
+        final complexLng = complex?['longitude']?.toString();
+        if (_latCtrl.text.trim().isEmpty && complexLat != null) {
+          _latCtrl.text = complexLat;
+        }
+        if (_lngCtrl.text.trim().isEmpty && complexLng != null) {
+          _lngCtrl.text = complexLng;
+        }
+      }
+
+      // If location is empty, prefer using the selected ground's complex address.
+      if (_locationCtrl.text.trim().isEmpty && _selectedGround != null) {
+        final complex = _selectedGround['complex'];
+        final addr = complex?['address']?.toString();
+        if (addr != null && addr.trim().isNotEmpty) {
+          _locationCtrl.text = addr.trim();
+        }
+      }
+
       final Map<String, dynamic> dataMap = {
         'name': _titleCtrl.text.trim(),
         'description': _descCtrl.text.trim(),
@@ -198,10 +222,11 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         'rules': _rulesCtrl.text.trim(),
         'safety_policy': _safetyCtrl.text.trim(),
         'schedule': scheduleData.isEmpty ? '[]' : jsonEncode(scheduleData),
-        'status': 'published',
+        // Backend expects event lifecycle statuses like 'upcoming'.
+        'status': 'upcoming',
         'event_type': _eventType,
-        'latitude': _latCtrl.text.trim(),
-        'longitude': _lngCtrl.text.trim(),
+        'latitude': _latCtrl.text.trim().isEmpty ? '0' : _latCtrl.text.trim(),
+        'longitude': _lngCtrl.text.trim().isEmpty ? '0' : _lngCtrl.text.trim(),
       };
 
       print('Payload: $dataMap');

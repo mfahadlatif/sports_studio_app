@@ -455,8 +455,13 @@ class EventApiService {
 
   Future<dynamic> joinEvent(int eventId) async {
     try {
-      print('🌐 [EventAPI] Joining event $eventId...');
-      final response = await _client.dio.post('/events/$eventId/join');
+      // Production backend uses event-participants to join events.
+      // /events/:id/join may not exist (observed 404).
+      print('🌐 [EventAPI] Joining event $eventId via /event-participants...');
+      final response = await _client.dio.post(
+        '/event-participants',
+        data: {'event_id': eventId},
+      );
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ [EventAPI] Joined event $eventId');
         return response.data;
@@ -470,9 +475,23 @@ class EventApiService {
 
   Future<void> leaveEvent(int eventId) async {
     try {
-      print('🌐 [EventAPI] Leaving event $eventId...');
-      final response = await _client.dio.post('/events/$eventId/leave');
-      if (response.statusCode == 200) {
+      // Backend leaves require participant id (DELETE /event-participants/:id).
+      // We resolve participant ID by listing participations and matching event_id.
+      print('🌐 [EventAPI] Leaving event $eventId via /event-participants...');
+      final listRes = await _client.dio.get('/event-participants');
+      final raw = listRes.data;
+      final List data = raw is List ? raw : (raw['data'] as List? ?? []);
+      final match = data.cast<dynamic>().firstWhere(
+            (p) => (p['event_id']?.toString() == eventId.toString()),
+            orElse: () => null,
+          );
+      final participantId = match == null ? null : match['id'];
+      if (participantId == null) {
+        throw Exception('Participation not found for event $eventId');
+      }
+
+      final response = await _client.dio.delete('/event-participants/$participantId');
+      if (response.statusCode == 200 || response.statusCode == 204) {
         print('✅ [EventAPI] Left event $eventId');
         return;
       }
@@ -1298,11 +1317,8 @@ class EventParticipantApiService {
   Future<dynamic> joinEvent(Map<String, dynamic> participantData) async {
     try {
       final eventId = participantData['event_id'];
-      print('🌐 [ParticipantAPI] Joining event $eventId...');
-      final response = await _client.dio.post(
-        '/events/$eventId/join',
-        data: participantData,
-      );
+      print('🌐 [ParticipantAPI] Joining event $eventId via /event-participants...');
+      final response = await _client.dio.post('/event-participants', data: participantData);
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ [ParticipantAPI] Joined event $eventId');
         return response.data;

@@ -3,6 +3,16 @@ import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/transactions_page.dart';
 
 class OwnerSettingsView extends StatelessWidget {
   const OwnerSettingsView({super.key});
@@ -19,39 +29,45 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.analytics_outlined,
               'Reports & Analytics',
               'Revenue, bookings and performance',
-              onTap: () => Get.toNamed('/owner-reports'),
+              onTap: () => Get.to(() => const OwnerReportsPage()),
             ),
             _buildSettingsTile(
               Icons.corporate_fare_outlined,
               'Sports Complexes',
               'Manage your complexes & facilities',
-              onTap: () => Get.toNamed('/sports-complexes'),
+              onTap: () => Get.to(() => const SportsComplexesPage()),
             ),
             _buildSettingsTile(
               Icons.local_offer_outlined,
               'Manage Deals',
               'Create & edit discount offers',
-              onTap: () => Get.toNamed('/owner-deals'),
+              onTap: () => Get.to(() => const OwnerDealsPage()),
+            ),
+            _buildSettingsTile(
+              Icons.calendar_month_outlined,
+              'All Bookings',
+              'View and manage all bookings',
+              onTap: () => Get.to(() => const OwnerBookingsView()),
             ),
             _buildSettingsTile(
               Icons.rate_review_outlined,
               'Review Moderation',
               'Manage player feedback & ratings',
-              onTap: () => Get.toNamed('/review-moderation'),
+              onTap: () => Get.to(() => const ReviewModerationPage()),
             ),
             _buildSettingsTile(
               Icons.business_outlined,
               'Business Profile',
               'Name, email, and phone number',
-              onTap: () => Get.toNamed('/edit-profile'),
+              onTap: () => Get.to(() => const EditProfilePage()),
             ),
             _buildSettingsTile(
               Icons.lock_outline,
               'Change Password',
               'Update your password',
-              onTap: () => Get.toNamed(
-                '/setting-detail',
-                arguments: {
+              onTap: () => Get.to(
+                () => const SettingDetailPage(),
+                arguments: const {
                   'title': 'Change Password',
                   'description': 'Update your password',
                 },
@@ -59,23 +75,17 @@ class OwnerSettingsView extends StatelessWidget {
             ),
             _buildSettingsTile(
               Icons.payments_outlined,
-              'Payment Methods',
-              'Payouts and bank accounts',
-              onTap: () => Get.toNamed(
-                '/setting-detail',
-                arguments: {
-                  'title': 'Payment Methods',
-                  'description': 'Payouts and bank accounts',
-                },
-              ),
+              'Payment History',
+              'See all completed and pending payments',
+              onTap: () => Get.to(() => const TransactionsPage()),
             ),
             _buildSettingsTile(
               Icons.schedule_outlined,
               'Operating Hours',
               'Set when grounds are open',
-              onTap: () => Get.toNamed(
-                '/setting-detail',
-                arguments: {
+              onTap: () => Get.to(
+                () => const SettingDetailPage(),
+                arguments: const {
                   'title': 'Operating Hours',
                   'description': 'Set when grounds are open',
                 },
@@ -88,15 +98,15 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.notifications_outlined,
               'Notifications',
               'Push and email alerts',
-              onTap: () => Get.toNamed('/notifications'),
+              onTap: () => Get.to(() => const NotificationsPage()),
             ),
             _buildSettingsTile(
               Icons.language_outlined,
               'Language',
               'Default app language',
-              onTap: () => Get.toNamed(
-                '/setting-detail',
-                arguments: {
+              onTap: () => Get.to(
+                () => const SettingDetailPage(),
+                arguments: const {
                   'title': 'Language',
                   'description': 'Default app language',
                 },
@@ -106,9 +116,9 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.dark_mode_outlined,
               'Dark Mode',
               'Appearance settings',
-              onTap: () => Get.toNamed(
-                '/setting-detail',
-                arguments: {
+              onTap: () => Get.to(
+                () => const SettingDetailPage(),
+                arguments: const {
                   'title': 'Dark Mode',
                   'description': 'Appearance settings',
                 },
@@ -121,9 +131,9 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.help_outline,
               'Help Center',
               'FAQs and troubleshooting',
-              onTap: () => Get.toNamed(
-                '/setting-detail',
-                arguments: {
+              onTap: () => Get.to(
+                () => const SettingDetailPage(),
+                arguments: const {
                   'title': 'Help Center',
                   'description': 'FAQs and troubleshooting',
                 },
@@ -133,7 +143,7 @@ class OwnerSettingsView extends StatelessWidget {
               Icons.privacy_tip_outlined,
               'Privacy Policy',
               'Terms and conditions',
-              onTap: () => Get.toNamed('/privacy-policy'),
+              onTap: () => Get.to(() => const PrivacyPolicyPage()),
             ),
           ]),
         ],

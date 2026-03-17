@@ -24,6 +24,7 @@ import 'package:sports_studio/features/user/presentation/pages/favorites_page.da
 import 'package:sports_studio/features/user/presentation/pages/teams_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/transactions_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
@@ -157,6 +158,11 @@ class SportsStudioApp extends StatelessWidget {
           transition: Transition.rightToLeft,
         ),
         GetPage(
+          name: '/transactions',
+          page: () => const TransactionsPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
           name: '/create-match',
           page: () => const CreateMatchPage(),
           transition: Transition.downToUp,
@@ -241,6 +247,11 @@ class SportsStudioApp extends StatelessWidget {
         ),
         GetPage(
           name: '/admin/bookings',
+          page: () => const OwnerBookingsView(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/owner-bookings',
           page: () => const OwnerBookingsView(),
           transition: Transition.rightToLeft,
         ),
