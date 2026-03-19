@@ -9,6 +9,15 @@ import 'package:sports_studio/features/admin/controller/admin_controller.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_withdrawals_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_reports_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_reviews_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_newsletter_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_settings_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_events_page.dart';
+import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
 
 class AdminDashboardView extends StatelessWidget {
   const AdminDashboardView({super.key});
@@ -314,25 +323,55 @@ class AdminDashboardView extends StatelessWidget {
             'User Mgmt',
             Icons.person_search,
             Colors.indigo,
-            () => Get.toNamed('/admin/users'),
+            () => Get.to(() => const AdminUsersPage()),
           ),
           _actionBtn(
             'Complexes',
             Icons.domain_verification,
             Colors.teal,
-            () => Get.toNamed('/admin/complexes'),
+            () => Get.to(() => const AdminComplexManagementPage()),
           ),
           _actionBtn(
             'All Bookings',
             Icons.receipt_long,
             Colors.amber,
-            () => Get.toNamed('/admin/bookings'),
+            () => Get.to(() => const OwnerBookingsView()),
           ),
           _actionBtn(
             'Review Log',
             Icons.thumbs_up_down,
             Colors.deepOrange,
-            () => Get.toNamed('/admin/reviews'),
+            () => Get.to(() => const AdminReviewsPage()),
+          ),
+          _actionBtn(
+            'Withdrawals',
+            Icons.payments_outlined,
+            Colors.green,
+            () => Get.to(() => const AdminWithdrawalsPage()),
+          ),
+          _actionBtn(
+            'Reports',
+            Icons.analytics_outlined,
+            Colors.blueGrey,
+            () => Get.to(() => const AdminReportsPage()),
+          ),
+          _actionBtn(
+            'Newsletter',
+            Icons.mail_outline,
+            Colors.teal,
+            () => Get.to(() => const AdminNewsletterPage()),
+          ),
+          _actionBtn(
+            'Settings',
+            Icons.settings_outlined,
+            Colors.purple,
+            () => Get.to(() => const AdminSettingsPage()),
+          ),
+          _actionBtn(
+            'Events',
+            Icons.event_outlined,
+            Colors.orangeAccent,
+            () => Get.to(() => const AdminEventsPage()),
           ),
         ],
       ),
@@ -441,7 +480,7 @@ class AdminDashboardView extends StatelessWidget {
             title: Text(review['user']?['name'] ?? 'Anonymous'),
             subtitle: Text(review['comment'] ?? ''),
             trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-            onTap: () => Get.toNamed('/admin/reviews'),
+            onTap: () => Get.to(() => const AdminReviewsPage()),
           );
         },
       );

@@ -9,6 +9,8 @@ import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class ManagedEventsPage extends StatelessWidget {
   const ManagedEventsPage({super.key});
@@ -62,7 +64,7 @@ class ManagedEventsPage extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     ElevatedButton.icon(
-                      onPressed: () => Get.toNamed('/create-match'),
+                      onPressed: () => Get.to(() => const CreateMatchPage()),
                       icon: const Icon(Icons.add),
                       label: const Text('Organize Now'),
                       style: ElevatedButton.styleFrom(
@@ -94,7 +96,7 @@ class ManagedEventsPage extends StatelessWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Get.toNamed('/create-match'),
+        onPressed: () => Get.to(() => const CreateMatchPage()),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Organize Event', style: TextStyle(color: Colors.white)),
@@ -109,7 +111,7 @@ class ManagedEventsPage extends StatelessWidget {
     final timeStr = DateFormat('hh:mm a').format(event.startTime);
 
     return InkWell(
-      onTap: () => Get.toNamed('/event-detail', arguments: event),
+      onTap: () => Get.to(() => const EventDetailPage(), arguments: event),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         decoration: BoxDecoration(

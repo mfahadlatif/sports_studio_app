@@ -5,6 +5,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/features/user/controller/payment_controller.dart';
+import 'package:sports_studio/features/user/presentation/pages/transaction_detail_page.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class TransactionsPage extends StatelessWidget {
@@ -160,7 +161,7 @@ class TransactionsPage extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (tx.bookingId != null) ...[
+                      if (tx.bookingId != 0) ...[
                         const SizedBox(height: 6),
                         Text(
                           '#BK${tx.bookingId}',
@@ -172,7 +173,7 @@ class TransactionsPage extends StatelessWidget {
                     ],
                   ),
                   onTap: () {
-                    // Placeholder for future detailed view
+                    Get.to(() => const TransactionDetailPage(), arguments: tx);
                   },
                 ),
               );

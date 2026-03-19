@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
@@ -297,6 +297,8 @@ class AuthPage extends StatelessWidget {
   }
 
   Widget _buildSocialAuth(AuthController controller) {
+    final bool isIOS =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     return Column(
       children: [
         Row(
@@ -314,36 +316,25 @@ class AuthPage extends StatelessWidget {
         Obx(
           () => Column(
             children: [
-              // if (Platform.isIOS) ...[
-              //   _socialButton(
-              //     AppConstants.googleLogo,
-              //     'Continue with Google',
-              //     Colors.red,
-              //     onTap: controller.loginWithGoogle,
-              //     isFullWidth: true,
-              //     isLoading: controller.isGoogleLoading.value,
-
-              //   ),
-              //   const SizedBox(height: AppSpacing.m),
-              //   _socialButton(
-              //     AppConstants.appleLogo,
-              //     'Continue with Apple',
-              //     Colors.black,
-              //     onTap: controller.loginWithApple,
-              //     isFullWidth: true,
-              //     isLoading: controller.isAppleLoading.value,
-              //   ),
-              // ] else
-              Platform.isIOS
-                  ? _socialButton(
-                      AppConstants.googleLogo,
-                      'Continue with Google',
-                      Colors.red,
-                      onTap: controller.loginWithGoogle,
-                      isFullWidth: true,
-                      isLoading: controller.isGoogleLoading.value,
-                    )
-                  : const SizedBox(),
+              _socialButton(
+                AppConstants.googleLogo,
+                'Continue with Google',
+                Colors.red,
+                onTap: controller.loginWithGoogle,
+                isFullWidth: true,
+                isLoading: controller.isGoogleLoading.value,
+              ),
+              if (isIOS) ...[
+                const SizedBox(height: AppSpacing.m),
+                _socialButton(
+                  AppConstants.appleLogo,
+                  'Continue with Apple',
+                  Colors.black,
+                  onTap: controller.loginWithApple,
+                  isFullWidth: true,
+                  isLoading: controller.isAppleLoading.value,
+                ),
+              ],
             ],
           ),
         ),

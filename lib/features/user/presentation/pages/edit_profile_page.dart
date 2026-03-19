@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -6,6 +7,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/phone_input_field.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -78,20 +80,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   Widget _buildAvatarSection() {
     final user = controller.userProfile;
     final avatarUrl = user['avatar']?.toString();
-
-    // Sanitize URL for local development vs production
-    String displayUrl = avatarUrl ?? '';
-    if (displayUrl.contains('localhost')) {
-      displayUrl = displayUrl
-          .replaceAll(
-            'localhost/cricket-oasis-bookings/backend/public',
-            'lightcoral-goose-424965.hostingersite.com/backend/public',
-          )
-          .replaceAll(
-            'http://localhost',
-            'https://lightcoral-goose-424965.hostingersite.com',
-          );
-    }
+    String displayUrl = UrlHelper.sanitizeUrl(avatarUrl);
 
     return Stack(
       alignment: Alignment.bottomRight,
@@ -114,23 +103,32 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ],
           ),
           child: ClipOval(
-            child: avatarUrl != null
-                ? Image.network(
-                    displayUrl,
+            child: controller.pickedAvatarPath.value.isNotEmpty
+                ? Image.file(
+                    File(controller.pickedAvatarPath.value),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const Icon(
-                      Icons.person,
-                      size: 70,
-                      color: AppColors.border,
-                    ),
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      );
-                    },
                   )
-                : const Icon(Icons.person, size: 70, color: AppColors.border),
+                : (avatarUrl != null
+                    ? Image.network(
+                        displayUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.person,
+                          size: 70,
+                          color: AppColors.border,
+                        ),
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        },
+                      )
+                    : const Icon(
+                        Icons.person,
+                        size: 70,
+                        color: AppColors.border,
+                      )),
           ),
         ),
         GestureDetector(
@@ -174,6 +172,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
           Icons.email_outlined,
           'Enter your email',
           keyboardType: TextInputType.emailAddress,
+          readOnly: true,
         ),
         const SizedBox(height: AppSpacing.m),
         PhoneTextfield(
@@ -194,6 +193,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     IconData icon,
     String hint, {
     TextInputType keyboardType = TextInputType.text,
+    bool readOnly = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,7 +208,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
-          style: AppTextStyles.bodyLarge,
+          readOnly: readOnly,
+          style: AppTextStyles.bodyLarge.copyWith(
+            color: readOnly ? AppColors.textMuted : AppColors.textPrimary,
+          ),
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: AppColors.primary, size: 22),

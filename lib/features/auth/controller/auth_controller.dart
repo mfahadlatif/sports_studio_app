@@ -150,13 +150,12 @@ class AuthController extends GetxController {
       final phone = (status['phone'] ?? '').toString();
 
       if (!isVerified && Get.context != null) {
-        showDialog(
-          context: Get.context!,
-          barrierDismissible: false,
-          builder: (_) => PhoneVerificationDialog(
+        Get.dialog(
+          PhoneVerificationDialog(
             initialPhone: phone,
             onVerified: () {},
           ),
+          barrierDismissible: false,
         );
       }
     } catch (_) {
@@ -243,9 +242,14 @@ class AuthController extends GetxController {
       if (e.response?.data != null) {
         final responseData = e.response?.data;
         if (responseData is Map) {
-          errorMessage = responseData['message'] ?? errorMessage;
+          // If there are detailed validation errors, extract them
           if (responseData['errors'] != null) {
-            errorMessage += '\n${responseData['errors']}';
+            final errors = responseData['errors'] as Map;
+            final firstErrorKey = errors.keys.first;
+            final firstErrorList = errors[firstErrorKey] as List;
+            errorMessage = firstErrorList.first.toString();
+          } else {
+            errorMessage = responseData['message'] ?? errorMessage;
           }
         }
       }

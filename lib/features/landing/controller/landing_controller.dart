@@ -20,16 +20,24 @@ class LandingController extends GetxController {
   }
 
   Future<void> logout() async {
-    await _storage.delete(key: 'auth_token');
-    await _storage.delete(key: 'user_role');
+    try {
+      // Clear token and role first to stop any outgoing requests
+      await _storage.delete(key: 'auth_token');
+      await _storage.delete(key: 'user_role');
 
-    // Clear profile data
-    if (Get.isRegistered<ProfileController>()) {
-      Get.find<ProfileController>().userProfile.value = {};
+      // Clear profile data
+      if (Get.isRegistered<ProfileController>()) {
+        Get.find<ProfileController>().userProfile.value = {};
+      }
+
+      currentRole.value = UserRole.user;
+      currentNavIndex.value = 0;
+      
+      // Clear all routes and go to auth
+      Get.offAllNamed('/auth');
+    } catch (e) {
+      // Emergency redirect in case of storage failure
+      Get.offAllNamed('/auth');
     }
-
-    currentRole.value = UserRole.user;
-    currentNavIndex.value = 0;
-    Get.offAllNamed('/auth');
   }
 }

@@ -10,6 +10,10 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/widgets/section_header.dart';
 import 'package:sports_studio/features/user/controller/home_controller.dart';
+import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -24,7 +28,6 @@ class HomeView extends StatelessWidget {
             constraints: const BoxConstraints(maxWidth: 1000),
             child: Column(
               children: [
-                
                 const HeroSection(),
                 const SizedBox(height: AppSpacing.m),
 
@@ -34,8 +37,8 @@ class HomeView extends StatelessWidget {
                   child: Row(
                     children: [
                       _buildQuickAction(
-                        'Book Ground',
-                        Icons.search,
+                        'Book Now',
+                        LucideIcons.calendarPlus,
                         AppColors.primary,
                         () {
                           final landingController =
@@ -45,17 +48,17 @@ class HomeView extends StatelessWidget {
                       ),
                       const SizedBox(width: AppSpacing.m),
                       _buildQuickAction(
-                        'Host Event',
-                        Icons.add_circle_outline,
+                        'Host Match',
+                        LucideIcons.circlePlay,
                         Colors.orange,
-                        () => Get.toNamed('/create-match'),
+                        () => Get.to(() => const CreateMatchPage()),
                       ),
                       const SizedBox(width: AppSpacing.m),
                       _buildQuickAction(
-                        'My Bookings',
-                        Icons.calendar_today_outlined,
+                        'My Tickets',
+                        LucideIcons.ticket,
                         Colors.blue,
-                        () => Get.toNamed('/user-bookings'),
+                        () => Get.to(() => const UserBookingsPage()),
                       ),
                     ],
                   ),
@@ -63,7 +66,7 @@ class HomeView extends StatelessWidget {
                 const SizedBox(height: AppSpacing.l),
 
                 // Sport Categories (Web Sync)
-                _sectionHeader('Explore by Sport', Icons.sports_cricket),
+                _sectionHeader('Explore by Sport', LucideIcons.trophy),
                 const SizedBox(height: AppSpacing.m),
                 _buildCategorySelector(),
                 const SizedBox(height: AppSpacing.l),
@@ -75,7 +78,7 @@ class HomeView extends StatelessWidget {
                 SectionHeader(
                   title: 'Hot Deals',
                   subtitle: 'Exclusive discounts on your favorite grounds',
-                  onActionPressed: () => Get.toNamed('/deals'),
+                  onActionPressed: () => Get.to(() => const DealsPage()),
                 ),
                 Obx(() {
                   if (controller.hotDeals.isEmpty) {
@@ -130,37 +133,70 @@ class HomeView extends StatelessWidget {
                 const SizedBox(height: AppSpacing.l),
 
                 // Stats Section
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                  padding: const EdgeInsets.all(AppSpacing.l),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppColors.secondary, Color(0xFF1E293B)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+                Obx(() {
+                  final stats = controller.dashboardStats;
+                  final bookings =
+                      stats['total_bookings'] ??
+                      stats['bookings'] ??
+                      stats['bookings_count'] ??
+                      0;
+                  final favorites =
+                      stats['favorites'] ??
+                      stats['favorites_count'] ??
+                      stats['total_favorites'] ??
+                      0;
+                  final events = stats['hosted_events'] ?? stats['events'] ?? 0;
+                  final spent =
+                      stats['total_spent'] ?? stats['total_payments'] ?? null;
+
+                  return Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
                     ),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.secondary.withOpacity(0.2),
-                        blurRadius: 15,
-                        offset: const Offset(0, 8),
+                    padding: const EdgeInsets.all(AppSpacing.l),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [AppColors.secondary, Color(0xFF1E293B)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStat(
-                        '50+',
-                        'Arenas',
-                        Icons.sports_cricket_outlined,
-                      ),
-                      _buildStat('10k+', 'Players', Icons.people_outline),
-                      _buildStat('4.9/5', 'Rating', Icons.star_outline),
-                    ],
-                  ),
-                ),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.secondary.withOpacity(0.2),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStat(
+                          bookings.toString(),
+                          'Bookings',
+                          LucideIcons.calendarDays,
+                        ),
+                        _buildStat(
+                          favorites.toString(),
+                          'Favorites',
+                          LucideIcons.heart,
+                        ),
+                        _buildStat(
+                          events.toString(),
+                          'Hosted',
+                          LucideIcons.circlePlay,
+                        ),
+                        if (spent != null)
+                          _buildStat(
+                            spent.toString(),
+                            'Spent',
+                            LucideIcons.walletCards,
+                          ),
+                      ],
+                    ),
+                  );
+                }),
 
                 const SizedBox(height: AppSpacing.l),
 
@@ -178,19 +214,16 @@ class HomeView extends StatelessWidget {
                     scrollDirection: Axis.horizontal,
                     children: [
                       _buildFeatureCard(
-                        Icons.verified_user_outlined,
+                        LucideIcons.shieldCheck,
                         'Certified Grounds',
                       ),
+                      _buildFeatureCard(LucideIcons.headset, '24/7 Support'),
                       _buildFeatureCard(
-                        Icons.support_agent_outlined,
-                        '24/7 Support',
-                      ),
-                      _buildFeatureCard(
-                        Icons.payments_outlined,
+                        LucideIcons.creditCard,
                         'Secure Payments',
                       ),
                       _buildFeatureCard(
-                        Icons.star_outline,
+                        LucideIcons.award,
                         'Professional Staff',
                       ),
                     ],
@@ -339,7 +372,7 @@ class HomeView extends StatelessWidget {
     Color colorEnd,
   ) {
     return GestureDetector(
-      onTap: () => Get.toNamed('/deals'),
+      onTap: () => Get.to(() => const DealsPage()),
       child: Container(
         width: 250,
         margin: const EdgeInsets.only(right: AppSpacing.m),
@@ -430,16 +463,16 @@ class HomeView extends StatelessWidget {
 
   Widget _buildCategorySelector() {
     final controller = Get.put(HomeController());
-    final List<Map<String, String>> categories = [
-      {'name': 'All', 'icon': '🌐'},
-      {'name': 'Cricket', 'icon': '🏏'},
-      {'name': 'Football', 'icon': '⚽'},
-      {'name': 'Tennis', 'icon': '🎾'},
-      {'name': 'Padel', 'icon': '🎾'},
-      {'name': 'Volleyball', 'icon': '🏐'},
-      {'name': 'Hockey', 'icon': '🏑'},
-      {'name': 'Basketball', 'icon': '🏀'},
-      {'name': 'Badminton', 'icon': '🏸'},
+    final List<Map<String, dynamic>> categories = [
+      {'name': 'All', 'icon': LucideIcons.layoutGrid},
+      {'name': 'Cricket', 'icon': Icons.sports_cricket_outlined},
+      {'name': 'Football', 'icon': Icons.sports_soccer_outlined},
+      {'name': 'Tennis', 'icon': Icons.sports_tennis_outlined},
+      {'name': 'Padel', 'icon': Icons.sports_tennis_outlined},
+      {'name': 'Volleyball', 'icon': Icons.sports_volleyball_outlined},
+      {'name': 'Hockey', 'icon': Icons.sports_hockey_outlined},
+      {'name': 'Basketball', 'icon': Icons.sports_basketball_outlined},
+      {'name': 'Badminton', 'icon': Icons.sports_tennis_outlined},
     ];
 
     return SizedBox(
@@ -476,7 +509,11 @@ class HomeView extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    Text(cat['icon']!, style: const TextStyle(fontSize: 16)),
+                    Icon(
+                      cat['icon'] as IconData,
+                      size: 16,
+                      color: isSelected ? Colors.white : AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       cat['name']!,

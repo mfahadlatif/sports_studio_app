@@ -309,6 +309,16 @@ class BookingSlotPage extends StatelessWidget {
     );
   }
 
+  String _getSlotDisplay(String slot) {
+    try {
+      final slotTime = DateFormat('hh:mm a').parse(slot);
+      final endTime = slotTime.add(const Duration(hours: 1));
+      return '$slot - ${DateFormat('hh:mm a').format(endTime)}';
+    } catch (e) {
+      return slot;
+    }
+  }
+
   Widget _buildSlotGridSliver(BookingController controller) {
     return SliverPadding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
@@ -333,10 +343,10 @@ class BookingSlotPage extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
+                  crossAxisCount: 2, // Changed to 2 for wider range text
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  childAspectRatio: 2.2,
+                  childAspectRatio: 3.5,
                 ),
                 itemCount: controller.allSlots.length,
                 itemBuilder: (context, index) {
@@ -344,18 +354,20 @@ class BookingSlotPage extends StatelessWidget {
                   return Obx(() {
                     final isSelected = controller.selectedSlots.contains(slot);
                     final isBooked = controller.bookedSlots.contains(slot);
+                    final isPassed = controller.isSlotPassed(slot);
+                    final isUnavailable = isBooked || isPassed;
 
                     return GestureDetector(
-                      onTap: isBooked ? null : () => controller.toggleSlot(slot),
+                      onTap: isUnavailable ? null : () => controller.toggleSlot(slot),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
-                          color: isBooked
-                              ? Colors.grey[200]
+                          color: isUnavailable
+                              ? Colors.grey[100]
                               : (isSelected ? AppColors.primary : Colors.white),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: isBooked
+                            color: isUnavailable
                                 ? Colors.transparent
                                 : (isSelected
                                       ? AppColors.primary
@@ -374,17 +386,17 @@ class BookingSlotPage extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          isBooked ? 'TAKEN' : slot,
+                          isBooked ? 'TAKEN' : (isPassed ? 'PASSED' : _getSlotDisplay(slot)),
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: isBooked
+                            color: isUnavailable
                                 ? AppColors.textMuted
                                 : (isSelected
                                       ? Colors.white
                                       : AppColors.textPrimary),
-                            fontWeight: (isSelected || isBooked)
+                            fontWeight: (isSelected || isUnavailable)
                                 ? FontWeight.bold
                                 : FontWeight.w600,
-                            fontSize: isBooked ? 10 : 13,
+                            fontSize: isUnavailable ? 10 : 12,
                           ),
                         ),
                       ),
@@ -492,7 +504,7 @@ class BookingSlotPage extends StatelessWidget {
                     label: 'Confirm Booking',
                     onPressed: controller.selectedSlots.isEmpty
                         ? null
-                        : () => controller.bookWithSafepay(),
+                        : () => _showPaymentMethodSheet(controller),
                     isLoading: controller.isBooking.value,
                   ),
                 ),
@@ -501,6 +513,60 @@ class BookingSlotPage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showPaymentMethodSheet(BookingController controller) {
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Choose Payment Method', style: AppTextStyles.h3),
+              const SizedBox(height: AppSpacing.m),
+              AppButton(
+                label: 'Pay with Safepay (Card)',
+                onPressed: () {
+                  Get.back();
+                  controller.createBooking();
+                },
+              ),
+              const SizedBox(height: AppSpacing.s),
+              AppButton(
+                label: 'Pay with Wallet',
+                onPressed: () {
+                  Get.back();
+                  controller.createBooking(paymentMethod: 'wallet');
+                },
+              ),
+              const SizedBox(height: AppSpacing.s),
+              AppButton(
+                label: 'Cash at Venue',
+                onPressed: () {
+                  Get.back();
+                  controller.createBooking(paymentMethod: 'cash');
+                },
+              ),
+              const SizedBox(height: AppSpacing.s),
+              Text(
+                'Wallet/Cash bookings are confirmed instantly (no 20-minute timer).',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
     );
   }
 }

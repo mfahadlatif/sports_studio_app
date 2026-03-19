@@ -35,25 +35,9 @@ class AppUtils {
     required dynamic message,
     Duration? duration,
   }) {
-    String errorMessage = '';
+    String errorMessage = extractErrorMessage(message);
 
-    if (message is DioException) {
-      errorMessage = _handleDioError(message);
-    } else {
-      final msgStr = message.toString();
-      // If the string contains technical Dio error info, clean it up
-      if (msgStr.contains('DioException') || msgStr.contains('timeout')) {
-        if (msgStr.contains('timeout')) {
-          errorMessage = 'Connection timed out. Please check your internet.';
-        } else if (msgStr.contains('connection')) {
-          errorMessage = 'Network error. Please check your connection.';
-        } else {
-          errorMessage = 'Something went wrong. Please try again later.';
-        }
-      } else {
-        errorMessage = msgStr;
-      }
-    }
+    if (errorMessage.isEmpty) return; // Handled globally or nothing to show
 
     Get.snackbar(
       title,
@@ -76,25 +60,49 @@ class AppUtils {
     );
   }
 
-  static String _handleDioError(DioException error) {
-    switch (error.type) {
-      case DioExceptionType.connectionTimeout:
-      case DioExceptionType.sendTimeout:
-      case DioExceptionType.receiveTimeout:
-        return 'Connection timed out. Please check your internet and try again.';
-      case DioExceptionType.badResponse:
-        final data = error.response?.data;
-        if (data != null && data is Map && data.containsKey('message')) {
-          return data['message'];
-        }
-        return 'Server error (${error.response?.statusCode}). Please try again later.';
-      case DioExceptionType.cancel:
-        return 'Request was cancelled.';
-      case DioExceptionType.connectionError:
-        return 'No internet connection found. Please check your WiFi or mobile data.';
-      default:
-        return 'Something went wrong. Please try again.';
+  static String extractErrorMessage(dynamic error) {
+    if (error == null) return 'Unknown error occurred';
+    
+    if (error is DioException) {
+      if (error.response?.statusCode == 401) return ''; // Handled globally
+      
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Connection timed out. Please check your internet and try again.';
+        case DioExceptionType.badResponse:
+          final data = error.response?.data;
+          if (data != null && data is Map && data.containsKey('message')) {
+            return data['message'].toString();
+          }
+          if (data != null && data is Map && data.containsKey('errors')) {
+             // Handle Laravel validation errors
+             final errors = data['errors'] as Map;
+             return errors.values.first.toString().replaceAll('[', '').replaceAll(']', '');
+          }
+          return 'Server error (${error.response?.statusCode}). Please try again later.';
+        case DioExceptionType.cancel:
+          return 'Request was cancelled.';
+        case DioExceptionType.connectionError:
+          return 'No internet connection found. Please check your WiFi or mobile data.';
+        default:
+          return 'Something went wrong. Please try again.';
+      }
     }
+
+    final msgStr = error.toString();
+    if (msgStr.contains('401') || msgStr.toLowerCase().contains('unauthorized')) return '';
+    
+    if (msgStr.contains('DioException [bad response]') || msgStr.contains('status code of 422')) {
+      return 'Validation failed. Please check your inputs.';
+    } else if (msgStr.contains('timeout')) {
+      return 'Connection timed out. Please check your internet.';
+    } else if (msgStr.contains('connection')) {
+      return 'Network error. Please check your connection.';
+    }
+    
+    return msgStr.replaceFirst('Exception: ', '').replaceFirst('Exception', '').trim();
   }
 
   static void showInfo({

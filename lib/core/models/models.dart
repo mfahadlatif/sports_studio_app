@@ -14,6 +14,7 @@ class Complex {
   final List<String>? amenities;
   final double? latitude;
   final double? longitude;
+  final int? reviewsCount;
 
   Complex({
     required this.id,
@@ -29,6 +30,7 @@ class Complex {
     this.amenities,
     this.latitude,
     this.longitude,
+    this.reviewsCount,
   });
 
   factory Complex.fromJson(Map<String, dynamic> json) {
@@ -53,6 +55,7 @@ class Complex {
       amenities: _parseJsonList<String>(json['amenities']),
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
+      reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? ''),
     );
   }
 
@@ -71,6 +74,7 @@ class Complex {
       'amenities': amenities,
       'latitude': latitude,
       'longitude': longitude,
+      'reviews_count': reviewsCount,
     };
   }
 }
@@ -94,6 +98,8 @@ class Ground {
   final String? closingTime;
   final double? latitude;
   final double? longitude;
+  final double? avgRating;
+  final int? reviewsCount;
 
   Ground({
     required this.id,
@@ -114,6 +120,8 @@ class Ground {
     this.closingTime,
     this.latitude,
     this.longitude,
+    this.avgRating,
+    this.reviewsCount,
   });
 
   factory Ground.fromJson(Map<String, dynamic> json) {
@@ -142,6 +150,8 @@ class Ground {
       closingTime: json['closing_time'],
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
+      avgRating: double.tryParse(json['avg_rating']?.toString() ?? ''),
+      reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? ''),
     );
   }
 
@@ -165,6 +175,8 @@ class Ground {
       'closing_time': closingTime,
       'latitude': latitude,
       'longitude': longitude,
+      'avg_rating': avgRating,
+      'reviews_count': reviewsCount,
     };
   }
 }
@@ -289,6 +301,8 @@ class Event {
   final bool? userJoined;
   final double? latitude;
   final double? longitude;
+  final double? avgRating;
+  final int? reviewsCount;
 
   int get playersLeft {
     if (maxParticipants == null || maxParticipants == 0) return 0;
@@ -322,6 +336,8 @@ class Event {
     this.userJoined,
     this.latitude,
     this.longitude,
+    this.avgRating,
+    this.reviewsCount,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -369,6 +385,8 @@ class Event {
       userJoined: json['user_joined'] == 1 || json['user_joined'] == true,
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
+      avgRating: double.tryParse(json['avg_rating']?.toString() ?? ''),
+      reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? ''),
     );
   }
 
@@ -400,6 +418,8 @@ class Event {
       'user_joined': userJoined,
       'latitude': latitude,
       'longitude': longitude,
+      'avg_rating': avgRating,
+      'reviews_count': reviewsCount,
     };
   }
 }
@@ -411,6 +431,7 @@ class Team {
   final String? logo;
   final String? description;
   final int ownerId;
+  final User? owner;
   final List<TeamMember>? members;
 
   Team({
@@ -420,6 +441,7 @@ class Team {
     this.logo,
     this.description,
     required this.ownerId,
+    this.owner,
     this.members,
   });
 
@@ -431,6 +453,9 @@ class Team {
       logo: json['logo']?.toString(),
       description: json['description']?.toString(),
       ownerId: int.tryParse(json['owner_id']?.toString() ?? '') ?? 0,
+      owner: json['owner'] != null && json['owner'] is Map<String, dynamic>
+          ? User.fromJson(json['owner'])
+          : null,
       members: json['members'] != null && json['members'] is List
           ? (json['members'] as List)
                 .map((m) => TeamMember.fromJson(m))

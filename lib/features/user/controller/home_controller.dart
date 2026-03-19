@@ -6,6 +6,7 @@ class HomeController extends GetxController {
   final RxBool isLoading = false.obs;
   final RxList<dynamic> premiumGrounds = <dynamic>[].obs;
   final RxList<dynamic> hotDeals = <dynamic>[].obs;
+  final RxMap<String, dynamic> dashboardStats = <String, dynamic>{}.obs;
 
   // Search & Advanced Filter State
   final RxString searchQuery = ''.obs;
@@ -23,6 +24,21 @@ class HomeController extends GetxController {
     super.onInit();
     fetchPremiumGrounds();
     fetchHotDeals();
+    fetchUserDashboardStats();
+  }
+
+  Future<void> fetchUserDashboardStats() async {
+    try {
+      final res = await ApiClient().dio.get('/user/dashboard/stats');
+      if (res.statusCode == 200) {
+        final data = res.data;
+        if (data is Map) {
+          dashboardStats.assignAll(Map<String, dynamic>.from(data));
+        }
+      }
+    } catch (e) {
+      // Non-blocking. Keep UI usable with fallback stats.
+    }
   }
 
   Future<void> fetchPremiumGrounds() async {
@@ -128,12 +144,34 @@ class HomeController extends GetxController {
 
     // 2b. Location Filter (separate field)
     if (locationQuery.value.isNotEmpty) {
-      final text = locationQuery.value.toLowerCase();
+      final queryParts = locationQuery.value
+          .toLowerCase()
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+
       result = result.where((ground) {
         final location = ground['location']?.toString().toLowerCase() ?? '';
         final complex = ground['complex'] ?? {};
         final address = complex['address']?.toString().toLowerCase() ?? '';
-        return location.contains(text) || address.contains(text);
+        
+        if (locationQuery.value.toLowerCase() == location || locationQuery.value.toLowerCase() == address) return true;
+
+        bool matches = false;
+        for (var part in queryParts) {
+          // Ignore highly generic parts that might cause false positives
+          if (part.length <= 2) continue;
+          
+          if ((location.isNotEmpty && location.contains(part)) ||
+              (address.isNotEmpty && address.contains(part)) ||
+              (location.isNotEmpty && part.contains(location)) ||
+              (address.isNotEmpty && part.contains(address))) {
+            matches = true;
+            break;
+          }
+        }
+        return matches;
       }).toList();
     }
 
@@ -156,8 +194,12 @@ class HomeController extends GetxController {
     // 4. Amenities Filter
     if (selectedAmenities.isNotEmpty) {
       result = result.where((ground) {
-        final amenities = ground['amenities'] as List? ?? [];
-        return selectedAmenities.every((id) => amenities.contains(id));
+        final amenitiesList = ground['amenities'] as List? ?? [];
+        final amenities =
+            amenitiesList.map((e) => e.toString().toLowerCase()).toList();
+        return selectedAmenities.every(
+          (id) => amenities.contains(id.toLowerCase()),
+        );
       }).toList();
     }
 

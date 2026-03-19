@@ -5,6 +5,7 @@ import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
+import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class EventsController extends GetxController {
   final RxBool isLoadingEvents = false.obs;
@@ -129,7 +130,7 @@ class EventsController extends GetxController {
       clearEventForm();
       Get.back();
       AppUtils.showSuccess(message: 'Event created successfully!');
-      Get.toNamed('/event-details', arguments: event);
+      Get.to(() => const EventDetailPage(), arguments: event);
     } catch (e) {
       AppUtils.showError(message: 'Failed to create event: $e');
     } finally {

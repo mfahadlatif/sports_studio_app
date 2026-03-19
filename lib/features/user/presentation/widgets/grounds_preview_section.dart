@@ -10,6 +10,7 @@ import 'package:sports_studio/features/user/controller/home_controller.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart'
     as sports_landing;
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/features/user/presentation/pages/ground_detail_page.dart';
 
 class GroundsPreviewSection extends StatelessWidget {
   const GroundsPreviewSection({super.key});
@@ -103,7 +104,7 @@ class GroundCard extends StatelessWidget {
     );
 
     return GestureDetector(
-      onTap: () => Get.toNamed('/ground-detail', arguments: ground),
+      onTap: () => Get.to(() => const GroundDetailPage(), arguments: ground),
       child: Container(
         width: 240,
         margin: const EdgeInsets.only(
@@ -190,7 +191,7 @@ class GroundCard extends StatelessWidget {
                           const Icon(Icons.star, color: Colors.amber, size: 16),
                           const SizedBox(width: 4),
                           Text(
-                            ground['avg_rating']?.toString() ?? '5.0',
+                            ground['avg_rating']?.toString() ?? '0.0',
                             style: AppTextStyles.bodySmall.copyWith(
                               fontWeight: FontWeight.bold,
                             ),

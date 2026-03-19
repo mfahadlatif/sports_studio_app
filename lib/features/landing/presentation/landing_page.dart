@@ -19,6 +19,8 @@ import 'package:sports_studio/features/owner/presentation/widgets/owner_settings
 import 'package:sports_studio/features/user/presentation/pages/profile_page.dart';
 import 'package:sports_studio/features/admin/presentation/widgets/admin_dashboard_view.dart';
 import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_reports_page.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -47,8 +49,8 @@ class LandingPage extends StatelessWidget {
     final List<Widget> adminPages = [
       const AdminDashboardView(),
       const AdminUsersPage(),
-      const Center(child: Text('Complex Management')),
-      const Center(child: Text('Global Reports')),
+      const AdminComplexManagementPage(),
+      const AdminReportsPage(),
       const ProfilePage(),
     ];
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:sports_studio/core/controllers/system_settings_controller.dart';
 import 'package:sports_studio/core/theme/app_theme.dart';
 import 'package:sports_studio/features/landing/presentation/landing_page.dart';
 import 'package:sports_studio/features/auth/presentation/pages/auth_page.dart';
@@ -35,11 +36,17 @@ import 'package:sports_studio/features/landing/controller/landing_controller.dar
 import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
 import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_withdrawals_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
+import 'package:sports_studio/features/admin/presentation/pages/admin_reports_page.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/core/services/app_initialization_service.dart';
 import 'package:sports_studio/core/services/data_fetch_service.dart';
 import 'package:sports_studio/core/services/safepay_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/transaction_detail_page.dart';
+import 'package:sports_studio/core/controllers/system_settings_controller.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -65,6 +72,7 @@ void main() async {
   Get.put(ProfileController(), permanent: true);
 
   // Initialize app services
+  Get.put(SystemSettingsController(), permanent: true);
   Get.put(AppInitializationService(), permanent: true);
   Get.put(DataFetchService(), permanent: true);
   await Get.putAsync(() => SafepayService().init(), permanent: true);
@@ -163,6 +171,11 @@ class SportsStudioApp extends StatelessWidget {
           transition: Transition.rightToLeft,
         ),
         GetPage(
+          name: '/transaction-detail',
+          page: () => const TransactionDetailPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
           name: '/create-match',
           page: () => const CreateMatchPage(),
           transition: Transition.downToUp,
@@ -242,7 +255,7 @@ class SportsStudioApp extends StatelessWidget {
         ),
         GetPage(
           name: '/admin/complexes',
-          page: () => const SportsComplexesPage(),
+          page: () => const AdminComplexManagementPage(),
           transition: Transition.rightToLeft,
         ),
         GetPage(
@@ -260,10 +273,25 @@ class SportsStudioApp extends StatelessWidget {
           page: () => const ReviewModerationPage(),
           transition: Transition.rightToLeft,
         ),
+        GetPage(
+          name: '/admin/withdrawals',
+          page: () => const AdminWithdrawalsPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/admin/reports',
+          page: () => const AdminReportsPage(),
+          transition: Transition.rightToLeft,
+        ),
         // ── Utility Routes ────────────────────────────────────
         GetPage(
           name: '/contact',
           page: () => const ContactPage(),
+          transition: Transition.rightToLeft,
+        ),
+        GetPage(
+          name: '/wallet',
+          page: () => const WalletPage(),
           transition: Transition.rightToLeft,
         ),
       ],

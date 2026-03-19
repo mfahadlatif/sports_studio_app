@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:get/get_navigation/src/root/parse_route.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/models/models.dart';
 
@@ -15,15 +16,13 @@ class GroundApiService {
   }) async {
     try {
       print('🌐 [GroundAPI] Fetching public grounds...');
+      final queryParams = <String, dynamic>{'page': page, 'per_page': perPage};
+      if (complexId != null) queryParams['complex_id'] = complexId;
+      if (type != null && type.isNotEmpty) queryParams['type'] = type;
+      if (ownerId != null) queryParams['owner_id'] = ownerId;
       final response = await _client.dio.get(
         '/public/grounds',
-        queryParameters: {
-          'complex_id': ?complexId,
-          'type': ?type,
-          'owner_id': ?ownerId,
-          'page': page,
-          'per_page': perPage,
-        },
+        queryParameters: queryParams,
       );
 
       if (response.statusCode == 200) {
@@ -316,7 +315,9 @@ class BookingApiService {
       print('🌐 [BookingAPI] Fetching owner bookings...');
       final response = await _client.dio.get(
         '/owner/bookings',
-        queryParameters: {'status': ?status},
+        queryParameters: status != null && status.isNotEmpty
+            ? {'status': status}
+            : null,
       );
       if (response.statusCode == 200) {
         final raw = response.data;
@@ -392,9 +393,7 @@ class EventApiService {
       print('🌐 [EventAPI] Fetching user events...');
       final response = await _client.dio.get(
         '/events',
-        queryParameters: {
-          'organizer_id': ?organizerId,
-        },
+        queryParameters: {if (organizerId != null) 'organizer_id': organizerId},
       );
       if (response.statusCode == 200) {
         final raw = response.data;
@@ -482,15 +481,17 @@ class EventApiService {
       final raw = listRes.data;
       final List data = raw is List ? raw : (raw['data'] as List? ?? []);
       final match = data.cast<dynamic>().firstWhere(
-            (p) => (p['event_id']?.toString() == eventId.toString()),
-            orElse: () => null,
-          );
+        (p) => (p['event_id']?.toString() == eventId.toString()),
+        orElse: () => null,
+      );
       final participantId = match == null ? null : match['id'];
       if (participantId == null) {
         throw Exception('Participation not found for event $eventId');
       }
 
-      final response = await _client.dio.delete('/event-participants/$participantId');
+      final response = await _client.dio.delete(
+        '/event-participants/$participantId',
+      );
       if (response.statusCode == 200 || response.statusCode == 204) {
         print('✅ [EventAPI] Left event $eventId');
         return;
@@ -674,7 +675,7 @@ class TeamApiService {
         '/teams/$teamId/members',
         data: memberData,
       );
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ [TeamAPI] Member added to team $teamId');
         return response.data;
       }
@@ -727,7 +728,7 @@ class ReviewApiService {
       print('🌐 [ReviewAPI] Fetching reviews for ground $groundId...');
       final response = await _client.dio.get(
         '/public/reviews',
-        queryParameters: {'ground_id': ?groundId},
+        queryParameters: groundId != null ? {'ground_id': groundId} : null,
       );
 
       if (response.statusCode == 200) {
@@ -922,6 +923,34 @@ class NotificationApiService {
 
 class DealApiService {
   final ApiClient _client = ApiClient();
+
+  Future<Deal?> validatePromoCode({required String code, int? groundId}) async {
+    final trimmed = code.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Preferred: server-side validation (if backend implements it).
+    try {
+      final res = await _client.dio.post(
+        '/public/deals/validate',
+        data: {'code': trimmed, if (groundId != null) 'ground_id': groundId},
+      );
+      if (res.statusCode == 200) {
+        final data = res.data;
+        if (data is Map && data['deal'] is Map) {
+          return Deal.fromJson(Map<String, dynamic>.from(data['deal']));
+        }
+        if (data is Map) return Deal.fromJson(Map<String, dynamic>.from(data));
+      }
+    } catch (_) {
+      // Fallback to client-side match below.
+    }
+
+    final deals = await getPublicDeals();
+    final match = deals.firstWhereOrNull(
+      (d) => (d.code ?? '').toLowerCase() == trimmed.toLowerCase(),
+    );
+    return match;
+  }
 
   Future<List<Deal>> getPublicDeals() async {
     try {
@@ -1187,7 +1216,7 @@ class UserApiService {
       print('✅ [UserAPI] Password changed');
     } catch (e) {
       print('❌ [UserAPI] changePassword error: $e');
-      throw Exception('Failed to change password: $e');
+      rethrow;
     }
   }
 
@@ -1240,6 +1269,24 @@ class UserApiService {
       throw Exception('Failed to check verification status: $e');
     }
   }
+  Future<List<User>> searchUsers(String query) async {
+    try {
+      print('🌐 [UserAPI] Searching users with query: $query');
+      final response = await _client.dio.get(
+        '/users/search',
+        queryParameters: {'query': query},
+      );
+      if (response.statusCode == 200) {
+        final List data = response.data is List ? response.data : [];
+        print('✅ [UserAPI] Found ${data.length} users');
+        return data.map((json) => User.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      print('❌ [UserAPI] searchUsers error: $e');
+      throw Exception('Failed to search users: $e');
+    }
+  }
 }
 
 class ContactApiService {
@@ -1257,6 +1304,26 @@ class ContactApiService {
     } catch (e) {
       print('❌ [ContactAPI] submitContactForm error: $e');
       throw Exception('Failed to submit contact form: $e');
+    }
+  }
+}
+
+class NewsletterApiService {
+  final ApiClient _client = ApiClient();
+
+  Future<void> subscribe(String email) async {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) throw Exception('Email is required');
+    try {
+      print('🌐 [NewsletterAPI] Subscribing...');
+      final res = await _client.dio.post(
+        '/newsletter/subscribe',
+        data: {'email': trimmed},
+      );
+      if (res.statusCode == 200 || res.statusCode == 201) return;
+      throw Exception('Failed to subscribe');
+    } catch (e) {
+      throw Exception('Failed to subscribe: $e');
     }
   }
 }
@@ -1317,8 +1384,13 @@ class EventParticipantApiService {
   Future<dynamic> joinEvent(Map<String, dynamic> participantData) async {
     try {
       final eventId = participantData['event_id'];
-      print('🌐 [ParticipantAPI] Joining event $eventId via /event-participants...');
-      final response = await _client.dio.post('/event-participants', data: participantData);
+      print(
+        '🌐 [ParticipantAPI] Joining event $eventId via /event-participants...',
+      );
+      final response = await _client.dio.post(
+        '/event-participants',
+        data: participantData,
+      );
       if (response.statusCode == 200 || response.statusCode == 201) {
         print('✅ [ParticipantAPI] Joined event $eventId');
         return response.data;

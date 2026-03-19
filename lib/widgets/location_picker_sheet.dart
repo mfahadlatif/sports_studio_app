@@ -4,7 +4,6 @@ import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class LocationPickerSheet extends StatefulWidget {
   final String? initialAddress;
@@ -21,12 +20,38 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
   final _searchCtrl = TextEditingController();
   List<dynamic> _suggestions = [];
   bool _isSearching = false;
+  bool _isManualMove = false;
 
   @override
   void initState() {
     super.initState();
     _selectedAddress = widget.initialAddress ?? '';
     _searchCtrl.text = _selectedAddress;
+  }
+
+  Future<void> _reverseGeocode(LatLng loc) async {
+    setState(() => _isSearching = true);
+    try {
+      final res = await Dio().get(
+        'https://nominatim.openstreetmap.org/reverse',
+        queryParameters: {
+          'lat': loc.latitude,
+          'lon': loc.longitude,
+          'format': 'json',
+        },
+      );
+      if (res.statusCode == 200) {
+        final address = res.data['display_name'];
+        setState(() {
+          _selectedAddress = address;
+          _searchCtrl.text = address;
+        });
+      }
+    } catch (e) {
+      print("Reverse geocode error: $e");
+    } finally {
+      setState(() => _isSearching = false);
+    }
   }
 
   Future<void> _searchLocation(String query) async {
@@ -57,6 +82,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
       _selectedAddress = address;
       _suggestions = [];
       _searchCtrl.text = address;
+      _isManualMove = false;
     });
 
     _mapController?.animateCamera(CameraUpdate.newLatLngZoom(_selectedLoc, 15));
@@ -82,10 +108,10 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
             child: Row(
               children: [
-                Text('Select Location', style: AppTextStyles.h2),
+                Text('Location Picker', style: AppTextStyles.h2),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Get.back(),
@@ -103,7 +129,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                 TextField(
                   controller: _searchCtrl,
                   onChanged: (val) {
-                    // Debounce search
+                    _isManualMove = false;
                     _searchLocation(val);
                   },
                   decoration: InputDecoration(
@@ -113,8 +139,27 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                       color: AppColors.primary,
                     ),
                     suffixIcon: _isSearching
-                        ? const AppProgressIndicator(size: 20, strokeWidth: 2)
-                        : null,
+                        ? Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          )
+                        : (_searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  setState(() {
+                                    _searchCtrl.clear();
+                                    _suggestions = [];
+                                  });
+                                },
+                              )
+                            : null),
                     filled: true,
                     fillColor: AppColors.background,
                     border: OutlineInputBorder(
@@ -126,6 +171,7 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                 if (_suggestions.isNotEmpty)
                   Container(
                     margin: const EdgeInsets.only(top: 4),
+                    constraints: const BoxConstraints(maxHeight: 200),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -138,19 +184,21 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                     ),
                     child: ListView.separated(
                       shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
                       itemCount: _suggestions.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final item = _suggestions[index];
                         return ListTile(
+                          dense: true,
                           leading: const Icon(
                             Icons.location_on_outlined,
                             color: AppColors.primary,
+                            size: 20,
                           ),
                           title: Text(
                             item['display_name'],
-                            style: const TextStyle(fontSize: 13),
+                            style: const TextStyle(fontSize: 12),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -163,9 +211,9 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
 
-          // Map View
+          // Map View with Centered Pin
           Expanded(
             child: Stack(
               children: [
@@ -175,26 +223,50 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                     zoom: 14,
                   ),
                   onMapCreated: (c) => _mapController = c,
-                  onCameraMove: (pos) => _selectedLoc = pos.target,
+                  onCameraMove: (pos) {
+                    _selectedLoc = pos.target;
+                    if (!_isManualMove && _suggestions.isEmpty) {
+                       setState(() => _isManualMove = true);
+                    }
+                  },
+                  onCameraIdle: () {
+                    if (_isManualMove) {
+                      _reverseGeocode(_selectedLoc);
+                    }
+                  },
                   myLocationEnabled: true,
                   myLocationButtonEnabled: true,
                   zoomControlsEnabled: false,
-                  markers: {
-                    Marker(
-                      markerId: const MarkerId('selected'),
-                      position: _selectedLoc,
-                    ),
-                  },
+                  mapToolbarEnabled: false,
+                  padding: const EdgeInsets.only(bottom: 20),
                 ),
-                // Center pinpoint if we wanted to picker on drag
-                /*
-                const Center(
+                // Center Pin UI
+                Center(
                   child: Padding(
-                    padding: EdgeInsets.only(bottom: 30),
-                    child: Icon(Icons.location_pin, color: Colors.red, size: 40),
+                    padding: const EdgeInsets.only(bottom: 35),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Text(
+                            'Move to pinpoint',
+                            style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.location_on_rounded,
+                          color: AppColors.primary,
+                          size: 44,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                */
               ],
             ),
           ),
@@ -217,15 +289,17 @@ class _LocationPickerSheetState extends State<LocationPickerSheet> {
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
+                  elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: const Text(
-                  'Confirm Location',
+                  'Confirm This Location',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                    fontSize: 16,
                   ),
                 ),
               ),

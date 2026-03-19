@@ -7,6 +7,8 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/user_booking_detail_page.dart';
 
 class UserBookingsPage extends StatelessWidget {
   const UserBookingsPage({super.key});
@@ -175,22 +177,27 @@ class _BookingCard extends StatelessWidget {
         statusIcon = Icons.access_time;
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.m),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () => Get.to(
+        () => const UserBookingDetailPage(),
+        arguments: booking,
       ),
-      child: Column(
-        children: [
-          Padding(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: AppSpacing.m),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Padding(
             padding: const EdgeInsets.all(AppSpacing.l),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,10 +323,13 @@ class _BookingCard extends StatelessWidget {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: ElevatedButton(
-                            onPressed: () => Get.toNamed('/payment', arguments: {
-                              'bookingId': booking['id'],
-                              'totalPrice': totalAmount,
-                            }),
+                            onPressed: () => Get.to(
+                              () => const PaymentPage(),
+                              arguments: {
+                                'bookingId': booking['id'],
+                                'totalPrice': totalAmount,
+                              },
+                            ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -337,6 +347,7 @@ class _BookingCard extends StatelessWidget {
             ),
           ),
         ],
+        ),
       ),
     );
   }

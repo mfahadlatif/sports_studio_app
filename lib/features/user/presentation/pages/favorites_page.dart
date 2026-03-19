@@ -4,6 +4,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/presentation/widgets/ground_card_wide.dart';
+import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 
 import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 
@@ -50,7 +51,12 @@ class FavoritesPage extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.xl),
                     ElevatedButton.icon(
-                      onPressed: () => Get.toNamed('/grounds'),
+                      onPressed: () {
+                        if (Get.isRegistered<LandingController>()) {
+                          Get.find<LandingController>().changeNavIndex(1);
+                          Get.back();
+                        }
+                      },
                       icon: const Icon(Icons.explore_outlined),
                       label: const Text('Explore Grounds'),
                     ),

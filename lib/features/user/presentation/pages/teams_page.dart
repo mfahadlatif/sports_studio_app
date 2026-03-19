@@ -7,6 +7,7 @@ import 'package:sports_studio/features/user/controller/teams_controller.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/features/user/presentation/pages/team_detail_page.dart';
 
 class TeamsPage extends StatelessWidget {
   const TeamsPage({super.key});
@@ -18,6 +19,7 @@ class TeamsPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       floatingActionButton: FloatingActionButton(
+        heroTag: 'teams_fab',
         onPressed: () => _showCreateTeamDialog(context, controller),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -162,6 +164,7 @@ class TeamsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(28),
           onTap: () {
             controller.selectedTeam.value = team;
+            Get.to(() => const TeamDetailPage(), arguments: team);
           },
           child: Padding(
             padding: const EdgeInsets.all(20),

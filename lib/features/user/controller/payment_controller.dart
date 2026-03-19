@@ -78,7 +78,7 @@ class PaymentController extends GetxController {
         // Payment completed — finalize booking
         await _bookingApiService.finalizePayment(bookingId);
         AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
-        Get.offAllNamed('/landing');
+        Get.offAllNamed('/');
       } else {
         AppUtils.showInfo(
           title: 'Cancelled',
@@ -102,7 +102,7 @@ class PaymentController extends GetxController {
         if (currentBooking.value != null) {
           await _bookingApiService.finalizePayment(currentBooking.value!.id);
         }
-        Get.offAllNamed('/my-bookings');
+        Get.offAllNamed('/user-bookings');
       } else {
         AppUtils.showError(
           message: 'Payment could not be verified. Please contact support.',
@@ -121,7 +121,7 @@ class PaymentController extends GetxController {
         transactionId,
       );
       // Navigate to transaction details or update current transaction data
-      Get.toNamed('/transaction-details', arguments: transaction);
+      Get.toNamed('/transactions', arguments: transaction);
     } catch (e) {
       AppUtils.showError(message: 'Failed to fetch transaction: $e');
     }
@@ -144,7 +144,7 @@ class PaymentController extends GetxController {
       // This would depend on your backend API for payment cancellation
       // You might need to implement a cancel payment endpoint
       AppUtils.showSuccess(message: 'Payment cancelled');
-      Get.offAllNamed('/my-bookings');
+      Get.offAllNamed('/user-bookings');
     } catch (e) {
       AppUtils.showError(message: e);
     }

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart' as models;
 import 'package:sports_studio/core/utils/app_utils.dart';
@@ -15,6 +14,7 @@ class ProfileController extends GetxController {
   final RxMap<String, dynamic> userProfile = <String, dynamic>{}.obs;
   final RxList<models.Notification> notifications = <models.Notification>[].obs;
   final RxInt unreadCount = 0.obs;
+  final RxString pickedAvatarPath = ''.obs;
 
   // Form controllers
   final nameController = TextEditingController();
@@ -78,20 +78,39 @@ class ProfileController extends GetxController {
 
     isUpdatingProfile.value = true;
     try {
+      print('🚀 [ProfileCtrl] Starting profile update...');
       final profileData = {
         'name': nameController.text.trim(),
-        'email': emailController.text.trim(),
         'phone': fullPhone.value.trim().isNotEmpty
             ? fullPhone.value.trim()
             : phoneController.text.trim(),
         'business_name': businessNameController.text.trim(),
       };
+      
+      print('🚀 [ProfileCtrl] Payload prepared (Email removed): $profileData');
+      
+      if (pickedAvatarPath.value.isNotEmpty) {
+        profileData['avatar_file_path'] = pickedAvatarPath.value;
+      }
 
+      print('🛰️ [ProfileCtrl] Calling API...');
       final user = await _userApiService.updateProfile(profileData);
-      userProfile.value = user.toJson();
-      AppUtils.showSuccess(message: 'Profile updated successfully');
+      print('✅ [ProfileCtrl] API success: ${user.name}');
+      
+      final userData = user.toJson();
+      if (userData['avatar'] != null && userData['avatar'].toString().isNotEmpty) {
+        // Appending timestamp to blow cache if URL is same but content changed
+        final sep = userData['avatar'].toString().contains('?') ? '&' : '?';
+        userData['avatar'] = '${userData['avatar']}${sep}t=${DateTime.now().millisecondsSinceEpoch}';
+      }
+      userProfile.value = userData;
+      pickedAvatarPath.value = ''; // Reset picked image
+      
+      print('🔄 [ProfileCtrl] State updated, going back and showing toast...');
       Get.back();
+      AppUtils.showSuccess(message: 'Profile updated successfully');
     } catch (e) {
+      print('❌ [ProfileCtrl] updateProfile error: $e');
       AppUtils.showError(message: e);
     } finally {
       isUpdatingProfile.value = false;
@@ -116,14 +135,17 @@ class ProfileController extends GetxController {
 
     isChangingPassword.value = true;
     try {
+      print('🚀 [ProfileCtrl] Changing password...');
       await _userApiService.changePassword(
         currentPasswordController.text,
         newPasswordController.text,
       );
-      AppUtils.showSuccess(message: 'Password changed successfully');
+      print('✅ [ProfileCtrl] Password change success');
       Get.back();
+      AppUtils.showSuccess(message: 'Password changed successfully');
       clearPasswordFields();
     } catch (e) {
+      print('❌ [ProfileCtrl] changePassword error: $e');
       AppUtils.showError(message: e);
     } finally {
       isChangingPassword.value = false;
@@ -138,25 +160,13 @@ class ProfileController extends GetxController {
         imageQuality: 70,
         maxWidth: 800,
       );
-
       if (image == null) return;
-
-      isUploadingAvatar.value = true;
-      print('📷 [ProfileCtrl] Picked image: ${image.path}');
-
-      // Send avatar directly to /profile endpoint as multipart file
-      // The key 'avatar_file_path' signals UserApiService to use multipart
-      final User user = await _userApiService.updateProfile({
-        'avatar_file_path': image.path,
-      });
-      userProfile.value = user.toJson();
-      print('✅ [ProfileCtrl] Avatar updated. New avatar: ${user.avatar}');
-      AppUtils.showSuccess(message: 'Profile picture updated');
+      
+      pickedAvatarPath.value = image.path;
+      print('📷 [ProfileCtrl] Picked and deferred image: ${image.path}');
     } catch (e) {
       print('❌ [ProfileCtrl] updateAvatar error: $e');
       AppUtils.showError(message: e);
-    } finally {
-      isUploadingAvatar.value = false;
     }
   }
 
@@ -303,6 +313,7 @@ class ProfileController extends GetxController {
     phoneController.text = user['phone']?.toString() ?? '';
     fullPhone.value = user['phone']?.toString() ?? '';
     businessNameController.text = user['business_name']?.toString() ?? '';
+    pickedAvatarPath.value = ''; // Reset on populate
   }
 
   bool get isPhoneVerified {

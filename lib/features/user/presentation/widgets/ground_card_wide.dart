@@ -7,6 +7,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/features/user/presentation/pages/ground_detail_page.dart';
 
 class GroundCardWide extends StatelessWidget {
   final dynamic ground;
@@ -32,7 +33,7 @@ class GroundCardWide extends StatelessWidget {
     );
 
     return GestureDetector(
-      onTap: () => Get.toNamed('/ground-detail', arguments: ground),
+      onTap: () => Get.to(() => const GroundDetailPage(), arguments: ground),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         decoration: BoxDecoration(
@@ -171,7 +172,12 @@ class GroundCardWide extends StatelessWidget {
                       const SizedBox(width: AppSpacing.m),
                       const Icon(Icons.star, color: Colors.amber, size: 16),
                       const SizedBox(width: 4),
-                      Text('4.9', style: AppTextStyles.bodySmall),
+                      Text(
+                        (isModel ? ground.avgRating?.toString() : ground['avg_rating']?.toString()) ?? '0.0',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ],

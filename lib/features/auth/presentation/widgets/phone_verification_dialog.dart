@@ -28,6 +28,7 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
   late TextEditingController phoneController;
   final otpController = TextEditingController();
   bool showOtpField = false;
+  bool isSuccess = false;
 
   @override
   void initState() {
@@ -99,11 +100,13 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
 
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
-                  child: !showOtpField ? _buildPhoneInput() : _buildOtpInput(),
+                  child: isSuccess 
+                    ? _buildSuccessView() 
+                    : (!showOtpField ? _buildPhoneInput() : _buildOtpInput()),
                 ),
 
                 const SizedBox(height: AppSpacing.xl),
-                _buildActionButtons(),
+                if (!isSuccess) _buildActionButtons(),
               ],
             ),
           ),
@@ -272,8 +275,36 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
       otpController.text.trim(),
     );
     if (success) {
+      setState(() => isSuccess = true);
       widget.onVerified();
-      Get.back();
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      });
     }
+  }
+
+  Widget _buildSuccessView() {
+    return Column(
+      key: const ValueKey('success_view'),
+      children: [
+        const Icon(
+          Icons.check_circle_rounded,
+          color: Colors.green,
+          size: 64,
+        ),
+        const SizedBox(height: AppSpacing.l),
+        Text(
+          'Verified Successfully!',
+          style: AppTextStyles.h3.copyWith(color: Colors.green),
+        ),
+        const SizedBox(height: AppSpacing.s),
+        Text(
+          'Closing in a moment...',
+          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+        ),
+      ],
+    );
   }
 }

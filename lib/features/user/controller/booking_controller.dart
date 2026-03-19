@@ -5,6 +5,8 @@ import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/core/services/data_fetch_service.dart';
 import 'package:sports_studio/core/services/safepay_service.dart';
+import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/widgets/safepay_payment_widget.dart';
 
 class BookingController extends GetxController {
@@ -102,6 +104,41 @@ class BookingController extends GetxController {
     }
   }
 
+  bool isSlotPassed(String slotStr) {
+    try {
+      final now = DateTime.now();
+      final todayStr = DateFormat('yyyy-MM-dd').format(now);
+      final selectedDateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
+
+      if (selectedDate.value.isBefore(DateTime(now.year, now.month, now.day))) {
+        return true; // Any past date is entirely passed
+      }
+
+      if (todayStr != selectedDateStr) {
+        return false; // Future dates are never passed
+      }
+
+      // It's today, check the time
+      final slotTime = DateFormat('hh:mm a').parse(slotStr);
+      final slotDateTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        slotTime.hour,
+        slotTime.minute,
+      );
+
+      // Buffer of 5 minutes? Or just exactly? Let's say exactly.
+      return now.isAfter(slotDateTime);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  bool isSlotAvailable(String slot) {
+    return !bookedSlots.contains(slot) && !isSlotPassed(slot);
+  }
+
   void selectDate(DateTime date) {
     selectedDate.value = date;
     selectedSlots.clear();
@@ -112,6 +149,8 @@ class BookingController extends GetxController {
   }
 
   void toggleSlot(String slot) {
+    if (!isSlotAvailable(slot)) return;
+    
     if (selectedSlots.contains(slot)) {
       selectedSlots.remove(slot);
     } else {
@@ -123,20 +162,27 @@ class BookingController extends GetxController {
     if (code.isEmpty) return;
     isCheckingPromo.value = true;
     try {
-      final deals = await _dealApiService.getPublicDeals();
-      // FIX 4: Match on deal's `code` field (not title). Also check validity dates.
-      final now = DateTime.now();
       final ground = Get.arguments;
-      final groundSport = (ground?['type'] ?? '').toString().toLowerCase();
-      final deal = deals.firstWhereOrNull(
-        (d) =>
-            (d.code?.toLowerCase() == code.toLowerCase()) &&
-            d.isActive &&
-            d.validUntil.isAfter(now) &&
-            _dealAppliesToSport(d.applicableSports, groundSport),
+      final groundId = int.tryParse(ground?['id']?.toString() ?? '');
+      final deal = await _dealApiService.validatePromoCode(
+        code: code,
+        groundId: groundId,
       );
 
+      // Also check validity dates and sport applicability.
+      final now = DateTime.now();
+      final groundSport = (ground?['type'] ?? '').toString().toLowerCase();
+
       if (deal != null) {
+        if (!deal.isActive ||
+            !deal.validUntil.isAfter(now) ||
+            !_dealAppliesToSport(deal.applicableSports, groundSport)) {
+          AppUtils.showError(message: 'Invalid or expired promo code');
+          selectedDeal.value = null;
+          discount.value = 0;
+          return;
+        }
+
         selectedDeal.value = deal;
         final amount = subtotal * (deal.discountPercentage / 100);
         discount.value = amount;
@@ -215,11 +261,25 @@ class BookingController extends GetxController {
     }
   }
 
-  Future<void> createBooking() async {
+  Future<void> createBooking({String? paymentMethod}) async {
     final ground = Get.arguments;
     if (ground == null || ground['id'] == null) {
       AppUtils.showError(message: 'Ground data is missing.');
       return;
+    }
+
+    // Enforce phone verification before reserving a slot.
+    if (Get.isRegistered<ProfileController>()) {
+      final profileController = Get.find<ProfileController>();
+      if (!profileController.isPhoneVerified) {
+        Get.dialog(
+          PhoneVerificationDialog(
+            initialPhone: profileController.userProfile['phone']?.toString() ?? '',
+            onVerified: () {},
+          ),
+        );
+        return;
+      }
     }
 
 
@@ -244,7 +304,25 @@ class BookingController extends GetxController {
         // FIX 12: Removed coupon_id — backend doesn't accept it, discount is pre-applied in total_price
       };
 
+      if (paymentMethod != null && paymentMethod.isNotEmpty) {
+        bookingData['payment_method'] = paymentMethod;
+        if (paymentMethod == 'wallet') {
+          bookingData['payment_status'] = 'paid';
+          bookingData['status'] = 'confirmed';
+        } else if (paymentMethod == 'cash') {
+          bookingData['payment_status'] = 'unpaid';
+          bookingData['status'] = 'confirmed';
+        }
+      }
+
       final booking = await _bookingApiService.createBooking(bookingData);
+
+      if (paymentMethod == 'wallet') {
+        AppUtils.showSuccess(message: 'Wallet payment successful! Booking confirmed.');
+        Get.offAllNamed('/');
+        selectedSlots.clear();
+        return;
+      }
 
       Get.offAllNamed(
         '/payment',
@@ -287,7 +365,7 @@ class BookingController extends GetxController {
       );
 
       final tracker = response?['tracker'];
-      final token = response?['token'];
+      final token = response?['tbt'] ?? response?['token'];
 
       if (tracker == null) {
         AppUtils.showError(message: 'Failed to generate payment tracker. Please try again.');
@@ -330,7 +408,7 @@ class BookingController extends GetxController {
         } catch (_) {}
 
         AppUtils.showSuccess(message: 'Payment and booking successful!');
-        Get.offAllNamed('/landing');
+        Get.offAllNamed('/');
         selectedSlots.clear();
       } else {
         AppUtils.showInfo(title: 'Cancelled', message: 'Payment cancelled. Booking was not completed.');
@@ -369,7 +447,7 @@ class BookingController extends GetxController {
       final isValid = await _safepayService.verifyPayment(token);
       if (isValid) {
         AppUtils.showSuccess(message: 'Payment verified successfully');
-        Get.offAllNamed('/my-bookings');
+        Get.offAllNamed('/user-bookings');
       } else {
         AppUtils.showError(message: 'Payment verification failed');
       }

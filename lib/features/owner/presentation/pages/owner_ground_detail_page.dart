@@ -8,6 +8,7 @@ import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
 
 class OwnerGroundDetailPage extends StatefulWidget {
   const OwnerGroundDetailPage({super.key});
@@ -159,12 +160,20 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
             PageView.builder(
               itemCount: sanitizedImages.length,
               itemBuilder: (context, index) {
-                return CachedNetworkImage(
-                  imageUrl: sanitizedImages[index],
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      Container(color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => _placeholderIcon(),
+                return GestureDetector(
+                  onTap: () => Get.to(
+                    () => FullScreenImageViewer(
+                      images: sanitizedImages,
+                      initialIndex: index,
+                    ),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: sanitizedImages[index],
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) =>
+                        Container(color: Colors.grey[200]),
+                    errorWidget: (context, url, error) => _placeholderIcon(),
+                  ),
                 );
               },
             ),

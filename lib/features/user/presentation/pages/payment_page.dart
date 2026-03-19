@@ -53,6 +53,16 @@ class _PaymentPageState extends State<PaymentPage> {
   Future<void> _bootstrapTimerFromServer() async {
     try {
       final args = Get.arguments;
+      final String? type = (args != null && args is Map)
+          ? args['type']?.toString()
+          : null;
+
+      // Event participant payments don't use booking payment expiry.
+      if (type == 'event_participant') {
+        _startTimer();
+        return;
+      }
+
       final int? bookingId = (args != null && args is Map)
           ? args['bookingId'] as int?
           : null;
@@ -167,11 +177,24 @@ class _PaymentPageState extends State<PaymentPage> {
     final amount = subtotal - discountAmount;
 
     if (_selectedMethod == 'cod') {
-      _confirmBooking(
-        paymentMethod: 'cash',
-        paymentStatus: 'unpaid',
-        totalPaid: amount, // Pass the calculated total amount
-      );
+      final String? type = (args != null && args is Map)
+          ? args['type']?.toString()
+          : null;
+      if (type == 'event_participant') {
+        final int? participantId = (args is Map) ? args['participantId'] as int? : null;
+        await _confirmEventParticipantCash(participantId);
+      } else {
+        _confirmBooking(
+          paymentMethod: 'cash',
+          paymentStatus: 'unpaid',
+          totalPaid: amount, // Pass the calculated total amount
+        );
+      }
+      return;
+    }
+
+    if (_selectedMethod == 'wallet') {
+      await _payWithWallet(amount);
       return;
     }
 
@@ -184,7 +207,7 @@ class _PaymentPageState extends State<PaymentPage> {
       );
 
       final tracker = response?['tracker'];
-      final token = response?['token'];
+      final token = response?['tbt'] ?? response?['token'];
 
       AppLoadingOverlay.hide(context);
 
@@ -198,7 +221,16 @@ class _PaymentPageState extends State<PaymentPage> {
             ),
           );
           if (result == true) {
-            await _finalizeAfterOnlinePayment();
+            final String? type = (args != null && args is Map)
+                ? args['type']?.toString()
+                : null;
+            if (type == 'event_participant') {
+              final int? participantId =
+                  (args is Map) ? args['participantId'] as int? : null;
+              await _finalizeEventParticipantAfterOnlinePayment(participantId);
+            } else {
+              await _finalizeAfterOnlinePayment();
+            }
           } else {
             AppUtils.showInfo(
               title: 'Payment Cancelled',
@@ -210,6 +242,107 @@ class _PaymentPageState extends State<PaymentPage> {
     } catch (e) {
       AppLoadingOverlay.hide(context);
       AppUtils.showError(message: 'Payment failed: $e');
+    }
+  }
+
+  Future<void> _payWithWallet(double amount) async {
+    AppLoadingOverlay.show(context, message: 'Paying with wallet...');
+    try {
+      final args = Get.arguments;
+      final String? type = (args != null && args is Map)
+          ? args['type']?.toString()
+          : null;
+
+      if (type == 'event_participant') {
+        final int? participantId =
+            (args is Map) ? args['participantId'] as int? : null;
+        if (participantId == null) throw 'Invalid Participant ID';
+
+        await ApiClient().dio.put(
+          '/event-participants/$participantId',
+          data: {
+            'payment_status': 'paid',
+            'payment_method': 'wallet',
+          },
+        );
+
+        AppLoadingOverlay.hide(context);
+        Get.offAllNamed('/');
+        AppUtils.showSuccess(message: 'Payment successful! Registration confirmed.');
+        return;
+      }
+
+      final int? bookingId = (args != null && args is Map)
+          ? args['bookingId'] as int?
+          : null;
+      if (bookingId == null) throw 'Invalid Booking ID';
+
+      // Best-effort: align booking state for a wallet-paid booking, then finalize.
+      await ApiClient().dio.put(
+        '/bookings/$bookingId',
+        data: {
+          'status': 'pending',
+          'payment_status': 'paid',
+          'payment_method': 'wallet',
+          'total_price': amount,
+        },
+      );
+      await ApiClient().dio.post('/bookings/$bookingId/finalize-payment');
+
+      AppLoadingOverlay.hide(context);
+      Get.offAllNamed('/');
+      AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
+    } catch (e) {
+      AppLoadingOverlay.hide(context);
+      AppUtils.showError(message: 'Wallet payment failed: $e');
+    }
+  }
+
+  Future<void> _confirmEventParticipantCash(int? participantId) async {
+    if (participantId == null) {
+      AppUtils.showError(message: 'Invalid Participant ID');
+      return;
+    }
+    AppLoadingOverlay.show(context, message: 'Confirming registration...');
+    try {
+      await ApiClient().dio.put(
+        '/event-participants/$participantId',
+        data: {
+          'payment_status': 'unpaid',
+          'payment_method': 'cash',
+        },
+      );
+      AppLoadingOverlay.hide(context);
+      Get.offAllNamed('/');
+      AppUtils.showSuccess(message: 'Registration confirmed. Pay at venue.');
+    } catch (e) {
+      AppLoadingOverlay.hide(context);
+      AppUtils.showError(message: 'Failed to confirm registration: $e');
+    }
+  }
+
+  Future<void> _finalizeEventParticipantAfterOnlinePayment(
+    int? participantId,
+  ) async {
+    if (participantId == null) {
+      AppUtils.showError(message: 'Invalid Participant ID');
+      return;
+    }
+    AppLoadingOverlay.show(context, message: 'Finalizing payment...');
+    try {
+      await ApiClient().dio.put(
+        '/event-participants/$participantId',
+        data: {
+          'payment_status': 'paid',
+          'payment_method': 'safepay',
+        },
+      );
+      AppLoadingOverlay.hide(context);
+      Get.offAllNamed('/');
+      AppUtils.showSuccess(message: 'Payment successful! Registration confirmed.');
+    } catch (e) {
+      AppLoadingOverlay.hide(context);
+      AppUtils.showError(message: 'Failed to finalize payment: $e');
     }
   }
 
@@ -225,7 +358,7 @@ class _PaymentPageState extends State<PaymentPage> {
       await ApiClient().dio.post('/bookings/$bookingId/finalize-payment');
 
       AppLoadingOverlay.hide(context);
-      Get.offAllNamed('/landing');
+      Get.offAllNamed('/');
       AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
     } catch (e) {
       AppLoadingOverlay.hide(context);
@@ -258,7 +391,7 @@ class _PaymentPageState extends State<PaymentPage> {
       );
 
       AppLoadingOverlay.hide(context);
-      Get.offAllNamed('/landing');
+      Get.offAllNamed('/');
       AppUtils.showSuccess(message: 'Booking confirmed! Enjoy your match.');
     } catch (e) {
       AppLoadingOverlay.hide(context);
@@ -269,6 +402,9 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   Widget build(BuildContext context) {
     final bool isExpiringSoon = _secondsRemaining <= 5 * 60;
+    final args = Get.arguments;
+    final String? type =
+        (args != null && args is Map) ? args['type']?.toString() : null;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Complete Payment'), centerTitle: true),
@@ -301,6 +437,15 @@ class _PaymentPageState extends State<PaymentPage> {
                   'Pay securely via Card',
                 ),
                 const SizedBox(height: AppSpacing.m),
+                if (type == 'event_participant') ...[
+                  _buildOption(
+                    'wallet',
+                    Icons.account_balance_wallet,
+                    'Wallet Balance',
+                    'Pay instantly using your wallet',
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                ],
                 _buildOption(
                   'cod',
                   Icons.money,

@@ -9,6 +9,8 @@ import 'package:sports_studio/features/user/controller/events_controller.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:intl/intl.dart';
+import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class EventsPage extends StatelessWidget {
   const EventsPage({super.key});
@@ -21,7 +23,7 @@ class EventsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('All Events'), centerTitle: true),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
-          final result = await Get.toNamed('/create-match');
+          final result = await Get.to(() => const CreateMatchPage());
           if (result == true) {
             controller.fetchPublicEvents();
           }
@@ -92,10 +94,8 @@ class EventsPage extends StatelessWidget {
     );
 
     return GestureDetector(
-      onTap: () => Get.toNamed(
-        '/event-detail',
-        arguments: event,
-      ), // Pass the full Event object
+      onTap: () =>
+          Get.to(() => const EventDetailPage(), arguments: event),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         decoration: BoxDecoration(

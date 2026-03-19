@@ -9,6 +9,12 @@ import 'package:sports_studio/widgets/app_shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/features/owner/controller/owner_controller.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
 
 class OwnerDashboardView extends StatelessWidget {
   const OwnerDashboardView({super.key});
@@ -116,25 +122,25 @@ class OwnerDashboardView extends StatelessWidget {
                       'Reports',
                       Icons.analytics_outlined,
                       Colors.indigo,
-                      () => Get.toNamed('/owner-reports'),
+                      () => Get.to(() => const OwnerReportsPage()),
                     ),
                     _buildManagementCard(
                       'Complexes',
                       Icons.corporate_fare_outlined,
                       Colors.teal,
-                      () => Get.toNamed('/sports-complexes'),
+                      () => Get.to(() => const SportsComplexesPage()),
                     ),
                     _buildManagementCard(
                       'Deals',
                       Icons.local_offer_outlined,
                       Colors.deepOrange,
-                      () => Get.toNamed('/owner-deals'),
+                      () => Get.to(() => const OwnerDealsPage()),
                     ),
                     _buildManagementCard(
                       'Reviews',
                       Icons.rate_review_outlined,
                       Colors.amber,
-                      () => Get.toNamed('/review-moderation'),
+                      () => Get.to(() => const ReviewModerationPage()),
                       badge: controller.pendingReviewsCount.value > 0
                           ? controller.pendingReviewsCount.value.toString()
                           : null,
@@ -143,15 +149,13 @@ class OwnerDashboardView extends StatelessWidget {
                       'Add Complex',
                       Icons.add_business_outlined,
                       AppColors.primary,
-                      () => Get.toNamed(
-                        '/add-complex',
-                      ), // Assuming this route exists
+                      () => Get.to(() => const AddComplexPage()),
                     ),
                     _buildManagementCard(
                       'Add Ground',
                       Icons.add_location_alt_outlined,
                       Colors.orange,
-                      () => Get.toNamed('/add-ground'),
+                      () => Get.to(() => const AddEditGroundPage()),
                     ),
                   ],
                 ),

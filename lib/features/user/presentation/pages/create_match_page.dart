@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:sports_studio/core/controllers/system_settings_controller.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
@@ -479,34 +480,37 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                 ),
 
                 const SizedBox(height: AppSpacing.m),
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.m),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.primary.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.info_outline,
-                        color: AppColors.primary,
-                        size: 24,
+                Obx(() {
+                  final fee = Get.find<SystemSettingsController>().commissionRate;
+                  return Container(
+                    padding: const EdgeInsets.all(AppSpacing.m),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.3),
                       ),
-                      const SizedBox(width: AppSpacing.s),
-                      Expanded(
-                        child: Text(
-                          'Earnings Notice: A 3% platform fee will be deducted for any paid events.',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textPrimary,
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                        const SizedBox(width: AppSpacing.s),
+                        Expanded(
+                          child: Text(
+                            'Earnings Notice: A ${fee.toStringAsFixed(0)}% platform fee will be deducted for any paid events.',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                      ],
+                    ),
+                  );
+                }),
 
                 const SizedBox(height: AppSpacing.l),
                 _sectionHeader(
@@ -707,13 +711,29 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       return const Text('No grounds available');
     }
 
+    // Filter grounds by sport type if applicable
+    final filtered = _grounds.where((g) {
+      final type = g['type']?.toString().toLowerCase() ?? '';
+      return type == 'all' || type == _selectedSport.toLowerCase();
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Text(
+          'No $_selectedSport grounds found.',
+          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+        ),
+      );
+    }
+
     return SizedBox(
-      height: 120,
+      height: 140, // Increased height for category tag
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        itemCount: _grounds.length,
+        itemCount: filtered.length,
         itemBuilder: (context, index) {
-          final ground = _grounds[index];
+          final ground = filtered[index];
           final isSelected =
               _selectedGround != null && _selectedGround['id'] == ground['id'];
 
@@ -721,6 +741,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           final imageUrl = UrlHelper.sanitizeUrl(
             images != null && images.isNotEmpty ? images[0] : null,
           );
+          final gType = ground['type']?.toString().capitalizeFirst ?? 'General';
 
           return GestureDetector(
             onTap: () => setState(() => _selectedGround = ground),
@@ -736,6 +757,15 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                 color: isSelected
                     ? AppColors.primary.withOpacity(0.05)
                     : Colors.white,
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : null,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -746,7 +776,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                     ),
                     child: CachedNetworkImage(
                       imageUrl: imageUrl,
-                      height: 60,
+                      height: 65,
                       width: double.infinity,
                       fit: BoxFit.cover,
                       placeholder: (context, url) => Container(
@@ -775,10 +805,27 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 2),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight.withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            gType,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.primary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         Text(
                           'Rs. ${ground['price_per_hour']}/hr',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.primary,
+                            color: AppColors.textSecondary,
                             fontSize: 10,
                           ),
                         ),
@@ -852,7 +899,12 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           .map((s) => DropdownMenuItem(value: s, child: Text(s)))
           .toList(),
       onChanged: (v) {
-        if (v != null) setState(() => _selectedSport = v);
+        if (v != null) {
+          setState(() {
+            _selectedSport = v;
+            _selectedGround = null; // Reset ground selection when sport changes
+          });
+        }
       },
     ),
   );

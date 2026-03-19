@@ -12,6 +12,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:sports_studio/features/user/controller/ground_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/features/user/presentation/pages/booking_slot_page.dart';
+import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
 
 class GroundDetailPage extends StatefulWidget {
   const GroundDetailPage({super.key});
@@ -195,17 +197,25 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
               itemCount: sanitizedImages.length,
               onPageChanged: (index) => _currentPage.value = index,
               itemBuilder: (context, index) {
-                return CachedNetworkImage(
-                  imageUrl: sanitizedImages[index],
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      Container(color: Colors.grey[200]),
-                  errorWidget: (context, url, error) => Container(
-                    color: Colors.grey[300],
-                    child: const Icon(
-                      Icons.broken_image,
-                      size: 50,
-                      color: Colors.grey,
+                return GestureDetector(
+                  onTap: () => Get.to(
+                    () => FullScreenImageViewer(
+                      images: sanitizedImages,
+                      initialIndex: index,
+                    ),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: sanitizedImages[index],
+                    fit: BoxFit.cover,
+                    placeholder: (context, url) =>
+                        Container(color: Colors.grey[200]),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey[300],
+                      child: const Icon(
+                        Icons.broken_image,
+                        size: 50,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
                 );
@@ -298,7 +308,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 const Icon(Icons.star, color: Colors.amber, size: 18),
                 const SizedBox(width: 4),
                 Text(
-                  ground?['avg_rating']?.toString() ?? '5.0',
+                  ground?['avg_rating']?.toString() ?? '0.0',
                   style: AppTextStyles.h3,
                 ),
                 Text(
@@ -389,8 +399,22 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   Widget _buildAmenities(dynamic ground) {
     final List<dynamic> groundAmenities = ground?['amenities'] ?? [];
 
-    // Config matching owner side
+    // Config matching owner side and filter
     final Map<String, Map<String, String>> config = {
+      // New Lowercase IDs
+      'water': {'name': 'Drinking Water', 'icon': '🚰'},
+      'washroom': {'name': 'Washroom', 'icon': '🚻'},
+      'changing': {'name': 'Changing Room', 'icon': '👕'},
+      'parking': {'name': 'Parking', 'icon': '🚗'},
+      'lighting': {'name': 'Lighting', 'icon': '💡'},
+      'wifi': {'name': 'Wifi', 'icon': '📡'},
+      'first_aid': {'name': 'First Aid', 'icon': '🏥'},
+      'cafe': {'name': 'Cafe', 'icon': '☕'},
+      'dugout': {'name': 'Dugout', 'icon': '⛺'},
+      'balls': {'name': 'Balls', 'icon': '🎾'},
+      'bats': {'name': 'Bats', 'icon': '🏏'},
+      
+      // Legacy Support
       'Wifi': {'name': 'Wifi', 'icon': '📡'},
       'Parking': {'name': 'Parking', 'icon': '🚗'},
       'Changing Room': {'name': 'Changing Room', 'icon': '👕'},
@@ -738,7 +762,8 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
               child: SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => Get.toNamed('/book-slot', arguments: ground),
+                  onPressed: () =>
+                      Get.to(() => const BookingSlotPage(), arguments: ground),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
@@ -748,7 +773,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                     shadowColor: AppColors.primary.withOpacity(0.4),
                   ),
                   child: const Text(
-                    'Check Availability',
+                    'Book Now',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),

@@ -2,7 +2,7 @@ name: sports_studio
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.7+7
+version: 1.0.8+8
 
 environment:
   sdk: ^3.10.7
@@ -32,6 +32,7 @@ dependencies:
   firebase_auth: ^6.2.0
   flutter_dotenv: ^5.1.0
   safepay_checkout: ^1.0.6
+  lucide_icons_flutter: ^1.1.0
 
 dev_dependencies:
   flutter_test:

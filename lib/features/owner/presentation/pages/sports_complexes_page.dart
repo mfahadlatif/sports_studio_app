@@ -10,6 +10,7 @@ import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
 import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/features/owner/presentation/pages/complex_detail_page.dart';
 
 class SportsComplexesPage extends StatefulWidget {
   const SportsComplexesPage({super.key});
@@ -164,7 +165,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
 
     return GestureDetector(
       onTap: () =>
-          Get.toNamed('/complex-detail', arguments: {'id': complex.id}),
+          Get.to(() => const ComplexDetailPage(), arguments: {'id': complex.id}),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         decoration: BoxDecoration(

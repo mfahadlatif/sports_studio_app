@@ -6,6 +6,23 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/teams_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/terms_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/booking_policy_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/cancellation_policy_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/newsletter_subscribe_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/joined_events_page.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -48,36 +65,50 @@ class ProfilePage extends StatelessWidget {
                       _buildOption(
                         icon: Icons.calendar_today_outlined,
                         title: 'My Match Bookings',
-                        subtitle: 'View your upcoming and past games',
-                        onTap: () => Get.toNamed('/user-bookings'),
+                        subtitle: 'View your upcoming and past arena games',
+                        onTap: () => Get.to(() => const UserBookingsPage()),
                         color: Colors.blue,
+                      ),
+                      _buildOption(
+                        icon: Icons.event_seat_outlined,
+                        title: 'My Booked Events',
+                        subtitle: 'Manage events you have joined',
+                        onTap: () => Get.to(() => const JoinedEventsPage()),
+                        color: Colors.cyan,
                       ),
                       _buildOption(
                         icon: Icons.favorite_border,
                         title: 'Saved Grounds',
                         subtitle: 'Quick access to your favorite arenas',
-                        onTap: () => Get.toNamed('/favorites'),
+                        onTap: () => Get.to(() => const FavoritesPage()),
                         color: Colors.red,
                       ),
                       _buildOption(
                         icon: Icons.groups_outlined,
                         title: 'My Teams',
                         subtitle: 'Manage your rosters and community',
-                        onTap: () => Get.toNamed('/teams'),
+                        onTap: () => Get.to(() => const TeamsPage()),
                         color: Colors.purple,
+                      ),
+                      _buildOption(
+                        icon: Icons.account_balance_wallet_outlined,
+                        title: 'Wallet & Withdrawals',
+                        subtitle: 'Balance, bank accounts, and cash-out requests',
+                        onTap: () => Get.to(() => const WalletPage()),
+                        color: Colors.green,
                       ),
                       _buildOption(
                         icon: Icons.event_note_outlined,
                         title: 'My Managed Events',
-                        subtitle: 'Edit or delete events you organized',
-                        onTap: () => Get.toNamed('/managed-events'),
+                        subtitle: 'Events you organize for the community',
+                        onTap: () => Get.to(() => const ManagedEventsPage()),
                         color: Colors.pink,
                       ),
                       _buildOption(
                         icon: Icons.local_offer_outlined,
                         title: 'Active Promo Codes',
                         subtitle: 'Exclusive deals just for you',
-                        onTap: () => Get.toNamed('/deals'),
+                        onTap: () => Get.to(() => const DealsPage()),
                         color: Colors.orange,
                       ),
 
@@ -91,7 +122,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.person_outline,
                         title: 'Personal Information',
                         subtitle: 'Update your name, email and details',
-                        onTap: () => Get.toNamed('/edit-profile'),
+                        onTap: () => Get.to(() => const EditProfilePage()),
                         color: Colors.teal,
                       ),
                       if (!profileController.isSocialUser)
@@ -99,8 +130,8 @@ class ProfilePage extends StatelessWidget {
                           icon: Icons.security_outlined,
                           title: 'Account Security',
                           subtitle: 'Manage password and privacy',
-                          onTap: () => Get.toNamed(
-                            '/setting-detail',
+                          onTap: () => Get.to(
+                            () => const SettingDetailPage(),
                             arguments: {'title': 'Security & Privacy'},
                           ),
                           color: Colors.indigo,
@@ -109,15 +140,36 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.notifications_none_outlined,
                         title: 'Notifications',
                         subtitle: 'Manage alerts and push notifications',
-                        onTap: () => Get.toNamed('/notifications'),
+                        onTap: () => Get.to(() => const NotificationsPage()),
                         color: Colors.amber,
                       ),
                       _buildOption(
                         icon: Icons.policy_outlined,
                         title: 'Privacy Policy',
                         subtitle: 'How we handle your data',
-                        onTap: () => Get.toNamed('/privacy-policy'),
+                        onTap: () => Get.to(() => const PrivacyPolicyPage()),
                         color: Colors.blueGrey,
+                      ),
+                      _buildOption(
+                        icon: Icons.gavel_outlined,
+                        title: 'Terms & Conditions',
+                        subtitle: 'Legal terms for using the platform',
+                        onTap: () => Get.to(() => const TermsPage()),
+                        color: Colors.indigo,
+                      ),
+                      _buildOption(
+                        icon: Icons.rule_outlined,
+                        title: 'Booking Policy',
+                        subtitle: 'How reservations and time windows work',
+                        onTap: () => Get.to(() => const BookingPolicyPage()),
+                        color: Colors.deepOrange,
+                      ),
+                      _buildOption(
+                        icon: Icons.policy,
+                        title: 'Cancellation & Refund Policy',
+                        subtitle: 'Cancellation rules and refunds overview',
+                        onTap: () => Get.to(() => const CancellationPolicyPage()),
+                        color: Colors.brown,
                       ),
 
                       const Padding(
@@ -130,8 +182,15 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.help_outline,
                         title: 'Help & FAQ',
                         subtitle: 'Find answers and contact support',
-                        onTap: () => Get.toNamed('/contact'),
+                        onTap: () => Get.to(() => const ContactPage()),
                         color: Colors.deepPurple,
+                      ),
+                      _buildOption(
+                        icon: Icons.mark_email_read_outlined,
+                        title: 'Newsletter',
+                        subtitle: 'Subscribe for updates and deals',
+                        onTap: () => Get.to(() => const NewsletterSubscribePage()),
+                        color: Colors.teal,
                       ),
 
                       const SizedBox(height: AppSpacing.l),
@@ -201,18 +260,7 @@ class ProfilePage extends StatelessWidget {
                     backgroundColor: AppColors.primaryLight,
                     backgroundImage: user['avatar'] != null
                         ? NetworkImage(
-                            user['avatar'].toString().contains('localhost')
-                                ? user['avatar']
-                                      .toString()
-                                      .replaceAll(
-                                        'localhost/cricket-oasis-bookings/backend/public',
-                                        'lightcoral-goose-424965.hostingersite.com/backend/public',
-                                      )
-                                      .replaceAll(
-                                        'http://localhost',
-                                        'https://lightcoral-goose-424965.hostingersite.com',
-                                      )
-                                : user['avatar'].toString(),
+                            UrlHelper.sanitizeUrl(user['avatar'].toString()),
                           )
                         : null,
                     child: user['avatar'] == null

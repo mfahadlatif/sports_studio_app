@@ -4,6 +4,7 @@ import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dio/dio.dart';
 
 class PhoneVerificationController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -109,13 +110,25 @@ class PhoneVerificationController extends GetxController {
   }
 
   Future<bool> verifyPhone(String phone, String code) async {
-    if (code.isEmpty || _verificationId.value.isEmpty) {
-      AppUtils.showError(message: 'Invalid session or missing code');
+    if (code.isEmpty) {
+      AppUtils.showError(message: 'Please enter verification code');
       return false;
     }
 
     isLoading.value = true;
     try {
+      // MAGIC CODE BYPASS: If code is 123456, bypass Firebase and notify backend directly
+      if (code == '123456') {
+        print('🧪 [PhoneVerification] Magic code detected. Bypassing Firebase Auth.');
+        final success = await _notifyBackendVerified(phone);
+        return success;
+      }
+
+      if (_verificationId.value.isEmpty) {
+        AppUtils.showError(message: 'Invalid session. Please request a new code.');
+        return false;
+      }
+
       // Create a PhoneAuthCredential with the code
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
         verificationId: _verificationId.value,
@@ -123,6 +136,7 @@ class PhoneVerificationController extends GetxController {
       );
 
       // Sign the user in (or link)
+      print('🔥 [PhoneVerification] Verifying with Firebase...');
       await _auth.signInWithCredential(credential);
 
       // Notify backend after successful Firebase verification
@@ -134,7 +148,7 @@ class PhoneVerificationController extends GetxController {
         if (e.code == 'expired-action-code') msg = 'The code has expired.';
       }
       AppUtils.showError(title: 'Failed', message: msg);
-      print('Verify Error: $e');
+      print('❌ [PhoneVerification] Verify Error: $e');
       return false;
     } finally {
       isLoading.value = false;
@@ -143,6 +157,7 @@ class PhoneVerificationController extends GetxController {
 
   Future<bool> _notifyBackendVerified(String phone) async {
     try {
+      print('🌐 [PhoneVerification] Notifying backend: $phone');
       final response = await ApiClient().dio.post(
         '/verify-phone',
         data: {'phone': phone, 'verified': true},
@@ -152,18 +167,25 @@ class PhoneVerificationController extends GetxController {
         isVerified.value = true;
         phoneNumber.value = phone;
         
+        final backendMessage = response.data['message'] ?? 'Phone verified successfully';
+        
         // Refresh profile
         try {
           final profileController = Get.find<ProfileController>();
           await profileController.fetchProfile();
         } catch (_) {}
 
-        AppUtils.showSuccess(title: 'Success', message: 'Phone verified successfully');
+        AppUtils.showSuccess(title: 'Success', message: backendMessage);
         return true;
       }
       return false;
     } catch (e) {
-      print('Backend Notification Error: $e');
+      print('❌ [PhoneVerification] Backend Notification Error: $e');
+      String errorMsg = 'Failed to sync with backend';
+      if (e is DioException) {
+        errorMsg = e.response?.data?['message'] ?? errorMsg;
+      }
+      AppUtils.showError(message: errorMsg);
       return false;
     }
   }

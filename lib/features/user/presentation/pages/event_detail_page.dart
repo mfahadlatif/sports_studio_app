@@ -10,6 +10,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
@@ -167,10 +168,8 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Hero Image Carousel
-                      Hero(
-                        tag: 'event_image_${event?.id ?? 'unknown'}',
-                        child: Stack(
+                      // Image Carousel (Hero removed — kept in events list card)
+                      Stack(
                           children: [
                             SizedBox(
                               height: 280,
@@ -180,13 +179,21 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                 itemCount: sanitizedImages.length,
                                 onPageChanged: (index) => _currentPage.value = index,
                                 itemBuilder: (context, index) {
-                                  return CachedNetworkImage(
-                                    imageUrl: sanitizedImages[index],
-                                    fit: BoxFit.cover,
-                                    placeholder: (context, url) =>
-                                        Container(color: Colors.grey[200]),
-                                    errorWidget: (context, url, error) =>
-                                        const Icon(Icons.broken_image),
+                                  return GestureDetector(
+                                    onTap: () => Get.to(
+                                      () => FullScreenImageViewer(
+                                        images: sanitizedImages,
+                                        initialIndex: index,
+                                      ),
+                                    ),
+                                    child: CachedNetworkImage(
+                                      imageUrl: sanitizedImages[index],
+                                      fit: BoxFit.cover,
+                                      placeholder: (context, url) =>
+                                          Container(color: Colors.grey[200]),
+                                      errorWidget: (context, url, error) =>
+                                          const Icon(Icons.broken_image),
+                                    ),
                                   );
                                 },
                               ),
@@ -224,7 +231,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               ),
                           ],
                         ),
-                      ),
 
                       Padding(
                         padding: const EdgeInsets.all(AppSpacing.l),
@@ -298,6 +304,26 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   ),
                               ],
                             ),
+                            // Real Rating and Review Counter
+                            if (event != null && (event.avgRating ?? 0.0) > 0)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0, left: 44.0),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.star, color: Colors.amber, size: 16),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      event.avgRating?.toString() ?? '0.0',
+                                      style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '(${event.reviewsCount ?? 0} reviews)',
+                                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                                    ),
+                                  ],
+                                ),
+                              ),
 
                             const SizedBox(height: AppSpacing.m),
 
@@ -445,27 +471,40 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       },
                                     ),
                                   ),
+                             // About Section
+                             Text('About this Event', style: AppTextStyles.h3),
+                             const SizedBox(height: AppSpacing.m),
+                             Text(
+                               description,
+                               style: AppTextStyles.bodyMedium.copyWith(
+                                 height: 1.6,
+                               ),
+                             ),
+                             const SizedBox(height: AppSpacing.xl),
+                             const Divider(),
+                             const SizedBox(height: AppSpacing.m),
 
-                            const SizedBox(height: AppSpacing.l),
-                            const Divider(),
-                            const SizedBox(height: AppSpacing.m),
-
-                            // About Section
-                            Text('About this Event', style: AppTextStyles.h3),
-                            const SizedBox(height: AppSpacing.m),
-                            Text(
-                              description,
-                              style: AppTextStyles.bodyMedium.copyWith(
-                                height: 1.6,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.xl),
-
-                            // Organizer Management Section
-                            if (event?.organizerId == profileController.userProfile['id'] && _participants.any((p) => p['status'] == 'pending')) ...[
-                              Text('Pending Requests', style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
+                             // Organizer Management Section
+                            if (event?.organizerId == profileController.userProfile['id']) ...[
+                              const SizedBox(height: AppSpacing.l),
+                              Text('Organizer Management', style: AppTextStyles.h2.copyWith(color: AppColors.primary)),
                               const SizedBox(height: AppSpacing.m),
-                              ..._participants.where((p) => p['status'] == 'pending').map((p) => _buildRequestCard(p)),
+                              
+                              if (_participants.any((p) => p['status'] == 'pending')) ...[
+                                Text('Pending Requests (${_participants.where((p) => p['status'] == 'pending').length})', 
+                                  style: AppTextStyles.h3),
+                                const SizedBox(height: AppSpacing.s),
+                                ..._participants.where((p) => p['status'] == 'pending').map((p) => _buildParticipantManagementCard(p)),
+                                const SizedBox(height: AppSpacing.m),
+                              ],
+
+                              if (_participants.any((p) => p['status'] == 'accepted')) ...[
+                                Text('Confirmed Participants', style: AppTextStyles.h3),
+                                const SizedBox(height: AppSpacing.s),
+                                ..._participants.where((p) => p['status'] == 'accepted').map((p) => _buildParticipantManagementCard(p)),
+                                const SizedBox(height: AppSpacing.m),
+                              ],
+                              
                               const SizedBox(height: AppSpacing.xl),
                             ],
 
@@ -499,7 +538,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                             ? '✓ Requested'
                                             : (isFull
                                                   ? 'Event Full'
-                                                  : 'Join Event'),
+                                                  : 'Book Event'),
                                         style: AppTextStyles.bodyLarge.copyWith(
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
@@ -518,7 +557,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                   onPressed: () {
                                     final p = _participants.firstWhere((p) => p['user_id'] == profileController.userProfile['id']);
                                     Get.toNamed('/payment', arguments: {
-                                      'bookingId': event?.id, // Using event ID as reference for payment tracker in some logic
                                       'totalPrice': event?.registrationFee ?? 0.0,
                                       'type': 'event_participant',
                                       'participantId': p['id'],
@@ -794,9 +832,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  Widget _buildRequestCard(dynamic participant) {
+  Widget _buildParticipantManagementCard(dynamic participant) {
     final user = participant['user'] ?? {};
     final id = participant['id'];
+    final status = participant['status'] ?? 'pending';
+    final paymentStatus = participant['payment_status'] ?? 'unpaid';
+    final paymentMethod = participant['payment_method'] ?? 'cash';
+    final isPaid = paymentStatus == 'paid';
+    final phone = user['phone']?.toString();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -804,51 +847,146 @@ class _EventDetailPageState extends State<EventDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: AppColors.primaryLight,
-            backgroundImage: (user['avatar'] != null && user['avatar'].toString().isNotEmpty)
-                ? NetworkImage(user['avatar'])
-                : null,
-            child: (user['avatar'] == null || user['avatar'].toString().isEmpty)
-                ? const Icon(Icons.person)
-                : null,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(user['name'] ?? 'User',
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(
-                  participant['payment_status'] == 'paid'
-                      ? 'Paid'
-                      : 'Unpaid (Cash/Manual)',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: participant['payment_status'] == 'paid'
-                        ? Colors.green
-                        : Colors.orange,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => _updateParticipantStatus(id, 'accepted'),
-            icon: const Icon(Icons.check_circle, color: Colors.green),
-          ),
-          IconButton(
-            onPressed: () => _updateParticipantStatus(id, 'rejected'),
-            icon: const Icon(Icons.cancel, color: Colors.red),
+        border: Border.all(
+          color: isPaid ? Colors.green.withOpacity(0.3) : AppColors.border,
+          width: isPaid ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppColors.primaryLight,
+                backgroundImage: (user['avatar'] != null && user['avatar'].toString().isNotEmpty)
+                    ? NetworkImage(user['avatar'])
+                    : null,
+                child: (user['avatar'] == null || user['avatar'].toString().isEmpty)
+                    ? const Icon(Icons.person)
+                    : null,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(user['name'] ?? 'User',
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    if (phone != null && phone.isNotEmpty)
+                      Text(phone, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isPaid ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isPaid ? Icons.check_circle : Icons.pending_actions,
+                                size: 10,
+                                color: isPaid ? Colors.green : Colors.orange,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                (isPaid && (controller.selectedEvent.value?.registrationFee ?? 0) == 0) ? 'FREE ENTRY' : (isPaid ? 'PAID' : 'UNPAID'),
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: isPaid ? Colors.green : Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          paymentMethod.toString().toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 9,
+                            color: AppColors.textMuted,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (status == 'pending') ...[
+                IconButton(
+                  onPressed: () => _updateParticipantStatus(id, 'accepted'),
+                  icon: const Icon(Icons.check_circle, color: Colors.green),
+                  tooltip: 'Accept',
+                ),
+                IconButton(
+                  onPressed: () => _updateParticipantStatus(id, 'rejected'),
+                  icon: const Icon(Icons.cancel, color: Colors.red),
+                  tooltip: 'Reject',
+                ),
+              ] else if (status == 'accepted')
+                 Container(
+                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                   decoration: BoxDecoration(
+                     color: AppColors.primaryLight,
+                     borderRadius: BorderRadius.circular(20),
+                   ),
+                   child: Text(
+                     'Accepted',
+                     style: TextStyle(
+                       fontSize: 10,
+                       color: AppColors.primary,
+                       fontWeight: FontWeight.bold,
+                     ),
+                   ),
+                 ),
+            ],
+          ),
+          if (!isPaid && status == 'accepted') ...[
+            const Divider(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton.icon(
+                onPressed: () => _updateParticipantPaymentStatus(id, 'paid'),
+                icon: const Icon(Icons.payments_outlined, size: 16),
+                label: const Text('Confirm Cash Payment', style: TextStyle(fontSize: 12)),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.green,
+                  padding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
+  }
+
+  Future<void> _updateParticipantPaymentStatus(int id, String paymentStatus) async {
+    try {
+      final res = await ApiClient().dio.put(
+        '/event-participants/$id',
+        data: {'payment_status': paymentStatus},
+      );
+      if (res.statusCode == 200) {
+        Get.snackbar('Success', 'Payment status updated to $paymentStatus');
+        _fetchParticipants(controller.selectedEvent.value?.id.toString());
+      }
+    } catch (e) {
+      Get.snackbar('Error', 'Failed to update payment status');
+    }
   }
 
   Future<void> _updateParticipantStatus(int id, String status) async {

@@ -8,6 +8,7 @@ import 'package:sports_studio/features/landing/controller/landing_controller.dar
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/phone_input_field.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class SettingDetailPage extends StatefulWidget {
   const SettingDetailPage({super.key});
@@ -90,12 +91,16 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
                       return const SizedBox.shrink();
                     }
                     
+                    final isLoading = isEditProfile
+                        ? controller.isUpdatingProfile.value
+                        : controller.isChangingPassword.value;
+
                     return AppButton(
                       label: isEditProfile ? 'Save Changes' : 'Update Password',
                       onPressed: () => isEditProfile
                           ? _handleUpdateProfile()
                           : _handleChangePassword(),
-                      isLoading: controller.isUpdatingProfile.value,
+                      isLoading: isLoading,
                     );
                   },
                 ),
@@ -265,12 +270,7 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
   void _handleChangePassword() {
     if (controller.newPasswordController.text !=
         controller.confirmPasswordController.text) {
-      Get.snackbar(
-        'Error',
-        'New passwords do not match',
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-      );
+      AppUtils.showError(message: 'New passwords do not match');
       return;
     }
     controller.changePassword();

@@ -12,6 +12,7 @@ import 'package:sports_studio/widgets/app_shimmer.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
+import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
 
 class ComplexDetailPage extends StatefulWidget {
   const ComplexDetailPage({super.key});
@@ -189,14 +190,15 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
 
   Map<String, String> _getFacilityInfo(String id) {
     final configs = [
-      {'id': 'parking', 'name': 'Parking', 'icon': '🅿️'},
-      {'id': 'washrooms', 'name': 'Washrooms', 'icon': '🚻'},
-      {'id': 'changing-rooms', 'name': 'Changing Rooms', 'icon': '🚿'},
+      {'id': 'parking', 'name': 'Parking Area', 'icon': '🚗'},
+      {'id': 'washroom', 'name': 'Washrooms', 'icon': '🚻'},
+      {'id': 'changing', 'name': 'Changing Rooms', 'icon': '👕'},
       {'id': 'seating', 'name': 'Seating Area', 'icon': '💺'},
       {'id': 'lighting', 'name': 'Floodlights', 'icon': '💡'},
-      {'id': 'cafe', 'name': 'Café / Refreshments', 'icon': '☕'},
-      {'id': 'first-aid', 'name': 'First Aid', 'icon': '🏥'},
-      {'id': 'wifi', 'name': 'WiFi', 'icon': '📶'},
+      {'id': 'cafe', 'name': 'Café / Snacks', 'icon': '☕'},
+      {'id': 'first_aid', 'name': 'First Aid', 'icon': '🏥'},
+      {'id': 'wifi', 'name': 'Free WiFi', 'icon': '📶'},
+      {'id': 'water', 'name': 'Drinking Water', 'icon': '🚰'},
       {'id': 'lockers', 'name': 'Lockers', 'icon': '🔐'},
       {'id': 'equipment', 'name': 'Equipment Rental', 'icon': '🎯'},
     ];
@@ -271,12 +273,20 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
       onPageChanged: (v) => _currentPage.value = v,
       itemCount: sanitized.length,
       itemBuilder: (context, index) {
-        return CachedNetworkImage(
-          imageUrl: sanitized[index],
-          fit: BoxFit.cover,
-          placeholder: (context, url) => Container(color: Colors.grey[200]),
-          errorWidget: (context, url, error) =>
-              const Icon(Icons.broken_image, color: Colors.white),
+        return GestureDetector(
+          onTap: () => Get.to(
+            () => FullScreenImageViewer(
+              images: sanitized,
+              initialIndex: index,
+            ),
+          ),
+          child: CachedNetworkImage(
+            imageUrl: sanitized[index],
+            fit: BoxFit.cover,
+            placeholder: (context, url) => Container(color: Colors.grey[200]),
+            errorWidget: (context, url, error) =>
+                const Icon(Icons.broken_image, color: Colors.white),
+          ),
         );
       },
     );

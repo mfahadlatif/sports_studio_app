@@ -10,6 +10,7 @@ import 'package:sports_studio/features/owner/controller/bookings_controller.dart
 import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
 
 class OwnerBookingsView extends StatefulWidget {
   const OwnerBookingsView({super.key});
@@ -204,7 +205,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
     return GestureDetector(
       onTap: isOwner
           ? () =>
-                Get.toNamed('/booking-detail', arguments: {'booking': booking})
+                Get.to(() => const BookingDetailPage(), arguments: {'booking': booking})
           : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),

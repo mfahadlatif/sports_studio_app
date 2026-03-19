@@ -5,6 +5,8 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/widgets/app_button.dart';
 
 class AdminUsersPage extends StatefulWidget {
   const AdminUsersPage({super.key});
@@ -141,6 +143,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             _detailRow('Name', user['name']),
             _detailRow('Email', user['email']),
             _detailRow('Phone', user['phone'] ?? 'N/A'),
+            _detailRow(
+              'Active',
+              (user['is_active']?.toString() ?? 'true') == 'true' ? 'Yes' : 'No',
+            ),
             const SizedBox(height: AppSpacing.m),
             const Text(
               'Manage Role',
@@ -159,14 +165,40 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                       selected: isCurrent,
                       onSelected: (selected) {
                         if (selected && !isCurrent) {
-                          Get.back();
-                          _updateRole(user, role);
+                          Get.back(); // close bottom sheet
+                          _updateUser(user, {'role': role});
                         }
                       },
                     ),
                   );
                 }).toList(),
               ),
+            ),
+            const SizedBox(height: AppSpacing.m),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () async {
+                      Get.back();
+                      await _toggleStatus(user);
+                    },
+                    icon: const Icon(Icons.toggle_on_outlined),
+                    label: const Text('Toggle Active'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      Get.back();
+                      await _showAdjustBalanceSheet(user);
+                    },
+                    icon: const Icon(Icons.account_balance_wallet_outlined),
+                    label: const Text('Adjust Wallet'),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.xl),
           ],
@@ -206,22 +238,140 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     }
   }
 
-  Future<void> _updateRole(dynamic user, String newRole) async {
+  Future<void> _updateUser(dynamic user, Map<String, dynamic> updates) async {
     setState(() => _isLoading = true);
     try {
-      final res = await ApiClient().dio.post(
-        '/admin/users/${user['id']}/role',
-        data: {'role': newRole},
+      final res = await ApiClient().dio.put(
+        '/admin/users/${user['id']}',
+        data: updates,
       );
       if (res.statusCode == 200) {
         Get.snackbar(
           'Success',
-          'User role updated to ${newRole.toUpperCase()}',
+          'User updated successfully',
         );
         _fetchUsers();
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update role');
+      Get.snackbar('Error', 'Failed to update user');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleStatus(dynamic user) async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiClient().dio.post(
+        '/admin/users/${user['id']}/toggle-status',
+      );
+      if (res.statusCode == 200) {
+        AppUtils.showSuccess(message: res.data['message'] ?? 'Status updated');
+        _fetchUsers();
+      }
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to toggle status: $e');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _showAdjustBalanceSheet(dynamic user) async {
+    final amountCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
+    String type = 'credit';
+
+    await Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Adjust Wallet Balance', style: AppTextStyles.h2),
+              const SizedBox(height: AppSpacing.m),
+              _detailRow('User', user['name']),
+              const SizedBox(height: AppSpacing.m),
+              DropdownButtonFormField<String>(
+                value: type,
+                decoration: const InputDecoration(labelText: 'Type'),
+                items: const [
+                  DropdownMenuItem(value: 'credit', child: Text('CREDIT')),
+                  DropdownMenuItem(value: 'debit', child: Text('DEBIT')),
+                ],
+                onChanged: (v) => type = v ?? 'credit',
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: amountCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Amount',
+                  prefixText: 'Rs. ',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: descCtrl,
+                decoration: const InputDecoration(labelText: 'Description'),
+              ),
+              const SizedBox(height: AppSpacing.m),
+              AppButton(
+                label: 'Submit',
+                onPressed: () async {
+                  final amount = double.tryParse(amountCtrl.text.trim());
+                  if (amount == null || amount <= 0) {
+                    AppUtils.showError(message: 'Enter a valid amount');
+                    return;
+                  }
+                  if (descCtrl.text.trim().isEmpty) {
+                    AppUtils.showError(message: 'Description is required');
+                    return;
+                  }
+                  Get.back();
+                  await _adjustBalance(
+                    userId: int.tryParse(user['id']?.toString() ?? '') ?? 0,
+                    amount: amount,
+                    type: type,
+                    description: descCtrl.text.trim(),
+                  );
+                },
+              ),
+              const SizedBox(height: AppSpacing.s),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  Future<void> _adjustBalance({
+    required int userId,
+    required double amount,
+    required String type,
+    required String description,
+  }) async {
+    setState(() => _isLoading = true);
+    try {
+      final res = await ApiClient().dio.post(
+        '/admin/users/$userId/adjust-balance',
+        data: {
+          'amount': amount,
+          'type': type,
+          'description': description,
+        },
+      );
+      if (res.statusCode == 200) {
+        AppUtils.showSuccess(message: res.data['message'] ?? 'Balance adjusted');
+        _fetchUsers();
+      }
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to adjust balance: $e');
       setState(() => _isLoading = false);
     }
   }
