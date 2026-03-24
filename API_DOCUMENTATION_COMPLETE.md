@@ -9,7 +9,7 @@ This document provides comprehensive API documentation for the Sports Studio mob
 ## 🔗 Base URLs
 
 - **Development**: `http://localhost/cricket-oasis-bookings/backend/public/api`
-- **Production**: `https://lightcoral-goose-424965.hostingersite.com/backend/public/api`
+- **Production**: `https://sportstudio.squarenex.com/backend/public/api`
 
 ---
 

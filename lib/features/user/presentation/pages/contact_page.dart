@@ -60,13 +60,13 @@ class _ContactPageState extends State<ContactPage> {
                 _buildContactInfo(
                   icon: Icons.phone_outlined,
                   title: 'Call Us',
-                  info: '+92 300 1234567',
+                  info: '+923046686880',
                 ),
                 const SizedBox(height: AppSpacing.m),
                 _buildContactInfo(
                   icon: Icons.location_on_outlined,
                   title: 'Visit Us',
-                  info: '123 Sports Complex Avenue, Lahore',
+                  info: 'Gulberg II, Lahore, Pakistan',
                 ),
 
                 const SizedBox(height: AppSpacing.xl),

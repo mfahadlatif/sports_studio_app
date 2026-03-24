@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 class UrlHelper {
-  static const String domain = 'lightcoral-goose-424965.hostingersite.com';
+  static const String domain = 'sportstudio.squarenex.com';
   static const String publicBase = 'https://$domain/backend/public';
   static const String apiBase = '$publicBase/api';
   static const String mediaServe = '$apiBase/media/serve';
@@ -21,7 +21,8 @@ class UrlHelper {
     if (url.contains('/api/media/serve') && url.contains(domain)) return url;
 
     // Media/serve with localhost — rewrite to production
-    if (url.contains('/api/media/serve') && (url.contains('localhost') || url.contains('127.0.0.1'))) {
+    if (url.contains('/api/media/serve') &&
+        (url.contains('localhost') || url.contains('127.0.0.1'))) {
       try {
         final uri = Uri.parse(url);
         final path = uri.queryParameters['path'];

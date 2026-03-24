@@ -147,7 +147,7 @@ class HomeView extends StatelessWidget {
                       0;
                   final events = stats['hosted_events'] ?? stats['events'] ?? 0;
                   final spent =
-                      stats['total_spent'] ?? stats['total_payments'] ?? null;
+                      stats['total_spent'] ?? stats['total_payments'];
 
                   return Container(
                     margin: const EdgeInsets.symmetric(

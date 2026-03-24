@@ -59,16 +59,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
   void _startAutoScroll() {
     _carouselTimer?.cancel();
-    _carouselTimer = Timer.periodic(const Duration(milliseconds: 4000), (timer) {
+    _carouselTimer = Timer.periodic(const Duration(milliseconds: 4000), (
+      timer,
+    ) {
       if (controller.selectedEvent.value != null) {
         final event = controller.selectedEvent.value!;
         List<String> images = event.images;
         if (images.isEmpty && event.image != null) images = [event.image!];
-        
+
         if (images.length > 1) {
           int next = _currentPage.value + 1;
           if (next >= images.length) next = 0;
-          
+
           if (_pageController.hasClients) {
             _pageController.animateToPage(
               next,
@@ -170,67 +172,72 @@ class _EventDetailPageState extends State<EventDetailPage> {
                     children: [
                       // Image Carousel (Hero removed — kept in events list card)
                       Stack(
-                          children: [
-                            SizedBox(
-                              height: 280,
-                              width: double.infinity,
-                              child: PageView.builder(
-                                controller: _pageController,
-                                itemCount: sanitizedImages.length,
-                                onPageChanged: (index) => _currentPage.value = index,
-                                itemBuilder: (context, index) {
-                                  return GestureDetector(
-                                    onTap: () => Get.to(
-                                      () => FullScreenImageViewer(
-                                        images: sanitizedImages,
-                                        initialIndex: index,
-                                      ),
+                        children: [
+                          SizedBox(
+                            height: 280,
+                            width: double.infinity,
+                            child: PageView.builder(
+                              controller: _pageController,
+                              itemCount: sanitizedImages.length,
+                              onPageChanged: (index) =>
+                                  _currentPage.value = index,
+                              itemBuilder: (context, index) {
+                                return GestureDetector(
+                                  onTap: () => Get.to(
+                                    () => FullScreenImageViewer(
+                                      images: sanitizedImages,
+                                      initialIndex: index,
                                     ),
-                                    child: CachedNetworkImage(
-                                      imageUrl: sanitizedImages[index],
-                                      fit: BoxFit.cover,
-                                      placeholder: (context, url) =>
-                                          Container(color: Colors.grey[200]),
-                                      errorWidget: (context, url, error) =>
-                                          const Icon(Icons.broken_image),
-                                    ),
-                                  );
-                                },
-                              ),
+                                  ),
+                                  child: CachedNetworkImage(
+                                    imageUrl: sanitizedImages[index],
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) =>
+                                        Container(color: Colors.grey[200]),
+                                    errorWidget: (context, url, error) =>
+                                        const Icon(Icons.broken_image),
+                                  ),
+                                );
+                              },
                             ),
-                            if (sanitizedImages.length > 1)
-                              Positioned(
-                                bottom: 16,
-                                left: 0,
-                                right: 0,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: List.generate(
-                                    sanitizedImages.length,
-                                    (index) => Obx(() => Container(
-                                      width: _currentPage.value == index ? 16 : 8,
+                          ),
+                          if (sanitizedImages.length > 1)
+                            Positioned(
+                              bottom: 16,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: List.generate(
+                                  sanitizedImages.length,
+                                  (index) => Obx(
+                                    () => Container(
+                                      width: _currentPage.value == index
+                                          ? 16
+                                          : 8,
                                       height: 4,
                                       margin: const EdgeInsets.symmetric(
                                         horizontal: 2,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: _currentPage.value == index 
-                                          ? Colors.white 
-                                          : Colors.white.withOpacity(0.5),
+                                        color: _currentPage.value == index
+                                            ? Colors.white
+                                            : Colors.white.withOpacity(0.5),
                                         borderRadius: BorderRadius.circular(2),
                                         boxShadow: [
                                           BoxShadow(
                                             color: Colors.black26,
                                             blurRadius: 2,
-                                          )
-                                        ]
+                                          ),
+                                        ],
                                       ),
-                                    )),
+                                    ),
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
+                      ),
 
                       Padding(
                         padding: const EdgeInsets.all(AppSpacing.l),
@@ -307,19 +314,30 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             // Real Rating and Review Counter
                             if (event != null && (event.avgRating ?? 0.0) > 0)
                               Padding(
-                                padding: const EdgeInsets.only(top: 8.0, left: 44.0),
+                                padding: const EdgeInsets.only(
+                                  top: 8.0,
+                                  left: 44.0,
+                                ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.star, color: Colors.amber, size: 16),
+                                    const Icon(
+                                      Icons.star,
+                                      color: Colors.amber,
+                                      size: 16,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       event.avgRating?.toString() ?? '0.0',
-                                      style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+                                      style: AppTextStyles.label.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       '(${event.reviewsCount ?? 0} reviews)',
-                                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+                                      style: AppTextStyles.bodySmall.copyWith(
+                                        color: AppColors.textMuted,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -359,15 +377,18 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                     children: [
                                       Text(
                                         '$currentParticipants / $maxParticipants',
-                                        style: AppTextStyles.bodyMedium.copyWith(
-                                          color: AppColors.primary,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                        style: AppTextStyles.bodyMedium
+                                            .copyWith(
+                                              color: AppColors.primary,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
                                       Text(
                                         '${event?.playersLeft} left',
                                         style: AppTextStyles.bodySmall.copyWith(
-                                          color: (event?.playersLeft ?? 0) == 0 ? Colors.red : AppColors.textSecondary,
+                                          color: (event?.playersLeft ?? 0) == 0
+                                              ? Colors.red
+                                              : AppColors.textSecondary,
                                         ),
                                       ),
                                     ],
@@ -471,40 +492,63 @@ class _EventDetailPageState extends State<EventDetailPage> {
                                       },
                                     ),
                                   ),
-                             // About Section
-                             Text('About this Event', style: AppTextStyles.h3),
-                             const SizedBox(height: AppSpacing.m),
-                             Text(
-                               description,
-                               style: AppTextStyles.bodyMedium.copyWith(
-                                 height: 1.6,
-                               ),
-                             ),
-                             const SizedBox(height: AppSpacing.xl),
-                             const Divider(),
-                             const SizedBox(height: AppSpacing.m),
+                            // About Section
+                            Text('About this Event', style: AppTextStyles.h3),
+                            const SizedBox(height: AppSpacing.m),
+                            Text(
+                              description,
+                              style: AppTextStyles.bodyMedium.copyWith(
+                                height: 1.6,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xl),
+                            const Divider(),
+                            const SizedBox(height: AppSpacing.m),
 
-                             // Organizer Management Section
-                            if (event?.organizerId == profileController.userProfile['id']) ...[
+                            // Organizer Management Section
+                            if (event?.organizerId ==
+                                profileController.userProfile['id']) ...[
                               const SizedBox(height: AppSpacing.l),
-                              Text('Organizer Management', style: AppTextStyles.h2.copyWith(color: AppColors.primary)),
+                              Text(
+                                'Organizer Management',
+                                style: AppTextStyles.h2.copyWith(
+                                  color: AppColors.primary,
+                                ),
+                              ),
                               const SizedBox(height: AppSpacing.m),
-                              
-                              if (_participants.any((p) => p['status'] == 'pending')) ...[
-                                Text('Pending Requests (${_participants.where((p) => p['status'] == 'pending').length})', 
-                                  style: AppTextStyles.h3),
+
+                              if (_participants.any(
+                                (p) => p['status'] == 'pending',
+                              )) ...[
+                                Text(
+                                  'Pending Requests (${_participants.where((p) => p['status'] == 'pending').length})',
+                                  style: AppTextStyles.h3,
+                                ),
                                 const SizedBox(height: AppSpacing.s),
-                                ..._participants.where((p) => p['status'] == 'pending').map((p) => _buildParticipantManagementCard(p)),
+                                ..._participants
+                                    .where((p) => p['status'] == 'pending')
+                                    .map(
+                                      (p) => _buildParticipantManagementCard(p),
+                                    ),
                                 const SizedBox(height: AppSpacing.m),
                               ],
 
-                              if (_participants.any((p) => p['status'] == 'accepted')) ...[
-                                Text('Confirmed Participants', style: AppTextStyles.h3),
+                              if (_participants.any(
+                                (p) => p['status'] == 'accepted',
+                              )) ...[
+                                Text(
+                                  'Confirmed Participants',
+                                  style: AppTextStyles.h3,
+                                ),
                                 const SizedBox(height: AppSpacing.s),
-                                ..._participants.where((p) => p['status'] == 'accepted').map((p) => _buildParticipantManagementCard(p)),
+                                ..._participants
+                                    .where((p) => p['status'] == 'accepted')
+                                    .map(
+                                      (p) => _buildParticipantManagementCard(p),
+                                    ),
                                 const SizedBox(height: AppSpacing.m),
                               ],
-                              
+
                               const SizedBox(height: AppSpacing.xl),
                             ],
 
@@ -548,26 +592,45 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             ),
 
                             // Pay Registration Fee Button (If accepted but unpaid)
-                            if (_hasJoined && _participants.any((p) => p['user_id'] == profileController.userProfile['id'] && p['status'] == 'accepted' && p['payment_status'] == 'unpaid')) ...[
+                            if (_hasJoined &&
+                                _participants.any(
+                                  (p) =>
+                                      p['user_id'] ==
+                                          profileController.userProfile['id'] &&
+                                      p['status'] == 'accepted' &&
+                                      p['payment_status'] == 'unpaid',
+                                )) ...[
                               const SizedBox(height: AppSpacing.m),
                               SizedBox(
                                 width: double.infinity,
                                 height: 50,
                                 child: OutlinedButton.icon(
                                   onPressed: () {
-                                    final p = _participants.firstWhere((p) => p['user_id'] == profileController.userProfile['id']);
-                                    Get.toNamed('/payment', arguments: {
-                                      'totalPrice': event?.registrationFee ?? 0.0,
-                                      'type': 'event_participant',
-                                      'participantId': p['id'],
-                                    });
+                                    final p = _participants.firstWhere(
+                                      (p) =>
+                                          p['user_id'] ==
+                                          profileController.userProfile['id'],
+                                    );
+                                    Get.toNamed(
+                                      '/payment',
+                                      arguments: {
+                                        'totalPrice':
+                                            event?.registrationFee ?? 0.0,
+                                        'type': 'event_participant',
+                                        'participantId': p['id'],
+                                      },
+                                    );
                                   },
                                   icon: const Icon(Icons.payment),
-                                  label: const Text('Pay Registration Fee Online'),
+                                  label: const Text(
+                                    'Pay Registration Fee Online',
+                                  ),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: Colors.green,
                                     side: const BorderSide(color: Colors.green),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -581,7 +644,6 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 ),
               ),
             ),
-
 
             // Back button overlay
             SafeArea(
@@ -638,14 +700,15 @@ class _EventDetailPageState extends State<EventDetailPage> {
 
     try {
       final registrationFee = (event.registrationFee ?? 0);
-      
+
       final response = await ApiClient().dio.post(
         '/event-participants',
         data: {
           'event_id': event.id,
           'status': 'pending', // All joins require organizer approval now
           'payment_status': registrationFee > 0 ? 'unpaid' : 'paid',
-          'payment_method': 'cash', // Default to cash/manual until they pay online
+          'payment_method':
+              'cash', // Default to cash/manual until they pay online
         },
       );
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -675,7 +738,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
   }
 
   void _copyInviteLink(dynamic event) {
-    final baseUrl = "https://lightcoral-goose-424965.hostingersite.com/events/";
+    final baseUrl = "https://sportstudio.squarenex.com/events/";
     final link = "$baseUrl${event.id}";
     Clipboard.setData(ClipboardData(text: link));
     Get.snackbar(
@@ -865,10 +928,14 @@ class _EventDetailPageState extends State<EventDetailPage> {
             children: [
               CircleAvatar(
                 backgroundColor: AppColors.primaryLight,
-                backgroundImage: (user['avatar'] != null && user['avatar'].toString().isNotEmpty)
+                backgroundImage:
+                    (user['avatar'] != null &&
+                        user['avatar'].toString().isNotEmpty)
                     ? NetworkImage(user['avatar'])
                     : null,
-                child: (user['avatar'] == null || user['avatar'].toString().isEmpty)
+                child:
+                    (user['avatar'] == null ||
+                        user['avatar'].toString().isEmpty)
                     ? const Icon(Icons.person)
                     : null,
               ),
@@ -877,30 +944,50 @@ class _EventDetailPageState extends State<EventDetailPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(user['name'] ?? 'User',
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      user['name'] ?? 'User',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     if (phone != null && phone.isNotEmpty)
-                      Text(phone, style: AppTextStyles.bodySmall.copyWith(fontSize: 10)),
+                      Text(
+                        phone,
+                        style: AppTextStyles.bodySmall.copyWith(fontSize: 10),
+                      ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: isPaid ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                            color: isPaid
+                                ? Colors.green.withOpacity(0.1)
+                                : Colors.orange.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                isPaid ? Icons.check_circle : Icons.pending_actions,
+                                isPaid
+                                    ? Icons.check_circle
+                                    : Icons.pending_actions,
                                 size: 10,
                                 color: isPaid ? Colors.green : Colors.orange,
                               ),
                               const SizedBox(width: 4),
                               Text(
-                                (isPaid && (controller.selectedEvent.value?.registrationFee ?? 0) == 0) ? 'FREE ENTRY' : (isPaid ? 'PAID' : 'UNPAID'),
+                                (isPaid &&
+                                        (controller
+                                                    .selectedEvent
+                                                    .value
+                                                    ?.registrationFee ??
+                                                0) ==
+                                            0)
+                                    ? 'FREE ENTRY'
+                                    : (isPaid ? 'PAID' : 'UNPAID'),
                                 style: TextStyle(
                                   fontSize: 9,
                                   fontWeight: FontWeight.bold,
@@ -936,21 +1023,24 @@ class _EventDetailPageState extends State<EventDetailPage> {
                   tooltip: 'Reject',
                 ),
               ] else if (status == 'accepted')
-                 Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                   decoration: BoxDecoration(
-                     color: AppColors.primaryLight,
-                     borderRadius: BorderRadius.circular(20),
-                   ),
-                   child: Text(
-                     'Accepted',
-                     style: TextStyle(
-                       fontSize: 10,
-                       color: AppColors.primary,
-                       fontWeight: FontWeight.bold,
-                     ),
-                   ),
-                 ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Accepted',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
             ],
           ),
           if (!isPaid && status == 'accepted') ...[
@@ -960,7 +1050,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
               child: TextButton.icon(
                 onPressed: () => _updateParticipantPaymentStatus(id, 'paid'),
                 icon: const Icon(Icons.payments_outlined, size: 16),
-                label: const Text('Confirm Cash Payment', style: TextStyle(fontSize: 12)),
+                label: const Text(
+                  'Confirm Cash Payment',
+                  style: TextStyle(fontSize: 12),
+                ),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.green,
                   padding: EdgeInsets.zero,
@@ -974,7 +1067,10 @@ class _EventDetailPageState extends State<EventDetailPage> {
     );
   }
 
-  Future<void> _updateParticipantPaymentStatus(int id, String paymentStatus) async {
+  Future<void> _updateParticipantPaymentStatus(
+    int id,
+    String paymentStatus,
+  ) async {
     try {
       final res = await ApiClient().dio.put(
         '/event-participants/$id',

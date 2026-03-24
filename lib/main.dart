@@ -46,7 +46,6 @@ import 'package:sports_studio/core/services/safepay_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/transaction_detail_page.dart';
-import 'package:sports_studio/core/controllers/system_settings_controller.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 

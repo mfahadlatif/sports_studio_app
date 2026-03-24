@@ -3,21 +3,22 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 
 class ApiClient {
-  static const String baseUrl = 'https://lightcoral-goose-424965.hostingersite.com/backend/public/api';
+  static const String baseUrl =
+      'https://sportstudio.squarenex.com/backend/public/api';
 
   final Dio _dio;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   FlutterSecureStorage get storage => _storage;
 
   ApiClient()
-      : _dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl,
-            connectTimeout: const Duration(seconds: 60),
-            receiveTimeout: const Duration(seconds: 60),
-            headers: {'Accept': 'application/json'},
-          ),
-        ) {
+    : _dio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 60),
+          receiveTimeout: const Duration(seconds: 60),
+          headers: {'Accept': 'application/json'},
+        ),
+      ) {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
@@ -35,7 +36,7 @@ class ApiClient {
 
             // Navigate to auth screen if not already there
             if (Get.currentRoute != '/auth' && Get.currentRoute != '/login') {
-                Get.offAllNamed('/auth');
+              Get.offAllNamed('/auth');
             }
           }
           return handler.next(e);

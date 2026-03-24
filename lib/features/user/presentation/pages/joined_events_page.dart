@@ -3,10 +3,8 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class JoinedEventsPage extends StatelessWidget {

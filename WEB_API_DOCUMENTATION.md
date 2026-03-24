@@ -7,7 +7,7 @@ Sports Studio Web is a comprehensive sports facility management platform built w
 ## Base URL
 
 - **Development**: `http://localhost/cricket-oasis-bookings/backend/public/api`
-- **Production**: `https://lightcoral-goose-424965.hostingersite.com/backend/public/api`
+- **Production**: `https://sportstudio.squarenex.com/backend/public/api`
 
 ## Authentication
 

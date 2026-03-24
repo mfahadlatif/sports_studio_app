@@ -283,7 +283,7 @@ class TeamDetailPage extends StatelessWidget {
               _dialogField(phoneController, 'Phone Number (Optional)', Icons.phone_outlined, keyboardType: TextInputType.phone),
               const SizedBox(height: 12),
               Obx(() => DropdownButtonFormField<String>(
-                value: selectedRole.value,
+                initialValue: selectedRole.value,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey[100],

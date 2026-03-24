@@ -297,7 +297,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               _detailRow('User', user['name']),
               const SizedBox(height: AppSpacing.m),
               DropdownButtonFormField<String>(
-                value: type,
+                initialValue: type,
                 decoration: const InputDecoration(labelText: 'Type'),
                 items: const [
                   DropdownMenuItem(value: 'credit', child: Text('CREDIT')),

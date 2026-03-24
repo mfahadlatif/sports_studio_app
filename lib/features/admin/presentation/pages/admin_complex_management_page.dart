@@ -167,7 +167,7 @@ class _AdminComplexManagementPageState extends State<AdminComplexManagementPage>
                   const SizedBox(height: 6),
                   Text(
                     [
-                      if (location != null) location,
+                      ?location,
                       if (ownerName != null) 'Owner: $ownerName',
                     ].join(' • '),
                     style: AppTextStyles.bodySmall.copyWith(

@@ -186,8 +186,8 @@ class TeamsController extends GetxController {
   Future<void> addMemberManual(int teamId, {String? email, String? phone, String? role}) async {
     try {
       final memberData = {
-        if (email != null) 'email': email,
-        if (phone != null) 'phone': phone,
+        'email': ?email,
+        'phone': ?phone,
         'role': role ?? 'player',
       };
 

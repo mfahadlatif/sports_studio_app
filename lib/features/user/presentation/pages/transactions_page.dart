@@ -69,9 +69,7 @@ class TransactionsPage extends StatelessWidget {
             itemBuilder: (_, index) {
               final tx = txs[index];
               final createdAt = tx.createdAt;
-              final dateStr = createdAt != null
-                  ? DateFormat('MMM dd, yyyy • hh:mm a').format(createdAt)
-                  : '—';
+              final dateStr = DateFormat('MMM dd, yyyy • hh:mm a').format(createdAt);
               final status = tx.status.toLowerCase();
               Color statusColor;
               IconData statusIcon;

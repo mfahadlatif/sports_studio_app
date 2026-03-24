@@ -9,7 +9,7 @@ This comprehensive testing guide covers all user flows, features, and scenarios 
 ## 🎯 **Testing Prerequisites**
 
 ### **Setup Requirements**:
-1. **Backend API**: `https://lightcoral-goose-424965.hostingersite.com/backend/public/api`
+1. **Backend API**: `https://sportstudio.squarenex.com/backend/public/api`
 2. **Test Accounts**: Create test accounts for all user roles
 3. **Test Data**: Ensure sample complexes, grounds, and events exist
 4. **Network**: Stable internet connection

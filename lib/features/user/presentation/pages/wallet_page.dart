@@ -338,7 +338,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           ),
           const SizedBox(height: AppSpacing.s),
           DropdownButtonFormField<int>(
-            value: _selectedBankAccountId,
+            initialValue: _selectedBankAccountId,
             decoration: const InputDecoration(labelText: 'Bank Account'),
             items: _bankAccounts
                 .map((b) {

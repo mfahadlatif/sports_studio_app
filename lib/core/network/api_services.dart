@@ -393,7 +393,7 @@ class EventApiService {
       print('🌐 [EventAPI] Fetching user events...');
       final response = await _client.dio.get(
         '/events',
-        queryParameters: {if (organizerId != null) 'organizer_id': organizerId},
+        queryParameters: {'organizer_id': ?organizerId},
       );
       if (response.statusCode == 200) {
         final raw = response.data;
@@ -932,7 +932,7 @@ class DealApiService {
     try {
       final res = await _client.dio.post(
         '/public/deals/validate',
-        data: {'code': trimmed, if (groundId != null) 'ground_id': groundId},
+        data: {'code': trimmed, 'ground_id': ?groundId},
       );
       if (res.statusCode == 200) {
         final data = res.data;

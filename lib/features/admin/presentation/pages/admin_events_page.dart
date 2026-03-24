@@ -76,7 +76,7 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.m),
                   child: DropdownButtonFormField<String>(
-                    value: _filter,
+                    initialValue: _filter,
                     decoration: const InputDecoration(labelText: 'Filter by status'),
                     items: [
                       const DropdownMenuItem(value: 'all', child: Text('All')),

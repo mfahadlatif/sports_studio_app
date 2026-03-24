@@ -9,7 +9,7 @@ This document outlines the comprehensive updates made to Flutter models to match
 ## 🔍 **Database Analysis Results**
 
 ### **Source**: `cricket_oasis.sql` (MySQL Database Schema)
-### **API Endpoint**: `https://lightcoral-goose-424965.hostingersite.com/backend/public/api`
+### **API Endpoint**: `https://sportstudio.squarenex.com/backend/public/api`
 
 ---
 

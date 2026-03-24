@@ -77,7 +77,7 @@ class _AdminWithdrawalsPageState extends State<AdminWithdrawalsPage> {
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _filter,
+                          initialValue: _filter,
                           decoration: const InputDecoration(labelText: 'Filter'),
                           items: const [
                             DropdownMenuItem(value: 'all', child: Text('All')),

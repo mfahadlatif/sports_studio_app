@@ -233,7 +233,7 @@ class AddGroundController extends GetxController {
         'amenities': selectedAmenities.toList(),
         'status': status.value,
         'lighting': hasLighting.value ? '1' : '0',
-        if (dimensions != null) 'dimensions': dimensions,
+        'dimensions': ?dimensions,
         if (imageUrls.isNotEmpty) 'images': imageUrls,
       };
 
