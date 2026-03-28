@@ -93,7 +93,8 @@ class ProfilePage extends StatelessWidget {
                       _buildOption(
                         icon: Icons.account_balance_wallet_outlined,
                         title: 'Wallet & Withdrawals',
-                        subtitle: 'Balance, bank accounts, and cash-out requests',
+                        subtitle:
+                            'Balance, bank accounts, and cash-out requests',
                         onTap: () => Get.to(() => const WalletPage()),
                         color: Colors.green,
                       ),
@@ -168,7 +169,8 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.policy,
                         title: 'Cancellation & Refund Policy',
                         subtitle: 'Cancellation rules and refunds overview',
-                        onTap: () => Get.to(() => const CancellationPolicyPage()),
+                        onTap: () =>
+                            Get.to(() => const CancellationPolicyPage()),
                         color: Colors.brown,
                       ),
 
@@ -189,7 +191,8 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.mark_email_read_outlined,
                         title: 'Newsletter',
                         subtitle: 'Subscribe for updates and deals',
-                        onTap: () => Get.to(() => const NewsletterSubscribePage()),
+                        onTap: () =>
+                            Get.to(() => const NewsletterSubscribePage()),
                         color: Colors.teal,
                       ),
 
@@ -246,51 +249,28 @@ class ProfilePage extends StatelessWidget {
 
         return Column(
           children: [
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: CircleAvatar(
-                    radius: 54,
-                    backgroundColor: AppColors.primaryLight,
-                    backgroundImage: user['avatar'] != null
-                        ? NetworkImage(
-                            UrlHelper.sanitizeUrl(user['avatar'].toString()),
-                          )
-                        : null,
-                    child: user['avatar'] == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: AppColors.primary,
-                          )
-                        : null,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: profileController.updateAvatar,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 10),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.edit,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: CircleAvatar(
+                radius: 54,
+                backgroundColor: AppColors.primaryLight,
+                backgroundImage: user['avatar'] != null
+                    ? NetworkImage(
+                        UrlHelper.sanitizeUrl(user['avatar'].toString()),
+                      )
+                    : null,
+                child: user['avatar'] == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: AppColors.primary,
+                      )
+                    : null,
+              ),
             ),
             const SizedBox(height: AppSpacing.m),
             Text(name, style: AppTextStyles.h2.copyWith(color: Colors.white)),
