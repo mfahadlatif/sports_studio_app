@@ -6,7 +6,6 @@ import 'package:sports_studio/core/theme/app_spacing.dart';
 import 'package:sports_studio/features/user/controller/teams_controller.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
 
 class TeamDetailPage extends StatelessWidget {
   const TeamDetailPage({super.key});
@@ -260,9 +259,10 @@ class TeamDetailPage extends StatelessWidget {
   }
 
   void _showAddMemberDialog(BuildContext context, TeamsController controller, Team team) {
-    final nameController = TextEditingController();
-    final emailController = TextEditingController();
-    final phoneController = TextEditingController();
+    final searchController = TextEditingController();
+    final RxList<User> searchResults = <User>[].obs;
+    final RxBool isSearching = false.obs;
+    final Rxn<User> selectedUser = Rxn<User>();
     final RxString selectedRole = 'player'.obs;
     final RxBool isSubmitting = false.obs;
 
@@ -270,53 +270,117 @@ class TeamDetailPage extends StatelessWidget {
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: const Text('Add Team Member'),
-        content: SingleChildScrollView(
+        content: SizedBox(
+          width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Enter player details to add them to your squad.'),
-              const SizedBox(height: 20),
-              _dialogField(nameController, 'Player Name', Icons.person_outline),
-              const SizedBox(height: 12),
-              _dialogField(emailController, 'Email Address', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 12),
-              _dialogField(phoneController, 'Phone Number (Optional)', Icons.phone_outlined, keyboardType: TextInputType.phone),
-              const SizedBox(height: 12),
-              Obx(() => DropdownButtonFormField<String>(
-                initialValue: selectedRole.value,
+              TextField(
+                controller: searchController,
                 decoration: InputDecoration(
+                  hintText: 'Search by name, email or phone...',
+                  prefixIcon: const Icon(Icons.search),
                   filled: true,
                   fillColor: Colors.grey[100],
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 ),
-                items: ['player', 'captain', 'vice-captain', 'coach']
-                    .map((r) => DropdownMenuItem(value: r, child: Text(r.capitalizeFirst!)))
-                    .toList(),
-                onChanged: (v) => selectedRole.value = v!,
-              )),
+                onChanged: (v) async {
+                  if (v.length < 3) {
+                    searchResults.clear();
+                    return;
+                  }
+                  isSearching.value = true;
+                  final results = await controller.searchUsers(v);
+                  searchResults.assignAll(results);
+                  isSearching.value = false;
+                },
+              ),
+              const SizedBox(height: 12),
+              Obx(() => isSearching.value 
+                ? const LinearProgressIndicator() 
+                : searchResults.isEmpty && searchController.text.length >= 3
+                  ? const Text('No users found', style: TextStyle(fontSize: 12, color: Colors.grey))
+                  : const SizedBox.shrink()
+              ),
+              Obx(() => searchResults.isNotEmpty
+                ? ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: searchResults.length,
+                      itemBuilder: (context, idx) {
+                        final u = searchResults[idx];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primaryLight,
+                            child: Text(u.name[0].toUpperCase()),
+                          ),
+                          title: Text(u.name),
+                          subtitle: Text(u.email + (u.phone != null ? ' • ${u.phone}' : '')),
+                          onTap: () {
+                            selectedUser.value = u;
+                            searchController.text = u.name;
+                            searchResults.clear();
+                          },
+                        );
+                      },
+                    ),
+                  )
+                : const SizedBox.shrink()
+              ),
+              const Divider(height: 32),
+              Obx(() => selectedUser.value != null 
+                ? Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.check_circle, color: Colors.green),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text('Selected: ${selectedUser.value!.name}')),
+                            IconButton(onPressed: () => selectedUser.value = null, icon: const Icon(Icons.close)),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: selectedRole.value,
+                        decoration: InputDecoration(
+                          labelText: 'Assigned Role',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                        ),
+                        items: ['player', 'captain', 'vice-captain', 'coach']
+                            .map((r) => DropdownMenuItem(value: r, child: Text(r.capitalizeFirst!)))
+                            .toList(),
+                        onChanged: (v) => selectedRole.value = v!,
+                      ),
+                    ],
+                  )
+                : const Text('Search and select a registered user to add them to your team.', 
+                    style: TextStyle(fontSize: 12, color: Colors.grey), textAlign: TextAlign.center)
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
           Obx(() => ElevatedButton(
-            onPressed: isSubmitting.value ? null : () async {
-              if (nameController.text.isEmpty || emailController.text.isEmpty) {
-                AppUtils.showError(message: 'Name and Email are required');
-                return;
-              }
+            onPressed: (isSubmitting.value || selectedUser.value == null) ? null : () async {
               isSubmitting.value = true;
-              
-              await controller.addMemberManual(
+              await controller.addMember(
                 team.id,
-                email: emailController.text.trim(),
-                phone: phoneController.text.trim(),
-                role: selectedRole.value,
+                selectedUser.value!.id,
+                selectedRole.value,
               );
-              
-              if (Get.isDialogOpen!) Get.back();
               isSubmitting.value = false;
+              Get.back();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -327,23 +391,6 @@ class TeamDetailPage extends StatelessWidget {
                 : const Text('Add Member', style: TextStyle(color: Colors.white)),
           )),
         ],
-      ),
-    );
-  }
-
-  Widget _dialogField(TextEditingController ctrl, String hint, IconData icon, {TextInputType? keyboardType}) {
-    return TextField(
-      controller: ctrl,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
-        filled: true,
-        fillColor: Colors.grey[100],
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
       ),
     );
   }

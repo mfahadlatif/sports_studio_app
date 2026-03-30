@@ -10,7 +10,6 @@ import 'package:sports_studio/features/landing/controller/landing_controller.dar
 import 'package:sports_studio/features/user/presentation/widgets/home_view.dart';
 import 'package:sports_studio/features/user/presentation/pages/grounds_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/events_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/teams_page.dart'; // Changed from contact_page.dart to teams_page.dart
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_grounds_view.dart';
@@ -34,7 +33,6 @@ class LandingPage extends StatelessWidget {
       const HomeView(),
       const GroundsPage(),
       const EventsPage(),
-      const TeamsPage(), // Changed from ContactPage to TeamsPage
       const ProfilePage(),
     ];
 
@@ -58,10 +56,6 @@ class LandingPage extends StatelessWidget {
       GButton(icon: Icons.home_outlined, text: 'Home'),
       GButton(icon: Icons.sports_soccer_outlined, text: 'Grounds'),
       GButton(icon: Icons.event_outlined, text: 'Events'),
-      GButton(
-        icon: Icons.groups_outlined,
-        text: 'Community',
-      ), // Changed text from 'Community'
       GButton(icon: Icons.person_outline, text: 'Profile'),
     ];
 

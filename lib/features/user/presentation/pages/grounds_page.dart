@@ -321,11 +321,11 @@ class _GroundsPageState extends State<GroundsPage>
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Rs. ${controller.priceRange.value.start.round()}',
+                              '${AppConstants.currencySymbol} ${controller.priceRange.value.start.round()}',
                               style: AppTextStyles.label,
                             ),
                             Text(
-                              'Rs. ${controller.priceRange.value.end.round()}',
+                              '${AppConstants.currencySymbol} ${controller.priceRange.value.end.round()}',
                               style: AppTextStyles.label,
                             ),
                           ],
@@ -347,17 +347,13 @@ class _GroundsPageState extends State<GroundsPage>
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
-                        children: [
-                          _filterChip('water', 'Water 🚰', controller),
-                          _filterChip('washroom', 'Washroom 🚻', controller),
-                          _filterChip('changing', 'Changing 👕', controller),
-                          _filterChip('parking', 'Parking 🚗', controller),
-                          _filterChip('lighting', 'Lights 💡', controller),
-                          _filterChip('wifi', 'Wifi 📡', controller),
-                          _filterChip('first_aid', 'First Aid 🏥', controller),
-                          _filterChip('cafe', 'Cafe ☕', controller),
-                          _filterChip('dugout', 'Dugout ⛺', controller),
-                        ],
+                        children: AppConstants.groundAmenities.map((amenity) {
+                          return _filterChip(
+                            amenity['id']!,
+                            '${amenity['name']} ${amenity['icon']}',
+                            controller,
+                          );
+                        }).toList(),
                       ),
                     ]),
                   ),

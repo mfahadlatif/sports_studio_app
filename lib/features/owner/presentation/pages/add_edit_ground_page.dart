@@ -51,19 +51,8 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   String _complexName = '';
   int? _selectedComplexIdForStep; // Step 1: selected complex (before Continue)
 
-  final List<Map<String, String>> _groundAmenitiesConfig = [
-    {'id': 'water', 'name': 'Water', 'icon': '🚰'},
-    {'id': 'washroom', 'name': 'Washroom', 'icon': '🚻'},
-    {'id': 'changing', 'name': 'Changing', 'icon': '👕'},
-    {'id': 'parking', 'name': 'Parking', 'icon': '🚗'},
-    {'id': 'lighting', 'name': 'Lights', 'icon': '💡'},
-    {'id': 'wifi', 'name': 'Wifi', 'icon': '📡'},
-    {'id': 'first_aid', 'name': 'First Aid', 'icon': '🏥'},
-    {'id': 'cafe', 'name': 'Cafe', 'icon': '☕'},
-    {'id': 'dugout', 'name': 'Dugout', 'icon': '⛺'},
-    {'id': 'balls', 'name': 'Balls', 'icon': '🎾'},
-    {'id': 'bats', 'name': 'Bats', 'icon': '🏏'},
-  ];
+  final List<Map<String, String>> _groundAmenitiesConfig =
+      AppConstants.groundAmenities;
 
   final List<Map<String, String>> _sportConfigs = [
     {'name': 'Cricket', 'icon': '🏏'},
@@ -131,11 +120,25 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
 
   Future<void> _submit() async {
     if (_nameCtrl.text.isEmpty || _priceCtrl.text.isEmpty) {
-      Get.snackbar('Error', 'Name and price are required');
+      AppUtils.showError(message: 'Ground name and price are required.');
       return;
     }
     if (!_isEdit && _complexId == null) {
-      Get.snackbar('Error', 'Please select a complex first');
+      AppUtils.showError(
+        message: 'Please link this ground to a sports complex.',
+      );
+      return;
+    }
+
+    // Image validation: Must have at least one image (either new or existing)
+    final existingCount = _isEdit && _existingGround != null
+        ? UrlHelper.getParsedImages(_existingGround['images']).length
+        : 0;
+
+    if (_pickedImages.isEmpty && existingCount == 0) {
+      AppUtils.showError(
+        message: 'Please upload at least one image/photo for your ground.',
+      );
       return;
     }
 
@@ -151,11 +154,11 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         'price_per_hour': double.tryParse(_priceCtrl.text) ?? 0,
         'description': _descCtrl.text.trim(),
         'dimensions': _dimensionsCtrl.text.trim(),
-        'open_time': _openTime,
-        'close_time': _closeTime,
+        'opening_time': _openTime,
+        'closing_time': _closeTime,
         'type': _selectedSport.toLowerCase(),
         'status': _selectedStatus,
-        'has_lighting': _hasLighting ? 1 : 0,
+        'lighting': _hasLighting ? 1 : 0,
         'amenities': _selectedAmenities.toList(),
         if (_complexId != null) 'complex_id': _complexId,
         'latitude': _latCtrl.text.trim(),
@@ -165,17 +168,17 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       debugPrint('📤 [AddGround] Payload: $dataMap');
 
       dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
-      
+
       // Add existing images if editing, but ONLY if they are paths (strings)
-      // Actually, standardizing: if we send 'images' as a list of strings, 
+      // Actually, standardizing: if we send 'images' as a list of strings,
       // the backend will replace the list. If we don't send anything, it keeps them.
       // But if we pick NEW images, we want to append or replace?
       // Event logic REPLACES paths if provided as array, and APPENDS files.
-      
+
       if (_isEdit && _existingGround != null) {
         final existing = UrlHelper.getParsedImages(_existingGround['images']);
         if (existing.isNotEmpty) {
-           formData.fields.add(MapEntry('images', jsonEncode(existing)));
+          formData.fields.add(MapEntry('images', jsonEncode(existing)));
         }
         formData.fields.add(const MapEntry('_method', 'PUT'));
       }
@@ -206,8 +209,9 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       if (res.statusCode == 200 || res.statusCode == 201) {
         Get.back(result: true);
         AppUtils.showSuccess(
-          message:
-              _isEdit ? 'Ground updated successfully' : 'Ground published!',
+          message: _isEdit
+              ? 'Ground updated successfully'
+              : 'Ground published!',
         );
       } else {
         AppUtils.showError(
@@ -224,9 +228,14 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   }
 
   Future<void> _pickImage() async {
-    final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
-    if (images.isNotEmpty) {
-      setState(() => _pickedImages.addAll(images));
+    try {
+      final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
+      if (images.isNotEmpty) {
+        setState(() => _pickedImages.addAll(images));
+      }
+    } catch (e) {
+      debugPrint('❌ [AddGround] Pick Error: $e');
+      AppUtils.showError(message: 'Failed to pick images: $e');
     }
   }
 
@@ -431,7 +440,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 ],
 
                 // ── Image Section ───────────────────────────────────
-                _sectionHeader('Ground Image', Icons.image_outlined),
+                _sectionHeader('Ground Image *', Icons.image_outlined),
                 const SizedBox(height: AppSpacing.m),
                 _buildImagePicker(),
                 const SizedBox(height: AppSpacing.l),
@@ -470,7 +479,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 _buildSportGrid(),
                 const SizedBox(height: AppSpacing.m),
 
-                _lbl('Price per Hour (Rs.) *'),
+                _lbl('Price per Hour (${AppConstants.currencySymbol}) *'),
                 _textField(
                   _priceCtrl,
                   'e.g. 3000',
@@ -652,10 +661,9 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
 
   Widget _buildImagePicker() {
     // Show existing images from backend when editing, plus newly picked images.
-    final List<String> existingImages =
-        (_isEdit && _existingGround != null)
-            ? UrlHelper.getParsedImages(_existingGround['images'])
-            : [];
+    final List<String> existingImages = (_isEdit && _existingGround != null)
+        ? UrlHelper.getParsedImages(_existingGround['images'])
+        : [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -886,6 +894,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         final amenity = _groundAmenitiesConfig[index];
         final id = amenity['id']!;
         final isSelected = _selectedAmenities.contains(id);
+        final assetPath = amenity['asset'];
 
         return GestureDetector(
           onTap: () {
@@ -911,7 +920,15 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(amenity['icon']!, style: const TextStyle(fontSize: 14)),
+                if (assetPath != null)
+                  Image.asset(
+                    assetPath,
+                    width: 16,
+                    height: 16,
+                    fit: BoxFit.contain,
+                  )
+                else
+                  Text(amenity['icon']!, style: const TextStyle(fontSize: 14)),
                 const SizedBox(width: 6),
                 Text(
                   amenity['name']!,

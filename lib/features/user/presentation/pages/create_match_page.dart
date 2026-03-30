@@ -16,7 +16,6 @@ import 'package:dio/dio.dart' as dio_form;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 
 class CreateMatchPage extends StatefulWidget {
@@ -29,11 +28,8 @@ class CreateMatchPage extends StatefulWidget {
 class _CreateMatchPageState extends State<CreateMatchPage> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  final _locationCtrl = TextEditingController();
   final _feeCtrl = TextEditingController();
   final _limitCtrl = TextEditingController(text: '22');
-  final _latCtrl = TextEditingController();
-  final _lngCtrl = TextEditingController();
 
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
@@ -73,13 +69,10 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
-    _locationCtrl.dispose();
     _feeCtrl.dispose();
     _limitCtrl.dispose();
     _rulesCtrl.dispose();
     _safetyCtrl.dispose();
-    _latCtrl.dispose();
-    _lngCtrl.dispose();
     for (var s in _scheduleControllers) {
       s['time']?.dispose();
       s['title']?.dispose();
@@ -143,12 +136,18 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
 
   Future<void> _submit() async {
     if (_titleCtrl.text.isEmpty) {
-      Get.snackbar('Error', 'Please enter a match title');
+      AppUtils.showError(message: 'Please enter a match title.');
       return;
     }
 
     if (_selectedGround == null) {
-      Get.snackbar('Error', 'Please select a ground');
+      AppUtils.showError(message: 'Please select a ground/venue for your match.');
+      return;
+    }
+
+    // Image validation: Must upload at least one image
+    if (_pickedImages.isEmpty) {
+      AppUtils.showError(message: 'An event image is mandatory. Please upload at least one photo.');
       return;
     }
 
@@ -186,34 +185,9 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           )
           .toList();
 
-      // Backend requires latitude/longitude keys. If user didn't pick a location,
-      // fall back to selected ground's complex coordinates (when available).
-      if ((_latCtrl.text.trim().isEmpty || _lngCtrl.text.trim().isEmpty) &&
-          _selectedGround != null) {
-        final complex = _selectedGround['complex'];
-        final complexLat = complex?['latitude']?.toString();
-        final complexLng = complex?['longitude']?.toString();
-        if (_latCtrl.text.trim().isEmpty && complexLat != null) {
-          _latCtrl.text = complexLat;
-        }
-        if (_lngCtrl.text.trim().isEmpty && complexLng != null) {
-          _lngCtrl.text = complexLng;
-        }
-      }
-
-      // If location is empty, prefer using the selected ground's complex address.
-      if (_locationCtrl.text.trim().isEmpty && _selectedGround != null) {
-        final complex = _selectedGround['complex'];
-        final addr = complex?['address']?.toString();
-        if (addr != null && addr.trim().isNotEmpty) {
-          _locationCtrl.text = addr.trim();
-        }
-      }
-
       final Map<String, dynamic> dataMap = {
         'name': _titleCtrl.text.trim(),
         'description': _descCtrl.text.trim(),
-        'location': _locationCtrl.text.trim(),
         'start_time': '$dateStr $timeStr',
         'end_time': '$dateStr $endTimeStr',
         'game_id': 1, // Default game ID
@@ -226,8 +200,6 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         // Backend expects event lifecycle statuses like 'upcoming'.
         'status': 'upcoming',
         'event_type': _eventType,
-        'latitude': _latCtrl.text.trim().isEmpty ? '0' : _latCtrl.text.trim(),
-        'longitude': _lngCtrl.text.trim().isEmpty ? '0' : _lngCtrl.text.trim(),
       };
 
       print('Payload: $dataMap');
@@ -330,15 +302,6 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                     ),
                   ),
                 ),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Location (Optional)'),
-                AddressAutocompleteField(
-                  controller: _locationCtrl,
-                  hintText: 'e.g. Central Park (Leave empty to use Ground location)',
-                  prefixIcon: Icons.location_on_outlined,
-                  latController: _latCtrl,
-                  lngController: _lngCtrl,
-                ),
 
                 const SizedBox(height: AppSpacing.l),
                 _sectionHeader(
@@ -391,7 +354,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                 ),
 
                 const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Event Images & Gallery', Icons.image_outlined),
+                _sectionHeader('Event Images & Gallery *', Icons.image_outlined),
                 const SizedBox(height: AppSpacing.m),
                 _buildImagePicker(),
 
@@ -823,7 +786,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Rs. ${ground['price_per_hour']}/hr',
+                          '${AppConstants.currencySymbol} ${ground['price_per_hour']}/hr',
                           style: AppTextStyles.bodySmall.copyWith(
                             color: AppColors.textSecondary,
                             fontSize: 10,

@@ -51,6 +51,7 @@ class PaymentController extends GetxController {
     try {
       final response = await _safepayService.initiateCheckout(
         amount: amount,
+        reference: 'booking:$bookingId',
       );
 
       if (response == null) return;

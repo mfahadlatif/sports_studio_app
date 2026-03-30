@@ -7,6 +7,7 @@ import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 
@@ -272,7 +273,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Rs. $totalPrice',
+                          '${AppConstants.currencySymbol} $totalPrice',
                           style: AppTextStyles.h2.copyWith(color: statusColor),
                         ),
                         Container(
@@ -321,23 +322,19 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   _infoCell(
                     Icons.calendar_today_outlined,
                     'Date',
-                    date.toString().length > 10
-                        ? date.toString().substring(0, 10)
-                        : date.toString(),
+                    AppUtils.formatDate(date),
                   ),
                   _infoCell(
                     Icons.access_time_outlined,
                     'Time',
-                    startTime.length > 5
-                        ? '${startTime.substring(0, 5)} – ${endTime.length > 5 ? endTime.substring(0, 5) : endTime}'
-                        : startTime,
+                    AppUtils.formatTimeRange(startTime, endTime),
                   ),
                   _infoCell(
                     Icons.people_outline,
                     'Players',
                     '${_booking['players'] ?? 1} people',
                   ),
-                  _infoCell(Icons.attach_money, 'Total', 'Rs. $totalPrice'),
+                  _infoCell(null, 'Total', '${AppConstants.currencySymbol} $totalPrice'),
                 ],
               ),
               const SizedBox(height: AppSpacing.l),
@@ -395,6 +392,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               if (status == 'pending' ||
                   paymentStatus == 'unpaid' ||
                   paymentStatus == 'pending') ...[
+                // NEW: Only show manual actions for cash payments. 
+                // Online payments (Safepay) are handled automatically by the system.
+                if (_booking['payment_method']?.toString().toLowerCase() != 'safepay' &&
+                    _booking['payment_method']?.toString().toLowerCase() != 'online') ...[
                 _sectionHeader(
                   'Pending Actions',
                   Icons.pending_actions_outlined,
@@ -462,9 +463,16 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            icon: const Icon(
-                              Icons.attach_money,
-                              color: AppColors.primary,
+                            icon: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Text(
+                                AppConstants.currencySymbol,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                             label: const Text(
                               'Mark as Paid',
@@ -496,6 +504,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   ),
                 ),
                 const SizedBox(height: AppSpacing.l),
+                ], // End cash-only actions check
               ],
 
               // Activity timeline
@@ -533,7 +542,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     ],
   );
 
-  Widget _infoCell(IconData icon, String label, String value) => Container(
+  Widget _infoCell(IconData? icon, String label, String value) => Container(
     padding: const EdgeInsets.all(AppSpacing.m),
     decoration: BoxDecoration(
       color: AppColors.background,
@@ -541,8 +550,23 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     ),
     child: Row(
       children: [
-        Icon(icon, color: AppColors.primary, size: 18),
-        const SizedBox(width: 8),
+        if (icon != null) ...[
+          Icon(icon, color: AppColors.primary, size: 18),
+          const SizedBox(width: 8),
+        ] else ...[
+          SizedBox(
+            width: 18,
+            child: Text(
+              AppConstants.currencySymbol,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 10,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -599,13 +623,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  if (time.isNotEmpty)
-                    Text(
-                      time.length > 16 ? time.substring(0, 16) : time,
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textMuted,
+                    if (time.isNotEmpty)
+                      Text(
+                        AppUtils.formatDateTime(time),
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textMuted,
+                        ),
                       ),
-                    ),
                 ],
               ),
             ),

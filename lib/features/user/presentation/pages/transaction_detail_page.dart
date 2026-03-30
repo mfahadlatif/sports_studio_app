@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
@@ -55,7 +55,7 @@ class TransactionDetailPage extends StatelessWidget {
                         children: [
                           Expanded(
                             child: Text(
-                              'Rs. ${tx.amount.toStringAsFixed(0)}',
+                              '${AppConstants.currencySymbol} ${tx.amount.toStringAsFixed(0)}',
                               style: AppTextStyles.h2,
                             ),
                           ),
@@ -87,7 +87,7 @@ class TransactionDetailPage extends StatelessWidget {
                       _row('Transaction ID', tx.transactionId ?? '—'),
                       _row(
                         'Created',
-                        DateFormat('MMM dd, yyyy • hh:mm a').format(tx.createdAt),
+                        AppUtils.formatDateTime(tx.createdAt),
                       ),
                     ],
                   ),

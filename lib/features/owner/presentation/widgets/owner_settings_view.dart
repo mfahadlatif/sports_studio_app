@@ -9,8 +9,6 @@ import 'package:sports_studio/features/owner/presentation/pages/sports_complexes
 import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/transactions_page.dart';
 
@@ -79,72 +77,18 @@ class OwnerSettingsView extends StatelessWidget {
               'See all completed and pending payments',
               onTap: () => Get.to(() => const TransactionsPage()),
             ),
-            _buildSettingsTile(
-              Icons.schedule_outlined,
-              'Operating Hours',
-              'Set when grounds are open',
-              onTap: () => Get.to(
-                () => const SettingDetailPage(),
-                arguments: const {
-                  'title': 'Operating Hours',
-                  'description': 'Set when grounds are open',
-                },
-              ),
-            ),
-          ]),
-          const SizedBox(height: AppSpacing.l),
-          _buildSettingsSection('App Settings', [
-            _buildSettingsTile(
-              Icons.notifications_outlined,
-              'Notifications',
-              'Push and email alerts',
-              onTap: () => Get.to(() => const NotificationsPage()),
-            ),
-            _buildSettingsTile(
-              Icons.language_outlined,
-              'Language',
-              'Default app language',
-              onTap: () => Get.to(
-                () => const SettingDetailPage(),
-                arguments: const {
-                  'title': 'Language',
-                  'description': 'Default app language',
-                },
-              ),
-            ),
-            _buildSettingsTile(
-              Icons.dark_mode_outlined,
-              'Dark Mode',
-              'Appearance settings',
-              onTap: () => Get.to(
-                () => const SettingDetailPage(),
-                arguments: const {
-                  'title': 'Dark Mode',
-                  'description': 'Appearance settings',
-                },
-              ),
-            ),
-          ]),
-          const SizedBox(height: AppSpacing.l),
-          _buildSettingsSection('Support', [
-            _buildSettingsTile(
-              Icons.help_outline,
-              'Help Center',
-              'FAQs and troubleshooting',
-              onTap: () => Get.to(
-                () => const SettingDetailPage(),
-                arguments: const {
-                  'title': 'Help Center',
-                  'description': 'FAQs and troubleshooting',
-                },
-              ),
-            ),
-            _buildSettingsTile(
-              Icons.privacy_tip_outlined,
-              'Privacy Policy',
-              'Terms and conditions',
-              onTap: () => Get.to(() => const PrivacyPolicyPage()),
-            ),
+            // _buildSettingsTile(
+            //   Icons.schedule_outlined,
+            //   'Operating Hours',
+            //   'Set when grounds are open',
+            //   onTap: () => Get.to(
+            //     () => const SettingDetailPage(),
+            //     arguments: const {
+            //       'title': 'Operating Hours',
+            //       'description': 'Set when grounds are open',
+            //     },
+            //   ),
+            // ),
           ]),
         ],
       ),

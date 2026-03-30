@@ -8,7 +8,7 @@ import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/events_controller.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/core/models/models.dart';
-import 'package:intl/intl.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
 
@@ -84,8 +84,10 @@ class EventsPage extends StatelessWidget {
 
   Widget _buildEventCard(Event event) {
     final title = event.name;
-    final date = DateFormat('MMM dd, yyyy • hh:mm a').format(event.startTime);
-    final location = event.location ?? '—';
+    final date = AppUtils.formatDateTime(event.startTime);
+    final location = event.booking?.ground?.complex?.address ?? 
+                     event.booking?.ground?.complex?.name ?? 
+                     event.location ?? '—';
 
     // Get images - checking the 'images' property of the model
     final imageUrl = UrlHelper.getFirstImage(

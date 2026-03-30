@@ -105,26 +105,37 @@ class BookingsController extends GetxController {
 
       allData.value = combined;
 
+      final now = DateTime.now();
+      
       upcomingBookings.value = combined.where((b) {
         final status = b['status']?.toString().toLowerCase() ?? '';
-        // Broaden to include all active/future states
-        return status == 'confirmed' ||
-            status == 'pending' ||
-            status == 'accepted' ||
-            status == 'upcoming' ||
-            status == 'approved' ||
-            status == 'paid' ||
-            status == 'booked';
+        final endDate = DateTime.tryParse(b['end']?.toString() ?? '') ?? now.add(const Duration(hours: 1));
+        
+        // Exclude hard-cancelled states
+        if (['cancelled', 'rejected', 'failed', 'refunded', 'expired'].contains(status)) {
+            return false;
+        }
+
+        // Must be in the future
+        return endDate.isAfter(now);
       }).toList();
 
       pastBookings.value = combined.where((b) {
         final status = b['status']?.toString().toLowerCase() ?? '';
-        return status == 'completed' || status == 'past' || status == 'played';
+        final endDate = DateTime.tryParse(b['end']?.toString() ?? '') ?? now.subtract(const Duration(hours: 1));
+        
+        // Exclude hard-cancelled states for "History" usually, but some want them there.
+        // For this app, let's keep History as "what happened".
+        if (['cancelled', 'rejected', 'failed', 'refunded', 'expired'].contains(status)) {
+            return false;
+        }
+
+        return endDate.isBefore(now);
       }).toList();
 
       cancelledBookings.value = combined.where((b) {
         final status = b['status']?.toString().toLowerCase() ?? '';
-        return status == 'cancelled' || status == 'rejected' || status == 'failed' || status == 'refunded';
+        return status == 'cancelled' || status == 'rejected' || status == 'failed' || status == 'refunded' || status == 'expired';
       }).toList();
       
       print('✅ [Bookings] Split: Upcoming: ${upcomingBookings.length}, Past: ${pastBookings.length}, Cancelled: ${cancelledBookings.length}');
@@ -193,13 +204,27 @@ class BookingsController extends GetxController {
     }
   }
 
-  /// Manual booking (owner). Matches website API: start_time/end_time full datetime, total_price.
+  /// Fetch existing bookings for a specific ground and date (for availability check)
+  Future<List<dynamic>> fetchGroundBookings(int groundId, String date) async {
+    try {
+      final response = await ApiClient().dio.get(
+        '/public/grounds/$groundId/bookings',
+        queryParameters: {'date': date},
+      );
+      if (response.statusCode == 200) {
+        return response.data is List ? response.data : (response.data['data'] ?? []);
+      }
+    } catch (e) {
+      print('Fetch Ground Bookings Error: $e');
+    }
+    return [];
+  }
+
+  /// Manual booking (owner). Matches website API: time_slots array.
   Future<void> createManualBooking({
     required int groundId,
     required String customerName,
-    required String date,
-    required String startTime,
-    required String endTime,
+    required List<Map<String, String>> timeSlots,
     required double totalAmount,
     String? customerPhone,
     String? customerEmail,
@@ -207,16 +232,10 @@ class BookingsController extends GetxController {
   }) async {
     isActioning.value = true;
     try {
-      // Backend expects start_time, end_time as full datetime (e.g. "2025-03-10 09:00:00")
-      final startStr = startTime.length <= 5 ? (startTime.length == 4 ? '0$startTime' : startTime) : startTime;
-      final endStr = endTime.length <= 5 ? (endTime.length == 4 ? '0$endTime' : endTime) : endTime;
-      final startDateTime = startTime.length <= 5 ? '$date $startStr:00' : startTime;
-      final endDateTime = endTime.length <= 5 ? '$date $endStr:00' : endTime;
       final data = <String, dynamic>{
         'ground_id': groundId,
         'customer_name': customerName,
-        'start_time': startDateTime,
-        'end_time': endDateTime,
+        'time_slots': timeSlots,
         'total_price': totalAmount,
         'players': players,
         'status': 'confirmed',
@@ -225,6 +244,7 @@ class BookingsController extends GetxController {
       };
       if (customerPhone != null && customerPhone.isNotEmpty) data['customer_phone'] = customerPhone;
       if (customerEmail != null && customerEmail.isNotEmpty) data['customer_email'] = customerEmail;
+      
       final response = await ApiClient().dio.post('/bookings', data: data);
       if (response.statusCode == 200 || response.statusCode == 201) {
         await fetchBookings();
@@ -237,7 +257,13 @@ class BookingsController extends GetxController {
         Get.snackbar('Error', 'Failed to create manual booking');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Could not create booking: $e');
+      print('Manual Booking Error: $e');
+      if (e is DioException && e.response?.data != null) {
+        final msg = e.response?.data['message'] ?? e.toString();
+        Get.snackbar('Error', msg);
+      } else {
+        Get.snackbar('Error', 'Could not create booking: $e');
+      }
     } finally {
       isActioning.value = false;
     }

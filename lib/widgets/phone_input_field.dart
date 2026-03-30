@@ -104,8 +104,16 @@ class PhoneTextfield extends StatelessWidget {
                   hintText: "Enter phone number",
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (v) {
+                    String processedValue = v;
+                    if (v.startsWith('0')) {
+                      processedValue = v.substring(1);
+                      controller.text = processedValue;
+                      controller.selection = TextSelection.fromPosition(
+                        TextPosition(offset: controller.text.length),
+                      );
+                    }
                     if (onPhoneChanged != null) {
-                      onPhoneChanged!(dialCode.value + v);
+                      onPhoneChanged!(dialCode.value + processedValue);
                     }
                   },
                 ),

@@ -116,6 +116,15 @@ class HomeView extends StatelessWidget {
                         } else if (deal['color_theme'] == 'blue') {
                           startColor = Colors.blue;
                           endColor = Colors.blue.shade900;
+                        } else if (deal['color_theme'] == 'purple') {
+                          startColor = Colors.purple;
+                          endColor = Colors.purple.shade900;
+                        } else if (deal['color_theme'] == 'pink') {
+                          startColor = Colors.pink;
+                          endColor = Colors.pink.shade900;
+                        } else if (deal['color_theme'] == 'green') {
+                          startColor = Colors.green;
+                          endColor = Colors.green.shade900;
                         }
 
                         return _buildHotDealCard(
@@ -197,6 +206,8 @@ class HomeView extends StatelessWidget {
                     ),
                   );
                 }),
+
+                const SizedBox(height: AppSpacing.l),
 
                 const SizedBox(height: AppSpacing.l),
 

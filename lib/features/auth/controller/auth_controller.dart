@@ -34,6 +34,29 @@ class AuthController extends GetxController {
 
   void toggleAuthMode() {
     isLogin.value = !isLogin.value;
+    // Clear potentially messy states when switching
+    if (!isLogin.value) {
+      _syncFullPhone();
+    }
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Synchronize full phone whenever the direct phone controller changes
+    phoneController.addListener(_syncFullPhone);
+  }
+
+  void _syncFullPhone() {
+    String p = phoneController.text;
+    if (p.startsWith('0')) {
+      p = p.substring(1);
+      phoneController.text = p;
+      phoneController.selection = TextSelection.fromPosition(
+        TextPosition(offset: phoneController.text.length),
+      );
+    }
+    fullPhone.value = dialCode.value + p;
   }
 
   void togglePasswordVisibility() {
@@ -143,13 +166,18 @@ class AuthController extends GetxController {
 
     // After landing, check phone verification in background
     try {
-      final status =
-          await UserApiService().checkPhoneVerificationStatus();
-      final isVerified =
-          (status['phone_verified'] ?? status['is_verified'] ?? false) == true;
+      final status = await UserApiService().checkPhoneVerificationStatus();
+      
+      // Use robust check similar to ProfileController
+      final rawVerified = status['is_phone_verified'] ?? status['is_verified'] ?? status['phone_verified'];
+      final isVerifiedResult = rawVerified == true || 
+                               rawVerified == 1 || 
+                               rawVerified?.toString() == '1' || 
+                               rawVerified?.toString().toLowerCase() == 'true';
+      
       final phone = (status['phone'] ?? '').toString();
 
-      if (!isVerified && Get.context != null) {
+      if (!isVerifiedResult && Get.context != null) {
         Get.dialog(
           PhoneVerificationDialog(
             initialPhone: phone,
@@ -400,8 +428,12 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
+    phoneController.removeListener(_syncFullPhone);
     emailController.dispose();
     passwordController.dispose();
+    nameController.dispose();
+    phoneController.dispose();
+    confirmPasswordController.dispose();
     super.onClose();
   }
 }

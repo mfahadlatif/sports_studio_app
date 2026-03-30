@@ -123,7 +123,7 @@ class _AdminWithdrawalsPageState extends State<AdminWithdrawalsPage> {
                                       children: [
                                         Expanded(
                                           child: Text(
-                                            'Rs. $amount',
+                                            '${AppConstants.currencySymbol} $amount',
                                             style: AppTextStyles.h3,
                                           ),
                                         ),

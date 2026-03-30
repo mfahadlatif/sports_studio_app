@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
@@ -182,7 +183,7 @@ class _EventsList extends StatelessWidget {
                           children: [
                             const Text('REGISTRATION FEE', style: TextStyle(fontSize: 9, color: AppColors.textMuted, letterSpacing: 0.5)),
                             Text(
-                              'Rs. ${event['registration_fee'] ?? 0}',
+                              '${AppConstants.currencySymbol} ${event['registration_fee'] ?? 0}',
                               style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                           ],

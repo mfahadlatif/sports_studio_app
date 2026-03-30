@@ -101,6 +101,8 @@ class Ground {
   final double? avgRating;
   final int? reviewsCount;
 
+  String? get complexName => complex?.name;
+
   Ground({
     required this.id,
     required this.complexId,

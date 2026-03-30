@@ -256,9 +256,9 @@ class BookingSlotPage extends StatelessWidget {
                 ),
               ),
               Obx(
-                () => controller.discount.value > 0
+                () => controller.discount > 0
                     ? Text(
-                        '- Rs. ${controller.discount.value}',
+                        '- ${AppConstants.currencySymbol} ${controller.discount}',
                         style: const TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.bold,
@@ -269,27 +269,78 @@ class BookingSlotPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: promoCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Enter code',
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+          Obx(() {
+            final hasPromo = controller.promoCode.value.isNotEmpty;
+            if (hasPromo) {
+              return Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green[100]!),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.tag, color: Colors.green, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            controller.promoCode.value,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green,
+                            ),
+                          ),
+                          Text(
+                            'Discount applied',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.green[700],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
+                    TextButton(
+                      onPressed: () {
+                        promoCtrl.clear();
+                        controller.removePromoCode();
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        padding: EdgeInsets.zero,
+                        minimumSize: const Size(0, 0),
+                      ),
+                      child: const Text('Remove'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: promoCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Enter code',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Obx(
-                () => ElevatedButton(
+                const SizedBox(width: 8),
+                ElevatedButton(
                   onPressed: controller.isCheckingPromo.value
                       ? null
                       : () => controller.applyPromoCode(promoCtrl.text),
@@ -301,9 +352,9 @@ class BookingSlotPage extends StatelessWidget {
                       ? const AppProgressIndicator(size: 16, strokeWidth: 2)
                       : const Text('Apply'),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          }),
         ],
       ),
     );
@@ -363,12 +414,12 @@ class BookingSlotPage extends StatelessWidget {
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
                           color: isUnavailable
-                              ? Colors.grey[100]
+                              ? (isBooked ? Colors.red[50] : Colors.grey[200])
                               : (isSelected ? AppColors.primary : Colors.white),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isUnavailable
-                                ? Colors.transparent
+                                ? (isBooked ? Colors.red[100]! : Colors.transparent)
                                 : (isSelected
                                       ? AppColors.primary
                                       : AppColors.border),
@@ -389,13 +440,11 @@ class BookingSlotPage extends StatelessWidget {
                           isBooked ? 'TAKEN' : (isPassed ? 'PASSED' : _getSlotDisplay(slot)),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: isUnavailable
-                                ? AppColors.textMuted
+                                ? (isBooked ? Colors.red[400] : AppColors.textMuted)
                                 : (isSelected
                                       ? Colors.white
                                       : AppColors.textPrimary),
-                            fontWeight: (isSelected || isUnavailable)
-                                ? FontWeight.bold
-                                : FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                             fontSize: isUnavailable ? 10 : 12,
                           ),
                         ),
@@ -440,7 +489,7 @@ class BookingSlotPage extends StatelessWidget {
                         children: [
                           Text('Slot Price:', style: AppTextStyles.bodySmall),
                           Text(
-                            'Rs. ${NumberFormat('#,###').format(controller.subtotal)}',
+                            '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(controller.subtotal)}',
                             style: AppTextStyles.bodySmall,
                           ),
                         ],
@@ -450,12 +499,12 @@ class BookingSlotPage extends StatelessWidget {
                         children: [
                           Text('Service Fee:', style: AppTextStyles.bodySmall),
                           Text(
-                            'Rs. ${NumberFormat('#,###').format(controller.serviceFee)}',
+                            '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(controller.serviceFee)}',
                             style: AppTextStyles.bodySmall,
                           ),
                         ],
                       ),
-                      if (controller.discount.value > 0)
+                      if (controller.discount > 0)
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -466,7 +515,7 @@ class BookingSlotPage extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              '- Rs. ${NumberFormat('#,###').format(controller.discount.value)}',
+                              '- ${AppConstants.currencySymbol} ${NumberFormat('#,###').format(controller.discount)}',
                               style: AppTextStyles.bodySmall.copyWith(
                                 color: Colors.green,
                               ),
@@ -487,7 +536,7 @@ class BookingSlotPage extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          'Rs. ${NumberFormat('#,###').format(controller.totalPrice)}',
+                          '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(controller.totalPrice)}',
                           style: AppTextStyles.h2.copyWith(
                             color: AppColors.primary,
                           ),

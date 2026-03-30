@@ -40,9 +40,12 @@ class BookingController extends GetxController {
   final RxBool isLoadingSlots = false.obs;
 
   final RxString promoCode = ''.obs;
-  final RxDouble discount = 0.0.obs;
   final RxBool isCheckingPromo = false.obs;
   final Rxn<Deal> selectedDeal = Rxn<Deal>();
+
+  double get discount => selectedDeal.value != null 
+    ? (subtotal * (selectedDeal.value!.discountPercentage / 100)) 
+    : 0.0;
 
   final BookingApiService _bookingApiService = BookingApiService();
   final DealApiService _dealApiService = DealApiService();
@@ -52,8 +55,14 @@ class BookingController extends GetxController {
 
   /// Set ground and fetch availability for that ground
   void setGroundAndFetchAvailability(dynamic ground) {
-    if (ground != null && ground['id'] != null) {
-      fetchAvailability(ground['id']);
+    if (ground != null) {
+      final idData = ground['id'];
+      if (idData != null) {
+        final id = int.tryParse(idData.toString());
+        if (id != null) {
+          fetchAvailability(id);
+        }
+      }
     }
   }
 
@@ -107,18 +116,18 @@ class BookingController extends GetxController {
   bool isSlotPassed(String slotStr) {
     try {
       final now = DateTime.now();
-      final todayStr = DateFormat('yyyy-MM-dd').format(now);
-      final selectedDateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
+      // Normalize dates for day comparison:
+      final todayAtMidnight = DateTime(now.year, now.month, now.day);
+      final selectedDateAtMidnight = DateTime(selectedDate.value.year, selectedDate.value.month, selectedDate.value.day);
 
-      if (selectedDate.value.isBefore(DateTime(now.year, now.month, now.day))) {
-        return true; // Any past date is entirely passed
+      if (selectedDateAtMidnight.isBefore(todayAtMidnight)) {
+        return true; // Past dates
+      }
+      if (selectedDateAtMidnight.isAfter(todayAtMidnight)) {
+        return false; // Future dates
       }
 
-      if (todayStr != selectedDateStr) {
-        return false; // Future dates are never passed
-      }
-
-      // It's today, check the time
+      // If it's today, parse slot and compare time
       final slotTime = DateFormat('hh:mm a').parse(slotStr);
       final slotDateTime = DateTime(
         now.year,
@@ -128,7 +137,8 @@ class BookingController extends GetxController {
         slotTime.minute,
       );
 
-      // Buffer of 5 minutes? Or just exactly? Let's say exactly.
+      // We mark as passed if the slot has already started or is just starting.
+      // E.g., if it's 09:01, the 09:00 slot is passed.
       return now.isAfter(slotDateTime);
     } catch (e) {
       return false;
@@ -173,34 +183,36 @@ class BookingController extends GetxController {
       final now = DateTime.now();
       final groundSport = (ground?['type'] ?? '').toString().toLowerCase();
 
-      if (deal != null) {
-        if (!deal.isActive ||
-            !deal.validUntil.isAfter(now) ||
-            !_dealAppliesToSport(deal.applicableSports, groundSport)) {
+        if (deal != null) {
+          if (!deal.isActive ||
+              !deal.validUntil.isAfter(now) ||
+              !_dealAppliesToSport(deal.applicableSports, groundSport)) {
+            AppUtils.showError(message: 'Invalid or expired promo code');
+            selectedDeal.value = null;
+            return;
+          }
+
+          selectedDeal.value = deal;
+          promoCode.value = code;
+          AppUtils.showSuccess(
+            message:
+                'Promo code applied: ${deal.title} (${deal.discountPercentage.toStringAsFixed(0)}% off)',
+          );
+        } else {
           AppUtils.showError(message: 'Invalid or expired promo code');
           selectedDeal.value = null;
-          discount.value = 0;
-          return;
         }
-
-        selectedDeal.value = deal;
-        final amount = subtotal * (deal.discountPercentage / 100);
-        discount.value = amount;
-        promoCode.value = code;
-        AppUtils.showSuccess(
-          message:
-              'Promo code applied: ${deal.title} (${deal.discountPercentage.toStringAsFixed(0)}% off)',
-        );
-      } else {
-        AppUtils.showError(message: 'Invalid or expired promo code');
-        selectedDeal.value = null;
-        discount.value = 0;
-      }
     } catch (e) {
       AppUtils.showError(message: 'Could not validate promo code');
     } finally {
       isCheckingPromo.value = false;
     }
+  }
+
+  void removePromoCode() {
+    selectedDeal.value = null;
+    promoCode.value = '';
+    AppUtils.showInfo(message: 'Promo code removed');
   }
 
   bool _dealAppliesToSport(String? applicableSportsRaw, String groundSport) {
@@ -246,7 +258,7 @@ class BookingController extends GetxController {
 
   double get totalPrice {
     final total = subtotal + serviceFee;
-    return (total - discount.value).clamp(0, double.infinity);
+    return (total - discount).clamp(0, double.infinity);
   }
 
   void incrementPlayers(int max) {
@@ -311,7 +323,7 @@ class BookingController extends GetxController {
           bookingData['status'] = 'confirmed';
         } else if (paymentMethod == 'cash') {
           bookingData['payment_status'] = 'unpaid';
-          bookingData['status'] = 'confirmed';
+          bookingData['status'] = 'pending';
         }
       }
 
@@ -330,8 +342,9 @@ class BookingController extends GetxController {
           'bookingId': booking.id,
           'totalPrice': totalPrice,
           'subtotal': subtotal,
-          'discount': discount.value,
+          'discount': discount,
           'deal': selectedDeal.value,
+          'promoCode': promoCode.value,
         },
       );
       selectedSlots.clear();

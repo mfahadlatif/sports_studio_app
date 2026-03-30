@@ -4,6 +4,7 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/add_ground_controller.dart';
+import 'package:sports_studio/widgets/address_autocomplete_field.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/core/models/models.dart';
 
@@ -48,16 +49,26 @@ class AddGroundPage extends StatelessWidget {
                   Icons.sports_soccer,
                   textController: controller.nameController,
                 ),
-                const SizedBox(height: AppSpacing.m),
+                const SizedBox(height: AppSpacing.l),
 
-                _lbl('Price per Hour (Rs.) *'),
+                _lbl('Location / Area *'),
+                AddressAutocompleteField(
+                  controller: controller.locationController,
+                  hintText: 'Search for ground location...',
+                  prefixIcon: Icons.map_outlined,
+                  latController: controller.latController,
+                  lngController: controller.lngController,
+                ),
+                const SizedBox(height: AppSpacing.l),
+
+                _lbl('Price per Hour (${AppConstants.currencySymbol}) *'),
                 _textField(
                   'e.g. 3000',
                   Icons.payments_outlined,
                   keyboardType: TextInputType.number,
                   textController: controller.priceController,
                 ),
-                const SizedBox(height: AppSpacing.m),
+                const SizedBox(height: AppSpacing.l),
 
                 _lbl('Sport Category'),
                 _buildDropdownField([
@@ -66,7 +77,7 @@ class AddGroundPage extends StatelessWidget {
                   'Tennis',
                   'Badminton',
                 ], controller),
-                const SizedBox(height: AppSpacing.m),
+                const SizedBox(height: AppSpacing.l),
 
                 _lbl('Description'),
                 _textField(

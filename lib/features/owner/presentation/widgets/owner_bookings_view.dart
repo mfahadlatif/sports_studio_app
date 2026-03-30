@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
@@ -26,7 +27,8 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
   @override
   Widget build(BuildContext context) {
     final landingController = Get.put(LandingController(), permanent: true);
-    final isOwner = landingController.currentRole.value == UserRole.owner;
+    final currentRole = landingController.currentRole.value;
+    final isOwnerOrAdmin = currentRole == UserRole.owner || currentRole == UserRole.admin;
     final controller = Get.put(BookingsController());
 
     return DefaultTabController(
@@ -45,7 +47,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                     hintStyle: TextStyle(color: AppColors.textMuted),
                   ),
                 )
-              : Text(isOwner ? 'All Bookings' : 'My Bookings'),
+              : Text(isOwnerOrAdmin ? 'All Bookings' : 'My Bookings'),
           actions: [
             if (_isSearching)
               IconButton(
@@ -61,7 +63,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                 onPressed: () => setState(() => _isSearching = true),
                 icon: const Icon(Icons.search),
               ),
-              if (isOwner)
+              if (isOwnerOrAdmin)
                 TextButton.icon(
                   onPressed: () => _showManualBookingSheet(context, controller),
                   icon: const Icon(Icons.add, color: AppColors.primary),
@@ -84,9 +86,9 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
         ),
         body: TabBarView(
           children: [
-            _buildBookingList('Upcoming', controller, isOwner),
-            _buildBookingList('Past', controller, isOwner),
-            _buildBookingList('Cancelled', controller, isOwner),
+            _buildBookingList('Upcoming', controller, isOwnerOrAdmin),
+            _buildBookingList('Past', controller, isOwnerOrAdmin),
+            _buildBookingList('Cancelled', controller, isOwnerOrAdmin),
           ],
         ),
       ),
@@ -96,7 +98,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
   Widget _buildBookingList(
     String type,
     BookingsController controller,
-    bool isOwner,
+    bool isOwnerOrAdmin,
   ) {
     return Obx(() {
       if (controller.isLoading.value) {
@@ -143,7 +145,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                 list[index],
                 type,
                 controller,
-                isOwner,
+                isOwnerOrAdmin,
               );
             },
           ),
@@ -157,7 +159,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
     dynamic booking,
     String type,
     BookingsController controller,
-    bool isOwner,
+    bool isOwnerOrAdmin,
   ) {
     final userName =
         booking['user']?['name'] ??
@@ -203,7 +205,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
     }
 
     return GestureDetector(
-      onTap: isOwner
+      onTap: isOwnerOrAdmin
           ? () =>
                 Get.to(() => const BookingDetailPage(), arguments: {'booking': booking})
           : null,
@@ -335,16 +337,20 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
               child: Text(
-                'Rs. ${NumberFormat('#,###').format(totalAmount)}',
+                '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(totalAmount)}',
                 style: AppTextStyles.h3.copyWith(color: AppColors.primary),
               ),
             ),
 
             // Action Buttons — Owner Only
-            if (isOwner &&
+            if (isOwnerOrAdmin &&
                 (status == 'pending' ||
                     paymentStatus == 'unpaid' ||
                     paymentStatus == 'pending')) ...[
+                // NEW: Only show manual actions for cash payments. 
+                // Online payments (Safepay) are handled automatically by the system.
+                if (booking['payment_method']?.toString().toLowerCase() != 'safepay' &&
+                    booking['payment_method']?.toString().toLowerCase() != 'online') ...[
               const SizedBox(height: AppSpacing.m),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
@@ -423,12 +429,18 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            icon: const Icon(
-                              Icons.attach_money,
-                              size: 16,
-                              color: AppColors.primary,
+                            icon: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                AppConstants.currencySymbol,
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
-                            label: Text(
+                            label: const Text(
                               'Mark Paid',
                               style: TextStyle(color: AppColors.primary),
                             ),
@@ -439,6 +451,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                   ),
                 ),
               ),
+                ], // End cash-only check
             ] else
               const SizedBox(height: AppSpacing.m),
           ],
@@ -557,7 +570,6 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
   }
 }
 
-// ─── Manual Booking Bottom Sheet ─────────────────────────────────────────────
 class _ManualBookingSheet extends StatefulWidget {
   final BookingsController controller;
   const _ManualBookingSheet({required this.controller});
@@ -570,18 +582,54 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
-  final _dateCtrl = TextEditingController();
-  final _startCtrl = TextEditingController();
-  final _endCtrl = TextEditingController();
-  final _amountCtrl = TextEditingController();
+  final _dateCtrl = TextEditingController(
+    text: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+  );
+  final _amountCtrl = TextEditingController(text: '0');
   final _playersCtrl = TextEditingController(text: '1');
   int? _selectedGroundId;
+  List<int> _selectedSlots = [];
+  List<dynamic> _existingBookings = [];
+  bool _isChecking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fetch if ground already selected (unlikely here but for safety)
+  }
+
+  Future<void> _fetchAvailability() async {
+    if (_selectedGroundId == null || _dateCtrl.text.isEmpty) return;
+    setState(() => _isChecking = true);
+    final bookings = await widget.controller.fetchGroundBookings(
+      _selectedGroundId!,
+      _dateCtrl.text,
+    );
+    if (mounted) {
+      setState(() {
+        _existingBookings = bookings;
+        _isChecking = false;
+      });
+    }
+  }
+
+  void _updatePrice() {
+    if (_selectedGroundId == null) return;
+    final groundsController = Get.find<GroundsController>();
+    final ground = groundsController.grounds.firstWhereOrNull(
+      (g) => g.id.toString() == _selectedGroundId.toString(),
+    );
+    if (ground != null) {
+      final price = ground.pricePerHour * _selectedSlots.length;
+      _amountCtrl.text = price.toInt().toString();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final groundsController = Get.put(GroundsController());
     return DraggableScrollableSheet(
-      initialChildSize: 0.88,
+      initialChildSize: 0.9,
       maxChildSize: 0.95,
       minChildSize: 0.6,
       builder: (ctx, scrollCtrl) => Container(
@@ -624,44 +672,12 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Customer Name
-                    Text('Customer Name', style: AppTextStyles.label),
-                    const SizedBox(height: AppSpacing.s),
-                    _field(
-                      _nameCtrl,
-                      'e.g. Ahmed Khan',
-                      icon: Icons.person_outline,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-
-                    // Phone (optional, match website)
-                    Text('Phone (optional)', style: AppTextStyles.label),
-                    const SizedBox(height: AppSpacing.s),
-                    _field(
-                      _phoneCtrl,
-                      'e.g. 0300 1234567',
-                      icon: Icons.phone_outlined,
-                      type: TextInputType.phone,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-
-                    // Email (optional)
-                    Text('Email (optional)', style: AppTextStyles.label),
-                    const SizedBox(height: AppSpacing.s),
-                    _field(
-                      _emailCtrl,
-                      'e.g. customer@example.com',
-                      icon: Icons.mail_outline,
-                      type: TextInputType.emailAddress,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-
-                    // Ground Selector
+                    // Ground Selector (Improved with Complex Name)
                     Text('Select Ground', style: AppTextStyles.label),
                     const SizedBox(height: AppSpacing.s),
                     Obx(
                       () => DropdownButtonFormField<int>(
-                        initialValue: _selectedGroundId,
+                        value: _selectedGroundId,
                         hint: const Text('Choose a ground'),
                         decoration: InputDecoration(
                           filled: true,
@@ -676,13 +692,69 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                             .map(
                               (g) => DropdownMenuItem<int>(
                                 value: g.id,
-                                child: Text(g.name),
+                                child: Text(
+                                  '${g.name} (${g.complexName ?? "Complex"})',
+                                ),
                               ),
                             )
                             .toList(),
-                        onChanged: (val) =>
-                            setState(() => _selectedGroundId = val),
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedGroundId = val;
+                            _selectedSlots.clear();
+                          });
+                          _fetchAvailability();
+                          _updatePrice();
+                        },
                       ),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
+                    // Customer Name
+                    Text('Customer Name', style: AppTextStyles.label),
+                    const SizedBox(height: AppSpacing.s),
+                    _field(
+                      _nameCtrl,
+                      'e.g. Ahmed Khan',
+                      icon: Icons.person_outline,
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
+                    // Phone & Email
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Phone (optional)', style: AppTextStyles.label),
+                              const SizedBox(height: AppSpacing.s),
+                              _field(
+                                _phoneCtrl,
+                                '03XXXXXXXX',
+                                icon: Icons.phone_outlined,
+                                type: TextInputType.phone,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.m),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Email (optional)', style: AppTextStyles.label),
+                              const SizedBox(height: AppSpacing.s),
+                              _field(
+                                _emailCtrl,
+                                'customer@email.com',
+                                icon: Icons.mail_outline,
+                                type: TextInputType.emailAddress,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: AppSpacing.m),
 
@@ -694,15 +766,14 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                         final picked = await showDatePicker(
                           context: context,
                           initialDate: DateTime.now(),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(
-                            const Duration(days: 90),
-                          ),
+                          firstDate: DateTime.now().subtract(const Duration(days: 30)),
+                          lastDate: DateTime.now().add(const Duration(days: 90)),
                         );
                         if (picked != null) {
-                          _dateCtrl.text = DateFormat(
-                            'yyyy-MM-dd',
-                          ).format(picked);
+                          _dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
+                          _selectedSlots.clear();
+                          _fetchAvailability();
+                          _updatePrice();
                         }
                       },
                       child: AbsorbPointer(
@@ -715,24 +786,26 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     ),
                     const SizedBox(height: AppSpacing.m),
 
-                    // Time Slots
+                    // Time Slots Grid
+                    Text('Select Time Slots', style: AppTextStyles.label),
+                    const SizedBox(height: AppSpacing.s),
+                    _buildSlotsGrid(),
+                    const SizedBox(height: AppSpacing.m),
+
+                    // Players & Amount
                     Row(
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Start Time', style: AppTextStyles.label),
+                              Text('Players', style: AppTextStyles.label),
                               const SizedBox(height: AppSpacing.s),
-                              GestureDetector(
-                                onTap: () => _pickTime(context, _startCtrl),
-                                child: AbsorbPointer(
-                                  child: _field(
-                                    _startCtrl,
-                                    '09:00',
-                                    icon: Icons.access_time,
-                                  ),
-                                ),
+                              _field(
+                                _playersCtrl,
+                                'e.g. 1',
+                                icon: Icons.people_outline,
+                                type: TextInputType.number,
                               ),
                             ],
                           ),
@@ -742,44 +815,18 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('End Time', style: AppTextStyles.label),
+                              Text('Total Amount (${AppConstants.currencySymbol})', style: AppTextStyles.label),
                               const SizedBox(height: AppSpacing.s),
-                              GestureDetector(
-                                onTap: () => _pickTime(context, _endCtrl),
-                                child: AbsorbPointer(
-                                  child: _field(
-                                    _endCtrl,
-                                    '11:00',
-                                    icon: Icons.access_time,
-                                  ),
-                                ),
+                              _field(
+                                _amountCtrl,
+                                'e.g. 3000',
+                                icon: Icons.payments_outlined,
+                                type: TextInputType.number,
                               ),
                             ],
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-
-                    // Players (match website)
-                    Text('Number of Players', style: AppTextStyles.label),
-                    const SizedBox(height: AppSpacing.s),
-                    _field(
-                      _playersCtrl,
-                      'e.g. 1',
-                      icon: Icons.people_outline,
-                      type: TextInputType.number,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-
-                    // Amount
-                    Text('Total Amount (Rs.)', style: AppTextStyles.label),
-                    const SizedBox(height: AppSpacing.s),
-                    _field(
-                      _amountCtrl,
-                      'e.g. 3000',
-                      icon: Icons.attach_money,
-                      type: TextInputType.number,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
 
@@ -791,7 +838,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                         isLoading: widget.controller.isActioning.value,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.l),
+                    const SizedBox(height: AppSpacing.xxl),
                   ],
                 ),
               ),
@@ -799,6 +846,127 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSlotsGrid() {
+    if (_selectedGroundId == null) {
+      return Container(
+        padding: const EdgeInsets.all(AppSpacing.m),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Center(
+          child: Text('Select a ground to see available slots'),
+        ),
+      );
+    }
+
+    if (_isChecking) {
+      return const Center(child: AppProgressIndicator(size: 24));
+    }
+
+    // Generate 24 slots
+    final groundsController = Get.find<GroundsController>();
+    final ground = groundsController.grounds.firstWhereOrNull(
+      (g) => g.id.toString() == _selectedGroundId.toString(),
+    );
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: List.generate(24, (index) {
+        final hour = index;
+        final startTimeStr = '${hour.toString().padLeft(2, '0')}:00';
+        final endTimeStr = '${(hour + 1).toString().padLeft(2, '0')}:00';
+
+        final bool isWithinOperatingHours = () {
+          final ohStart = int.tryParse(ground?.openingTime?.split(':')[0] ?? '06') ?? 6;
+          final ohEnd = int.tryParse(ground?.closingTime?.split(':')[0] ?? '23') ?? 23;
+          if (ohStart <= ohEnd) {
+            return hour >= ohStart && hour < (ohEnd == 0 ? 24 : ohEnd);
+          } else {
+            return hour >= ohStart || hour < (ohEnd == 0 ? 24 : ohEnd);
+          }
+        }();
+
+        // Check if booked
+        final isBooked = _existingBookings.any((b) {
+          String sStart = b['start_time'].toString().replaceAll(' ', 'T').split('.')[0].replaceFirst('Z', '');
+          String sEnd = b['end_time'].toString().replaceAll(' ', 'T').split('.')[0].replaceFirst('Z', '');
+          
+          final bStart = DateTime.parse(sStart);
+          final bEnd = DateTime.parse(sEnd);
+          final slotStart = DateTime.parse('${_dateCtrl.text}T$startTimeStr');
+          final slotEnd = DateTime.parse('${_dateCtrl.text}T$endTimeStr');
+          return (slotStart.isBefore(bEnd) && slotEnd.isAfter(bStart));
+        });
+
+        final isSelected = _selectedSlots.contains(hour);
+
+        return InkWell(
+          onTap: isBooked
+              ? null
+              : () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedSlots.remove(hour);
+                    } else {
+                      _selectedSlots.add(hour);
+                    }
+                  });
+                  _updatePrice();
+                },
+          child: Container(
+            width: 80,
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            decoration: BoxDecoration(
+              color: !isWithinOperatingHours
+                  ? Colors.grey.withOpacity(0.1)
+                  : isBooked
+                      ? Colors.red.withOpacity(0.1)
+                      : isSelected
+                          ? AppColors.primary
+                          : AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: isSelected ? AppColors.primary : Colors.transparent,
+              ),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  AppUtils.formatTime(startTimeStr),
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: !isWithinOperatingHours
+                        ? Colors.grey
+                        : isBooked
+                            ? Colors.red
+                            : isSelected
+                                ? Colors.white
+                                : AppColors.textPrimary,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                Text(
+                  !isWithinOperatingHours ? 'Closed' : (isBooked ? 'Booked' : 'Available'),
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: !isWithinOperatingHours
+                        ? Colors.grey
+                        : isBooked
+                            ? Colors.red
+                            : isSelected
+                                ? Colors.white70
+                                : AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 
@@ -815,7 +983,19 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
         hintText: hint,
         filled: true,
         fillColor: AppColors.background,
-        prefixIcon: icon != null ? Icon(icon) : null,
+        prefixIcon: icon == Icons.attach_money || icon == Icons.payments_outlined
+            ? Container(
+                width: 40,
+                alignment: Alignment.center,
+                child: Text(
+                  AppConstants.currencySymbol,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : (icon != null ? Icon(icon) : null),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide.none,
@@ -824,37 +1004,46 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
     );
   }
 
-  Future<void> _pickTime(
-    BuildContext context,
-    TextEditingController ctrl,
-  ) async {
-    final picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) {
-      ctrl.text =
-          '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
-    }
-  }
-
   void _submit(BuildContext ctx) {
     if (_nameCtrl.text.isEmpty ||
         _selectedGroundId == null ||
         _dateCtrl.text.isEmpty ||
-        _startCtrl.text.isEmpty ||
-        _endCtrl.text.isEmpty ||
+        _selectedSlots.isEmpty ||
         _amountCtrl.text.isEmpty) {
       Get.snackbar('Error', 'Please fill in all required fields');
       return;
     }
+
+    // Group slots into consecutive ranges
+    _selectedSlots.sort();
+    List<List<int>> groups = [];
+    if (_selectedSlots.isNotEmpty) {
+      List<int> currentGroup = [_selectedSlots[0]];
+      for (int i = 1; i < _selectedSlots.length; i++) {
+        if (_selectedSlots[i] == _selectedSlots[i - 1] + 1) {
+          currentGroup.add(_selectedSlots[i]);
+        } else {
+          groups.add(currentGroup);
+          currentGroup = [_selectedSlots[i]];
+        }
+      }
+      groups.add(currentGroup);
+    }
+
+    final List<Map<String, String>> timeSlots = groups.map((g) {
+      final start = '${g[0].toString().padLeft(2, '0')}:00';
+      final end = '${(g.last + 1).toString().padLeft(2, '0')}:00';
+      return {
+        'start_time': '${_dateCtrl.text} $start',
+        'end_time': '${_dateCtrl.text} $end',
+      };
+    }).toList();
+
     Navigator.pop(ctx);
     widget.controller.createManualBooking(
       groundId: _selectedGroundId!,
       customerName: _nameCtrl.text,
-      date: _dateCtrl.text,
-      startTime: _startCtrl.text,
-      endTime: _endCtrl.text,
+      timeSlots: timeSlots,
       totalAmount: double.tryParse(_amountCtrl.text) ?? 0,
       customerPhone: _phoneCtrl.text.isEmpty ? null : _phoneCtrl.text,
       customerEmail: _emailCtrl.text.isEmpty ? null : _emailCtrl.text,

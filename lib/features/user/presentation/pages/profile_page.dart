@@ -9,11 +9,10 @@ import 'package:sports_studio/features/auth/presentation/widgets/phone_verificat
 import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/teams_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
+// import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
+// import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
@@ -84,17 +83,9 @@ class ProfilePage extends StatelessWidget {
                         color: Colors.red,
                       ),
                       _buildOption(
-                        icon: Icons.groups_outlined,
-                        title: 'My Teams',
-                        subtitle: 'Manage your rosters and community',
-                        onTap: () => Get.to(() => const TeamsPage()),
-                        color: Colors.purple,
-                      ),
-                      _buildOption(
                         icon: Icons.account_balance_wallet_outlined,
                         title: 'Wallet & Withdrawals',
-                        subtitle:
-                            'Balance, bank accounts, and cash-out requests',
+                        subtitle: 'Balance, bank accounts, and cash-out requests',
                         onTap: () => Get.to(() => const WalletPage()),
                         color: Colors.green,
                       ),
@@ -119,24 +110,24 @@ class ProfilePage extends StatelessWidget {
                       ),
 
                       _buildSectionTitle('SETTINGS'),
-                      _buildOption(
-                        icon: Icons.person_outline,
-                        title: 'Personal Information',
-                        subtitle: 'Update your name, email and details',
-                        onTap: () => Get.to(() => const EditProfilePage()),
-                        color: Colors.teal,
-                      ),
-                      if (!profileController.isSocialUser)
-                        _buildOption(
-                          icon: Icons.security_outlined,
-                          title: 'Account Security',
-                          subtitle: 'Manage password and privacy',
-                          onTap: () => Get.to(
-                            () => const SettingDetailPage(),
-                            arguments: {'title': 'Security & Privacy'},
-                          ),
-                          color: Colors.indigo,
-                        ),
+                      // _buildOption(
+                      //   icon: Icons.person_outline,
+                      //   title: 'Personal Information',
+                      //   subtitle: 'Update your name, email and details',
+                      //   onTap: () => Get.to(() => const EditProfilePage()),
+                      //   color: Colors.teal,
+                      // ),
+                      // if (!profileController.isSocialUser)
+                      //   _buildOption(
+                      //     icon: Icons.security_outlined,
+                      //     title: 'Account Security',
+                      //     subtitle: 'Manage password and privacy',
+                      //     onTap: () => Get.to(
+                      //       () => const SettingDetailPage(),
+                      //       arguments: {'title': 'Security & Privacy'},
+                      //     ),
+                      //     color: Colors.indigo,
+                      //   ),
                       _buildOption(
                         icon: Icons.notifications_none_outlined,
                         title: 'Notifications',
@@ -169,8 +160,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.policy,
                         title: 'Cancellation & Refund Policy',
                         subtitle: 'Cancellation rules and refunds overview',
-                        onTap: () =>
-                            Get.to(() => const CancellationPolicyPage()),
+                        onTap: () => Get.to(() => const CancellationPolicyPage()),
                         color: Colors.brown,
                       ),
 
@@ -191,8 +181,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.mark_email_read_outlined,
                         title: 'Newsletter',
                         subtitle: 'Subscribe for updates and deals',
-                        onTap: () =>
-                            Get.to(() => const NewsletterSubscribePage()),
+                        onTap: () => Get.to(() => const NewsletterSubscribePage()),
                         color: Colors.teal,
                       ),
 
@@ -249,28 +238,51 @@ class ProfilePage extends StatelessWidget {
 
         return Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: CircleAvatar(
-                radius: 54,
-                backgroundColor: AppColors.primaryLight,
-                backgroundImage: user['avatar'] != null
-                    ? NetworkImage(
-                        UrlHelper.sanitizeUrl(user['avatar'].toString()),
-                      )
-                    : null,
-                child: user['avatar'] == null
-                    ? const Icon(
-                        Icons.person,
-                        size: 60,
-                        color: AppColors.primary,
-                      )
-                    : null,
-              ),
+            Stack(
+              alignment: Alignment.bottomRight,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: CircleAvatar(
+                    radius: 54,
+                    backgroundColor: AppColors.primaryLight,
+                    backgroundImage: user['avatar'] != null
+                        ? NetworkImage(
+                            UrlHelper.sanitizeUrl(user['avatar'].toString()),
+                          )
+                        : null,
+                    child: user['avatar'] == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: AppColors.primary,
+                          )
+                        : null,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: profileController.updateAvatar,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 10),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.edit,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.m),
             Text(name, style: AppTextStyles.h2.copyWith(color: Colors.white)),

@@ -138,11 +138,11 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
                                       ],
                                     ),
                                     const SizedBox(height: 6),
-                                    Text(
-                                      [
-                                        'Fee: Rs. $fee',
-                                        if (organizerName != null) 'Organizer: $organizerName',
-                                      ].join(' • '),
+                                      Text(
+                                        [
+                                          'Fee: ${AppConstants.currencySymbol} $fee',
+                                          if (organizerName != null) 'Organizer: $organizerName',
+                                        ].join(' • '),
                                       style: AppTextStyles.bodySmall.copyWith(
                                         color: AppColors.textSecondary,
                                       ),

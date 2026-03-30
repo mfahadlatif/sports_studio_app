@@ -69,7 +69,7 @@ class OwnerDashboardView extends StatelessWidget {
                     crossAxisCount: 2,
                     crossAxisSpacing: AppSpacing.m,
                     mainAxisSpacing: AppSpacing.m,
-                    childAspectRatio: 1.2,
+                    childAspectRatio: 1.1,
                     children: [
                       _buildStatCard(
                         'Total Complexes',
@@ -91,7 +91,7 @@ class OwnerDashboardView extends StatelessWidget {
                       ),
                       _buildStatCard(
                         'Total Revenue',
-                        'Rs. ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
+                        '${AppConstants.currencySymbol} ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
                         Icons.payments_outlined,
                         Colors.green,
                       ),
@@ -116,7 +116,7 @@ class OwnerDashboardView extends StatelessWidget {
                   crossAxisCount: 2,
                   crossAxisSpacing: AppSpacing.m,
                   mainAxisSpacing: AppSpacing.m,
-                  childAspectRatio: 2.2,
+                  childAspectRatio: 1.7,
                   children: [
                     _buildManagementCard(
                       'Reports',
@@ -149,13 +149,20 @@ class OwnerDashboardView extends StatelessWidget {
                       'Add Complex',
                       Icons.add_business_outlined,
                       AppColors.primary,
-                      () => Get.to(() => const AddComplexPage()),
+                      () async {
+                        final res = await Get.to(() => const AddComplexPage());
+                        if (res == true) controller.fetchDashboard();
+                      },
                     ),
                     _buildManagementCard(
                       'Add Ground',
                       Icons.add_location_alt_outlined,
                       Colors.orange,
-                      () => Get.to(() => const AddEditGroundPage()),
+                      () async {
+                        final res =
+                            await Get.to(() => const AddEditGroundPage());
+                        if (res == true) controller.fetchDashboard();
+                      },
                     ),
                   ],
                 ),
@@ -179,11 +186,14 @@ class OwnerDashboardView extends StatelessWidget {
                   );
                 }
                 if (controller.complexes.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(AppSpacing.m),
-                    child: Text(
-                      'No complexes listed yet.',
-                      style: TextStyle(color: AppColors.textMuted),
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'No complexes listed yet.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
                     ),
                   );
                 }
@@ -223,11 +233,14 @@ class OwnerDashboardView extends StatelessWidget {
                   );
                 }
                 if (controller.recentBookings.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(AppSpacing.m),
-                    child: Text(
-                      'No recent bookings.',
-                      style: TextStyle(color: AppColors.textMuted),
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(AppSpacing.xl),
+                      child: Text(
+                        'No recent bookings.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
                     ),
                   );
                 }
@@ -454,22 +467,23 @@ class OwnerDashboardView extends StatelessWidget {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                padding: const EdgeInsets.all(AppSpacing.m),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.8),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.white.withOpacity(0.2)),
                 ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(icon, color: color, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
+                    Icon(icon, color: color, size: 22),
+                    const SizedBox(width: 8),
+                    Flexible(
                       child: Text(
                         label,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                          fontSize: 14,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -675,7 +689,7 @@ class OwnerDashboardView extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        'Rs. $totalAmount',
+                        '${AppConstants.currencySymbol} $totalAmount',
                         style: TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w900,

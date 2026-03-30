@@ -250,6 +250,8 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
           keyboardType: keyboardType,
           obscureText: isPassword,
           decoration: InputDecoration(
+            hintText: label,
+            hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
             prefixIcon: Icon(icon, color: AppColors.primary),
             filled: true,
             fillColor: Colors.white,

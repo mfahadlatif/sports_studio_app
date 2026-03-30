@@ -782,7 +782,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                       text: TextSpan(
                         children: [
                           TextSpan(
-                            text: 'Rs. $price',
+                            text: '${AppConstants.currencySymbol} $price',
                             style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,

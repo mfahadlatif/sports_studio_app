@@ -311,7 +311,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: 'Amount',
-                  prefixText: 'Rs. ',
+                  prefixText: '${AppConstants.currencySymbol} ',
                 ),
               ),
               const SizedBox(height: 10),

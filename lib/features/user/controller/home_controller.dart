@@ -144,34 +144,23 @@ class HomeController extends GetxController {
 
     // 2b. Location Filter (separate field)
     if (locationQuery.value.isNotEmpty) {
-      final queryParts = locationQuery.value
-          .toLowerCase()
+      final queryText = locationQuery.value.toLowerCase();
+      final queryParts = queryText
           .split(',')
           .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
+          .where((e) => e.isNotEmpty && e.length > 2)
           .toList();
 
       result = result.where((ground) {
-        final location = ground['location']?.toString().toLowerCase() ?? '';
         final complex = ground['complex'] ?? {};
-        final address = complex['address']?.toString().toLowerCase() ?? '';
+        final address = (complex['address'] ?? ground['location'] ?? '').toString().toLowerCase();
         
-        if (locationQuery.value.toLowerCase() == location || locationQuery.value.toLowerCase() == address) return true;
+        if (address.contains(queryText) || queryText.contains(address)) return true;
 
-        bool matches = false;
         for (var part in queryParts) {
-          // Ignore highly generic parts that might cause false positives
-          if (part.length <= 2) continue;
-          
-          if ((location.isNotEmpty && location.contains(part)) ||
-              (address.isNotEmpty && address.contains(part)) ||
-              (location.isNotEmpty && part.contains(location)) ||
-              (address.isNotEmpty && part.contains(address))) {
-            matches = true;
-            break;
-          }
+          if (address.contains(part)) return true;
         }
-        return matches;
+        return false;
       }).toList();
     }
 
@@ -185,9 +174,9 @@ class HomeController extends GetxController {
     // 3b. Minimum Rating filter
     if (minRating.value > 0) {
       result = result.where((ground) {
-        final rating =
-            double.tryParse(ground['avg_rating']?.toString() ?? '0') ?? 0;
-        return rating >= minRating.value;
+        final ratingVal =
+            double.tryParse((ground['rating'] ?? ground['avg_rating'] ?? '0').toString()) ?? 0;
+        return ratingVal >= minRating.value;
       }).toList();
     }
 

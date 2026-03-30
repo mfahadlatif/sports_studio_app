@@ -2,7 +2,7 @@ name: sports_studio
 description: "A new Flutter project."
 publish_to: 'none'
 
-version: 1.0.9+9
+version: 1.0.11+11
 
 environment:
   sdk: ^3.10.7
@@ -53,6 +53,7 @@ flutter:
     - assets/app_icon.jpeg
     - assets/app-logo.png
     - assets/
+    - assets/Icons/
     - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see

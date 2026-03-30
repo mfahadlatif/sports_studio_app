@@ -224,7 +224,7 @@ class GroundCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Rs. $price/hr',
+                        '${AppConstants.currencySymbol} $price/hr',
                         style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,

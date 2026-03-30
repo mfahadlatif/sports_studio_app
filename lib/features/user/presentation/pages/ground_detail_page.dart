@@ -399,6 +399,31 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   Widget _buildAmenities(dynamic ground) {
     final List<dynamic> groundAmenities = ground?['amenities'] ?? [];
 
+    // Asset Mapping
+    final Map<String, String> assetIcons = {
+      'water': 'assets/Icons/Washrooms.png', // Fallback or matching
+      'washroom': 'assets/Icons/Washrooms.png',
+      'changing': 'assets/Icons/ChangingRooms.png',
+      'parking': 'assets/Icons/FreeParking.png',
+      'lighting': 'assets/Icons/Floodlights.png',
+      'wifi': 'assets/Icons/FreeWiFi.png',
+      'first_aid': 'assets/Icons/FirstAid.png',
+      'cafe': 'assets/Icons/Cafe.png',
+      'equipment': 'assets/Icons/Equipment.png',
+      'lockers': 'assets/Icons/Lockers.png',
+      'seating': 'assets/Icons/Seating.png',
+      
+      'Wifi': 'assets/Icons/FreeWiFi.png',
+      'Parking': 'assets/Icons/FreeParking.png',
+      'Changing Room': 'assets/Icons/ChangingRooms.png',
+      'Showers': 'assets/Icons/Washrooms.png',
+      'Floodlights': 'assets/Icons/Floodlights.png',
+      'First Aid': 'assets/Icons/FirstAid.png',
+      'Drinking Water': 'assets/Icons/Washrooms.png',
+      'Cafe': 'assets/Icons/Cafe.png',
+      'Lighting': 'assets/Icons/Floodlights.png',
+    };
+
     // Config matching owner side and filter
     final Map<String, Map<String, String>> config = {
       // New Lowercase IDs
@@ -439,16 +464,22 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
           spacing: 12,
           runSpacing: 12,
           children: groundAmenities.map((id) {
-            final item =
-                config[id.toString()] ?? {'name': id.toString(), 'icon': '✨'};
-            return _amenityChip(item['icon']!, item['name']!);
+            final String idStr = id.toString();
+            final item = config[idStr] ?? {'name': idStr, 'icon': '✨'};
+            final assetPath = assetIcons[idStr];
+            
+            return _amenityChip(
+              item['icon']!, 
+              item['name']!, 
+              assetPath: assetPath
+            );
           }).toList(),
         ),
       ],
     );
   }
 
-  Widget _amenityChip(String icon, String label) {
+  Widget _amenityChip(String icon, String label, {String? assetPath}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -459,11 +490,14 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(icon, style: const TextStyle(fontSize: 16)),
+          if (assetPath != null)
+            Image.asset(assetPath, width: 18, height: 18, fit: BoxFit.contain)
+          else
+            Text(icon, style: const TextStyle(fontSize: 16)),
           const SizedBox(width: 8),
           Text(
             label,
-            style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+            style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold, fontSize: 11),
           ),
         ],
       ),
@@ -752,7 +786,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                   ),
                 ),
                 Text(
-                  'Rs. $price/hr',
+                  '${AppConstants.currencySymbol} $price/hr',
                   style: AppTextStyles.h2.copyWith(color: AppColors.primary),
                 ),
               ],

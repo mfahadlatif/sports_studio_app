@@ -2,8 +2,79 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
+import 'package:intl/intl.dart';
+import 'package:sports_studio/core/constants/app_constants.dart';
 
 class AppUtils {
+  static String formatCurrency(dynamic amount) {
+    if (amount == null) return '${AppConstants.currencySymbol} 0';
+    final formatter = NumberFormat('#,###');
+    final val = double.tryParse(amount.toString()) ?? 0.0;
+    return '${AppConstants.currencySymbol} ${formatter.format(val)}';
+  }
+
+  static String formatTime(dynamic time) {
+    if (time == null) return '—';
+    if (time is DateTime) return DateFormat('hh:mm a').format(time);
+    if (time is TimeOfDay) {
+      final now = DateTime.now();
+      final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
+      return DateFormat('hh:mm a').format(dt);
+    }
+    if (time is String) {
+      try {
+        // Try parsing as full datetime first
+        final dt = DateTime.parse(time.replaceFirst(' ', 'T'));
+        return DateFormat('hh:mm a').format(dt);
+      } catch (_) {
+        try {
+          // Try parsing as HH:mm
+          final parts = time.split(':');
+          final hour = int.parse(parts[0]);
+          final minute = int.parse(parts[1]);
+          final now = DateTime.now();
+          final dt = DateTime(now.year, now.month, now.day, hour, minute);
+          return DateFormat('hh:mm a').format(dt);
+        } catch (_) {
+          return time;
+        }
+      }
+    }
+    return time.toString();
+  }
+
+  static String formatDateTime(dynamic dateTime) {
+    if (dateTime == null) return '—';
+    if (dateTime is DateTime) return DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
+    if (dateTime is String) {
+      try {
+        final dt = DateTime.parse(dateTime.replaceFirst(' ', 'T'));
+        return DateFormat('MMM dd, yyyy • hh:mm a').format(dt);
+      } catch (_) {
+        return dateTime;
+      }
+    }
+    return dateTime.toString();
+  }
+
+  static String formatDate(dynamic date) {
+    if (date == null) return '—';
+    if (date is DateTime) return DateFormat('MMM dd, yyyy').format(date);
+    if (date is String) {
+      try {
+        final dt = DateTime.parse(date.replaceFirst(' ', 'T'));
+        return DateFormat('MMM dd, yyyy').format(dt);
+      } catch (_) {
+        return date;
+      }
+    }
+    return date.toString();
+  }
+
+  static String formatTimeRange(dynamic start, dynamic end) {
+    return '${formatTime(start)} - ${formatTime(end)}';
+  }
+
   static void showSuccess({
     String title = 'Success',
     required String message,
@@ -92,11 +163,23 @@ class AppUtils {
     }
 
     final msgStr = error.toString();
-    if (msgStr.contains('401') || msgStr.toLowerCase().contains('unauthorized')) return '';
-    
-    if (msgStr.contains('DioException [bad response]') || msgStr.contains('status code of 422')) {
-      return 'Validation failed. Please check your inputs.';
-    } else if (msgStr.contains('timeout')) {
+    if (msgStr.contains('401') ||
+        msgStr.toLowerCase().contains('unauthorized')) {
+      return '';
+    }
+
+    if (msgStr.contains('status code of 422') ||
+        msgStr.contains('DioException [bad response]')) {
+      // DioException bad response with 422 should ideally be caught by
+      // error is DioException block. If it falls through, it might be a wrapped exception.
+      // But we'll provide a hint if possible or let the raw message through.
+      if (msgStr.contains('Exception:')) {
+         return msgStr.replaceFirst('Exception: ', '').trim();
+      }
+      return 'Validation failed. Please verify your details.';
+    }
+
+    if (msgStr.contains('timeout')) {
       return 'Connection timed out. Please check your internet.';
     } else if (msgStr.contains('connection')) {
       return 'Network error. Please check your connection.';

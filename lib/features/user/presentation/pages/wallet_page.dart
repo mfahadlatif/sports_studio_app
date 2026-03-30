@@ -127,20 +127,23 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                 controller: bankNameCtrl,
                 decoration: const InputDecoration(labelText: 'Bank Name'),
               ),
+              const SizedBox(height: AppSpacing.m),
               TextField(
                 controller: titleCtrl,
                 decoration: const InputDecoration(labelText: 'Account Title'),
               ),
+              const SizedBox(height: AppSpacing.m),
               TextField(
                 controller: numberCtrl,
                 decoration: const InputDecoration(labelText: 'Account Number'),
                 keyboardType: TextInputType.number,
               ),
+              const SizedBox(height: AppSpacing.m),
               TextField(
                 controller: ibanCtrl,
                 decoration: const InputDecoration(labelText: 'IBAN (optional)'),
               ),
-              const SizedBox(height: AppSpacing.m),
+              const SizedBox(height: AppSpacing.l),
               AppButton(
                 label: 'Save',
                 onPressed: () async {
@@ -242,9 +245,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
               children: [
                 Text('Available Balance', style: AppTextStyles.label.copyWith(color: Colors.white70)),
                 const SizedBox(height: 6),
-                Text('Rs. ${balance.toStringAsFixed(0)}', style: AppTextStyles.h2.copyWith(color: Colors.white)),
+                Text('${AppConstants.currencySymbol} ${balance.toStringAsFixed(0)}', style: AppTextStyles.h2.copyWith(color: Colors.white)),
                 const SizedBox(height: 10),
-                Text('Held (pending withdrawals): Rs. ${held.toStringAsFixed(0)}',
+                Text('Held (pending withdrawals): ${AppConstants.currencySymbol} ${held.toStringAsFixed(0)}',
                     style: AppTextStyles.bodySmall.copyWith(color: Colors.white70)),
               ],
             ),
@@ -333,7 +336,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
             keyboardType: TextInputType.number,
             decoration: const InputDecoration(
               labelText: 'Amount (min 10)',
-              prefixText: 'Rs. ',
+              prefixText: '${AppConstants.currencySymbol} ',
             ),
           ),
           const SizedBox(height: AppSpacing.s),
@@ -364,10 +367,62 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           else
             ..._withdrawals.map((w) {
               final m = w as Map? ?? {};
-              return ListTile(
-                leading: const Icon(Icons.payments_outlined),
-                title: Text('Rs. ${m['amount'] ?? 0}'),
-                subtitle: Text('Status: ${m['status'] ?? 'pending'}'),
+              final status = m['status']?.toString() ?? 'pending';
+              final amount = double.tryParse(m['amount']?.toString() ?? '0') ?? 0;
+              final notes = m['admin_notes']?.toString() ?? '';
+              
+              Color color = Colors.orange;
+              if (status == 'completed') color = Colors.green;
+              if (status == 'rejected') color = Colors.red;
+              if (status == 'processing') color = Colors.blue;
+
+              return Card(
+                elevation: 0,
+                margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  side: BorderSide(color: AppColors.border.withOpacity(0.5)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('${AppConstants.currencySymbol} ${amount.toStringAsFixed(0)}', style: AppTextStyles.h3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: color.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              status.toUpperCase(),
+                              style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (notes.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Note: $notes',
+                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+                        ),
+                      ],
+                      const SizedBox(height: 4),
+                      Text(
+                        'Requested: ${AppUtils.formatDate(m['created_at'])}',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textMuted,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               );
             }),
         ],
@@ -376,6 +431,35 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   }
 
   Widget _history() {
+    if (_walletTx.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _fetchAll,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: SizedBox(
+            height: Get.height * 0.6,
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.l),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.history_toggle_off, size: 64, color: AppColors.textMuted.withOpacity(0.5)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No transaction history yet.',
+                      textAlign: TextAlign.center,
+                      style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textMuted),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return RefreshIndicator(
       onRefresh: _fetchAll,
       child: ListView.separated(
@@ -384,13 +468,49 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
         separatorBuilder: (_, __) => const Divider(height: 16),
         itemBuilder: (context, i) {
           final tx = _walletTx[i] as Map? ?? {};
-          final amount = tx['amount']?.toString() ?? '';
-          final type = tx['type']?.toString() ?? tx['transaction_type']?.toString() ?? 'transaction';
-          final createdAt = tx['created_at']?.toString();
+          final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
+          final category = tx['category']?.toString().replaceAll('_', ' ').toUpperCase() ?? 'TRANSACTION';
+          final description = tx['description']?.toString() ?? '';
+          final createdAt = tx['created_at']?.toString() ?? '';
+          
+          final isCredit = ['credit', 'earnings', 'refund', 'topup', 'commission'].contains(tx['category']?.toString().toLowerCase());
+
           return ListTile(
-            leading: const Icon(Icons.swap_horiz),
-            title: Text('$type • Rs. $amount'),
-            subtitle: Text(createdAt ?? ''),
+            leading: Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: (isCredit ? Colors.green : Colors.red).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isCredit ? Icons.add : Icons.remove,
+                color: isCredit ? Colors.green : Colors.red,
+                size: 20,
+              ),
+            ),
+            title: Text(category, style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold)),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (description.isNotEmpty)
+                  Text(description, style: AppTextStyles.bodySmall),
+                Text(
+                  AppUtils.formatDateTime(createdAt),
+                  style: AppTextStyles.label.copyWith(
+                    color: AppColors.textMuted,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+            trailing: Text(
+              '${isCredit ? "+" : "-"} ${AppConstants.currencySymbol} ${amount.toStringAsFixed(0)}',
+              style: AppTextStyles.bodyLarge.copyWith(
+                fontWeight: FontWeight.bold,
+                color: isCredit ? Colors.green : Colors.red,
+              ),
+            ),
           );
         },
       ),

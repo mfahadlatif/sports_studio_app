@@ -62,7 +62,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
           {
             'id': '2',
             'title': 'Payment Received',
-            'message': 'Rs. 3,000 payment received for booking #1042.',
+            'message': '${AppConstants.currencySymbol} 3,000 payment received for booking #1042.',
             'type': 'payment',
             'read': false,
             'createdAt': DateTime.now()
@@ -133,7 +133,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
       case 'event':
         return Icons.emoji_events_outlined;
       case 'payment':
-        return Icons.attach_money;
+        return Icons.payments_outlined;
       case 'welcome':
         return Icons.celebration_outlined;
       default:

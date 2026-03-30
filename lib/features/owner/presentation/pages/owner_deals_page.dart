@@ -319,6 +319,8 @@ class _DealFormSheetState extends State<_DealFormSheet> {
   String? _selectedColorTheme;
   bool _isSaving = false;
 
+  final List<String> _flavorColors = ['orange', 'teal', 'blue', 'purple', 'pink', 'green'];
+
   bool get _isEdit => widget.deal != null;
 
   @override
@@ -353,7 +355,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
         'code': _codeCtrl.text,
         'valid_until': _dateCtrl.text,
         if (_selectedGroundId != null) 'ground_id': _selectedGroundId,
-        'color_theme': _selectedColorTheme,
+        'color_theme': _selectedColorTheme ?? (_flavorColors..shuffle()).first,
       };
 
       final id = widget.deal?['id'];
@@ -494,30 +496,6 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.m),
-                    _label('Color Theme (Optional)'),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedColorTheme,
-                      hint: const Text('Default Theme'),
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: AppColors.background,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                        prefixIcon: const Icon(Icons.palette_outlined),
-                      ),
-                      items: const [
-                        DropdownMenuItem(value: null, child: Text('Default')),
-                        DropdownMenuItem(value: 'orange', child: Text('Orange')),
-                        DropdownMenuItem(value: 'teal', child: Text('Teal')),
-                        DropdownMenuItem(value: 'blue', child: Text('Blue')),
-                        DropdownMenuItem(value: 'purple', child: Text('Purple')),
-                        DropdownMenuItem(value: 'pink', child: Text('Pink')),
-                      ],
-                      onChanged: (val) =>
-                          setState(() => _selectedColorTheme = val),
-                    ),
                     const SizedBox(height: AppSpacing.m),
                     _label('Promo Code (Optional)'),
                     _field(

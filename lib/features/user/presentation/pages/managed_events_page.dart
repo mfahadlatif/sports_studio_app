@@ -266,7 +266,7 @@ class ManagedEventsPage extends StatelessWidget {
                         ],
                       ),
                       Text(
-                        event.registrationFee == 0 ? 'FREE' : 'Rs. ${event.registrationFee}',
+                        event.registrationFee == 0 ? 'FREE' : '${AppConstants.currencySymbol} ${event.registrationFee}',
                         style: AppTextStyles.h3.copyWith(color: AppColors.primary),
                       ),
                     ],

@@ -7,6 +7,10 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/features/landing/controller/landing_controller.dart';
+import 'package:sports_studio/features/user/controller/booking_controller.dart';
+import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 
 class DealsPage extends StatefulWidget {
   const DealsPage({super.key});
@@ -62,7 +66,7 @@ class _DealsPageState extends State<DealsPage> {
           {
             'title': 'First Booking Offer',
             'description':
-                'Rs. 500 off on your very first ground booking with us!',
+                '${AppConstants.currencySymbol} 500 off on your very first ground booking with us!',
             'discount_percentage': '0',
             'applicable_sports': 'All Sports',
             'valid_until': DateTime.now()
@@ -130,6 +134,8 @@ class _DealsPageState extends State<DealsPage> {
       grad = [Colors.purple.shade400, Colors.purple.shade900];
     } else if (deal['color_theme'] == 'pink') {
       grad = [Colors.pink.shade400, Colors.pink.shade900];
+    } else if (deal['color_theme'] == 'green') {
+      grad = [Colors.green.shade400, Colors.green.shade900];
     }
 
     return Container(
@@ -312,10 +318,36 @@ class _DealsPageState extends State<DealsPage> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () =>
-                        Get.find<
-                          dynamic
-                        >(), // goes to grounds — hook via LandingController
+                    onPressed: () {
+                      final landing = Get.find<LandingController>();
+                      final booking = Get.isRegistered<BookingController>()
+                          ? Get.find<BookingController>()
+                          : Get.put(BookingController());
+
+                      // Reset previous booking state to avoid conflicts
+                      booking.selectedSlots.clear();
+                      
+                      // Set the promo from the deal
+                      booking.promoCode.value = code;
+                      try {
+                        booking.selectedDeal.value = Deal.fromJson(deal);
+                      } catch (e) {
+                         debugPrint('❌ [Deals] Error parsing deal: $e');
+                      }
+
+                      // Navigate to grounds tab (index 1)
+                      landing.changeNavIndex(1);
+                      
+                      // If this page was pushed, go back to the shell (landing page)
+                      if (Navigator.of(context).canPop()) {
+                        Get.back();
+                      }
+                      
+                      AppUtils.showSuccess(
+                        title: 'Promo Applied',
+                        message: 'Pick a ground to use your "${deal['title']}" discount!',
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: grad[0],

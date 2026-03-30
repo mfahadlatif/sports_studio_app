@@ -2,13 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/models/models.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
@@ -133,7 +133,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
           'Join us for an exciting sports event this weekend.';
       final startTime = event?.startTime;
       final date = startTime != null
-          ? DateFormat('MMM dd, yyyy').format(startTime)
+          ? AppUtils.formatDateTime(startTime)
           : 'TBD';
       final location = event?.location ?? '—';
       final registrationFee = event?.registrationFee ?? 0;
@@ -348,9 +348,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                             // Date
                             _infoRow(
                               Icons.calendar_today_outlined,
-                              date.toString().length > 10
-                                  ? date.toString().substring(0, 10)
-                                  : date.toString(),
+                              date,
                             ),
                             const SizedBox(height: AppSpacing.s),
                             // Location
@@ -360,7 +358,7 @@ class _EventDetailPageState extends State<EventDetailPage> {
                               Icons.confirmation_number_outlined,
                               registrationFee == 0
                                   ? 'Free Entry'
-                                  : 'Rs. $registrationFee Registration Fee',
+                                  : '${AppConstants.currencySymbol} $registrationFee Registration Fee',
                             ),
 
                             const SizedBox(height: AppSpacing.l),

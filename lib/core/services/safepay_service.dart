@@ -16,12 +16,14 @@ class SafepayService extends GetxService {
   /// This returns the full response containing the tracker and the transaction token (TBT).
   Future<Map<String, dynamic>?> initiateCheckout({
     required double amount,
+    String? reference,
     String currency = 'PKR',
   }) async {
     try {
       final response = await _paymentApiService.initiateSafepayPayment({
         'amount': amount,
         'currency': currency,
+        if (reference != null) 'reference': reference,
       });
       return response;
     } catch (e) {

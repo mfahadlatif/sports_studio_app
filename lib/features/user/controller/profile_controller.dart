@@ -62,7 +62,7 @@ class ProfileController extends GetxController {
   }
 
   void updateUserData(Map<String, dynamic> data) {
-    userProfile.value = data;
+    userProfile.addAll(data);
   }
 
   Future<void> updateProfile() async {
@@ -314,20 +314,19 @@ class ProfileController extends GetxController {
     fullPhone.value = user['phone']?.toString() ?? '';
     businessNameController.text = user['business_name']?.toString() ?? '';
     pickedAvatarPath.value = ''; // Reset on populate
+    clearPasswordFields(); // Ensure security fields are empty
   }
 
   bool get isPhoneVerified {
-    // Check all possible keys and formats returned by different endpoints
-    final isVerified = userProfile['is_phone_verified'] ?? 
-                       userProfile['is_verified'] ?? 
-                       userProfile['phone_verified'];
-                       
-    if (isVerified == null) return false;
+    // Rely exclusively on phone verification flags
+    final status = userProfile['is_phone_verified'];
+    if (status == true || status == 1 || status?.toString() == '1' || status?.toString().toLowerCase() == 'true') {
+      return true;
+    }
     
-    return isVerified == 1 || 
-           isVerified == true ||
-           isVerified.toString() == '1' ||
-           isVerified.toString().toLowerCase() == 'true';
+    // Check for the timestamp as a robust fallback
+    final verifiedAt = userProfile['phone_verified_at'];
+    return verifiedAt != null && verifiedAt.toString().isNotEmpty;
   }
 
   bool get hasUnreadNotifications {

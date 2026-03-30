@@ -302,7 +302,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       children: [
         _statItem(
           'Revenue',
-          'Rs. ${_stats['total_revenue']}',
+          '${AppConstants.currencySymbol} ${_stats['total_revenue']}',
           Icons.payments_outlined,
           Colors.green,
         ),
@@ -407,7 +407,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow('Price per Hour', 'Rs. ${_ground['price_per_hour']}'),
+          _infoRow('Price per Hour', '${AppConstants.currencySymbol} ${_ground['price_per_hour']}'),
           const Divider(height: AppSpacing.l),
           _infoRow(
             'Lighting',

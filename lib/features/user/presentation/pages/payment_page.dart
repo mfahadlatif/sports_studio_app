@@ -258,12 +258,8 @@ class _PaymentPageState extends State<PaymentPage> {
             (args is Map) ? args['participantId'] as int? : null;
         if (participantId == null) throw 'Invalid Participant ID';
 
-        await ApiClient().dio.put(
-          '/event-participants/$participantId',
-          data: {
-            'payment_status': 'paid',
-            'payment_method': 'wallet',
-          },
+        await ApiClient().dio.post(
+          '/event-participants/$participantId/pay-with-wallet',
         );
 
         AppLoadingOverlay.hide(context);
@@ -277,17 +273,8 @@ class _PaymentPageState extends State<PaymentPage> {
           : null;
       if (bookingId == null) throw 'Invalid Booking ID';
 
-      // Best-effort: align booking state for a wallet-paid booking, then finalize.
-      await ApiClient().dio.put(
-        '/bookings/$bookingId',
-        data: {
-          'status': 'pending',
-          'payment_status': 'paid',
-          'payment_method': 'wallet',
-          'total_price': amount,
-        },
-      );
-      await ApiClient().dio.post('/bookings/$bookingId/finalize-payment');
+      // Securely pay via wallet endpoint (handles balance check & split)
+      await ApiClient().dio.post('/bookings/$bookingId/pay-with-wallet');
 
       AppLoadingOverlay.hide(context);
       Get.offAllNamed('/');
@@ -408,54 +395,57 @@ class _PaymentPageState extends State<PaymentPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Complete Payment'), centerTitle: true),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.l),
-            child: Column(
-              children: [
-                _buildTimerSection(isExpiringSoon),
-                const SizedBox(height: AppSpacing.l),
+      body: SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppSpacing.l),
+              child: Column(
+                children: [
+                  _buildTimerSection(isExpiringSoon),
+                  const SizedBox(height: AppSpacing.l),
 
-                // Promo Code Section
-                _buildPromoSection(),
+                  // Promo Code Section
+                  _buildPromoSection(),
 
-                const SizedBox(height: AppSpacing.l),
-                _buildPriceSummary(),
+                  const SizedBox(height: AppSpacing.l),
+                  _buildPriceSummary(),
 
-                const SizedBox(height: AppSpacing.l),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Payment Method', style: AppTextStyles.h2),
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _buildOption(
-                  'card',
-                  Icons.credit_card,
-                  'Safepay Checkout',
-                  'Pay securely via Card',
-                ),
-                const SizedBox(height: AppSpacing.m),
-                if (type == 'event_participant') ...[
-                  _buildOption(
-                    'wallet',
-                    Icons.account_balance_wallet,
-                    'Wallet Balance',
-                    'Pay instantly using your wallet',
+                  const SizedBox(height: AppSpacing.l),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Payment Method', style: AppTextStyles.h2),
                   ),
                   const SizedBox(height: AppSpacing.m),
+                  _buildOption(
+                    'card',
+                    Icons.credit_card,
+                    'Safepay Checkout',
+                    'Pay securely via Card',
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  if (type == 'event_participant') ...[
+                    _buildOption(
+                      'wallet',
+                      Icons.account_balance_wallet,
+                      'Wallet Balance',
+                      'Pay instantly using your wallet',
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                  ],
+                  _buildOption(
+                    'cod',
+                    Icons.money,
+                    'Cash at Venue',
+                    'Pay directly when you arrive',
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  _buildPayButton(),
+                  const SizedBox(height: AppSpacing.l),
                 ],
-                _buildOption(
-                  'cod',
-                  Icons.money,
-                  'Cash at Venue',
-                  'Pay directly when you arrive',
-                ),
-                const Spacer(),
-                _buildPayButton(),
-                const SizedBox(height: AppSpacing.l),
-              ],
+              ),
             ),
           ),
         ),
@@ -559,37 +549,76 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   Widget _buildPromoSection() {
+    final args = Get.arguments;
+    final String? type = (args != null && args is Map) ? args['type']?.toString() : null;
+    
+    // Hide promo section for events as they have fixed registration fees
+    if (type == 'event_participant') return const SizedBox.shrink();
+
+    final bool isAlreadyApplied = _appliedPromo != null;
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
-        color: AppColors.background,
+        color: isAlreadyApplied ? Colors.green[50] : AppColors.background,
         borderRadius: BorderRadius.circular(16),
+        border: isAlreadyApplied ? Border.all(color: Colors.green[100]!) : null,
       ),
       child: Row(
         children: [
+          const Icon(Icons.tag, color: AppColors.primary, size: 20),
+          const SizedBox(width: 12),
           Expanded(
-            child: TextField(
-              controller: _promoCtrl,
-              decoration: const InputDecoration(
-                hintText: 'Enter Promo Code',
-                border: InputBorder.none,
+            child: isAlreadyApplied 
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _promoCtrl.text,
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
+                    ),
+                    const Text(
+                      'Already Applied',
+                      style: TextStyle(fontSize: 10, color: Colors.green),
+                    ),
+                  ],
+                )
+              : TextField(
+                  controller: _promoCtrl,
+                  decoration: const InputDecoration(
+                    hintText: 'Enter Promo Code',
+                    border: InputBorder.none,
+                    isDense: true,
+                  ),
+                ),
+          ),
+          if (isAlreadyApplied)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _appliedPromo = null;
+                  _discountPercentage = 0;
+                  _promoCtrl.clear();
+                });
+              },
+              child: const Text('Remove', style: TextStyle(color: Colors.red)),
+            )
+          else
+            ElevatedButton(
+              onPressed: _isPromoLoading ? null : _applyPromo,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.secondary,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                minimumSize: const Size(0, 36),
               ),
+              child: _isPromoLoading
+                  ? const AppProgressIndicator(
+                      size: 16,
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    )
+                  : const Text('Apply'),
             ),
-          ),
-          ElevatedButton(
-            onPressed: _isPromoLoading ? null : _applyPromo,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.secondary,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-            ),
-            child: _isPromoLoading
-                ? const AppProgressIndicator(
-                    size: 20,
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  )
-                : const Text('Apply'),
-          ),
         ],
       ),
     );
@@ -639,19 +668,19 @@ class _PaymentPageState extends State<PaymentPage> {
       ),
       child: Column(
         children: [
-          _summaryRow('Subtotal', 'Rs. ${subtotal.toStringAsFixed(0)}'),
+          _summaryRow('Subtotal', '${AppConstants.currencySymbol} ${subtotal.toStringAsFixed(0)}'),
           if (discount > 0) ...[
             const SizedBox(height: 8),
             _summaryRow(
               'Discount (${_discountPercentage > 0 ? _discountPercentage.toStringAsFixed(0) : ((discount / subtotal) * 100).toStringAsFixed(0)}%)',
-              '- Rs. ${discount.toStringAsFixed(0)}',
+              '- ${AppConstants.currencySymbol} ${discount.toStringAsFixed(0)}',
               isDiscount: true,
             ),
           ],
           const Divider(height: 24),
           _summaryRow(
             'Total Amount',
-            'Rs. ${total.toStringAsFixed(0)}',
+            '${AppConstants.currencySymbol} ${total.toStringAsFixed(0)}',
             isTotal: true,
           ),
         ],

@@ -17,6 +17,8 @@ class AddGroundController extends GetxController {
   final lengthController = TextEditingController();
   final widthController = TextEditingController();
   final rulesController = TextEditingController();
+  final latController = TextEditingController();
+  final lngController = TextEditingController();
   final cancellationPolicyController = TextEditingController();
 
   final RxString selectedSport = 'Cricket'.obs;
@@ -120,6 +122,8 @@ class AddGroundController extends GetxController {
     lengthController.dispose();
     widthController.dispose();
     rulesController.dispose();
+    latController.dispose();
+    lngController.dispose();
     cancellationPolicyController.dispose();
     super.onClose();
   }
@@ -187,6 +191,11 @@ class AddGroundController extends GetxController {
       return;
     }
 
+    if (pickedImages.isEmpty) {
+      AppUtils.showError(message: 'Please upload at least one image for the ground');
+      return;
+    }
+
     isSubmitting.value = true;
     uploadStatus.value = '';
 
@@ -233,7 +242,10 @@ class AddGroundController extends GetxController {
         'amenities': selectedAmenities.toList(),
         'status': status.value,
         'lighting': hasLighting.value ? '1' : '0',
-        'dimensions': ?dimensions,
+        'dimensions': dimensions,
+        'location': locationController.text.trim(),
+        'latitude': double.tryParse(latController.text.trim()) ?? 0,
+        'longitude': double.tryParse(lngController.text.trim()) ?? 0,
         if (imageUrls.isNotEmpty) 'images': imageUrls,
       };
 

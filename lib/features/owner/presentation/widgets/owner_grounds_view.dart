@@ -347,7 +347,7 @@ class OwnerGroundsView extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      'Rs. ${ground.pricePerHour.toStringAsFixed(0)}/hr',
+                      '${AppConstants.currencySymbol} ${ground.pricePerHour.toStringAsFixed(0)}/hr',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.primary,
                         fontWeight: FontWeight.bold,

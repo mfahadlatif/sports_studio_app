@@ -33,13 +33,19 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
     try {
       // Load grounds from the controller if available
       if (Get.isRegistered<GroundsController>()) {
-        _grounds = Get.find<GroundsController>().grounds
+        _grounds = Get.find<GroundsController>()
+            .grounds
+            .where((g) => g.status == 'active')
             .map((g) => {'id': g.id, 'name': g.name})
             .toList();
       } else {
         final gRes = await ApiClient().dio.get('/grounds');
         if (gRes.statusCode == 200) {
-          _grounds = gRes.data['data'] ?? gRes.data ?? [];
+          final List data = gRes.data['data'] ?? gRes.data ?? [];
+          _grounds = data
+              .where((g) => g['status'] == 'active')
+              .map((g) => {'id': g['id'], 'name': g['name']})
+              .toList();
         }
       }
 

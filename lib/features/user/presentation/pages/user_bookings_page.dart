@@ -275,14 +275,13 @@ class _BookingCard extends StatelessWidget {
               children: [
                 _InfoItem(Icons.calendar_today_outlined, dateStr),
                 _InfoItem(Icons.access_time, timeRange),
-                if (!isEvent)
-                  _InfoItem(
-                    Icons.payment_outlined,
-                    paymentStatus.toString().toUpperCase(),
-                    color: paymentStatus == 'paid'
-                        ? Colors.green
-                        : Colors.orange,
-                  ),
+                _InfoItem(
+                  Icons.payment_outlined,
+                  paymentStatus.toString().toUpperCase(),
+                  color: paymentStatus == 'paid'
+                      ? Colors.green
+                      : Colors.orange,
+                ),
               ],
             ),
           ),
@@ -309,14 +308,14 @@ class _BookingCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Rs. ${NumberFormat('#,###').format(totalAmount)}',
+                      '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(totalAmount)}',
                       style: AppTextStyles.h3.copyWith(
                         color: AppColors.primary,
                       ),
                     ),
                   ],
                 ),
-                if (!isEvent && (status == 'pending' || status == 'confirmed'))
+                if (!isEvent && (status == 'pending' || status == 'confirmed') && booking['payment_method'] == 'cash')
                   Row(
                     children: [
                       if (paymentStatus == 'unpaid' && status == 'confirmed')

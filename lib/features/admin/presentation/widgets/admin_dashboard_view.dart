@@ -197,7 +197,7 @@ class AdminDashboardView extends StatelessWidget {
             children: [
               _bannerItem(
                 'Revenue',
-                'Rs. ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
+                '${AppConstants.currencySymbol} ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
               ),
               _bannerItem('Bookings', '${controller.totalBookings.value}'),
               _bannerItem('Users', '${controller.totalUsers.value}'),
@@ -268,7 +268,7 @@ class AdminDashboardView extends StatelessWidget {
             ),
             _statCard(
               'Total Sales',
-              'Rs. ${controller.totalRevenue.value.toInt()}',
+              '${AppConstants.currencySymbol} ${controller.totalRevenue.value.toInt()}',
               Icons.payments,
               Colors.green,
             ),

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UserBookingDetailPage extends StatelessWidget {
@@ -69,7 +70,7 @@ class UserBookingDetailPage extends StatelessWidget {
                       _row('Date', dateStr),
                       _row('Time', timeStr),
                       if (!isEvent) _row('Payment', paymentStatus.toUpperCase()),
-                      _row('Amount', 'Rs. ${price.toStringAsFixed(0)}'),
+                      _row('Amount', '${AppConstants.currencySymbol} ${price.toStringAsFixed(0)}'),
                     ],
                   ),
                 ),
@@ -113,6 +114,67 @@ class UserBookingDetailPage extends StatelessWidget {
                       ],
                     ),
                   ),
+                ],
+                const SizedBox(height: AppSpacing.m),
+                // Actions section
+                if (status != 'cancelled' && status != 'completed') ...[
+                  if (booking['payment_method'] == 'cash')
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        onPressed: () {
+                          Get.defaultDialog(
+                            title: 'Cancel Booking',
+                            middleText: 'Are you sure you want to cancel this booking?',
+                            textConfirm: 'Yes, Cancel',
+                            textCancel: 'No, Keep',
+                            confirmTextColor: Colors.white,
+                            buttonColor: Colors.red,
+                            onConfirm: () {
+                              Get.back();
+                              Get.find<BookingsController>().updateBookingStatus(booking, 'cancelled');
+                              Get.back(); // Go back from detail page after cancellation
+                            },
+                          );
+                        },
+                        icon: const Icon(Icons.cancel_outlined),
+                        label: const Text('Cancel Booking', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.m),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Icon(Icons.info_outline, color: Colors.orange),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'To cancel or reschedule this booking, please contact the venue owner.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 12, color: Colors.orange),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              final phone = complex?['phone'] ?? ground?['owner_phone'] ?? '';
+                              if (phone.toString().isNotEmpty) {
+                                launchUrl(Uri.parse('tel:$phone'));
+                              }
+                            },
+                            child: const Text('Contact Owner'),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ],
             ),

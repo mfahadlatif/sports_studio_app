@@ -23,7 +23,7 @@
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>
-	<string>4</string>
+	<string>5</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>tel</string>
@@ -53,6 +53,8 @@
 	<string>Sports Studio uses your location to show you the closest sports grounds and events near you.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Sports Studio needs access to your photo library to select a profile picture or arena images.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Sports Studio needs access to your photo library to save and upload arena images.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

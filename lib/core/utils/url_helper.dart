@@ -20,9 +20,12 @@ class UrlHelper {
     // Already a production media/serve URL — return as-is
     if (url.contains('/api/media/serve') && url.contains(domain)) return url;
 
-    // Media/serve with localhost — rewrite to production
+    // Media/serve with localhost — rewrite to production ONLY IF we want to force production
+    // (Usually we want to keep it local if our apiBase is local)
     if (url.contains('/api/media/serve') &&
-        (url.contains('localhost') || url.contains('127.0.0.1'))) {
+        (url.contains('localhost') || url.contains('127.0.0.1')) &&
+        domain != 'localhost' && !domain.startsWith('10.0')) {
+      // Logic for rewriting to production (useful for testing production DB with local app)
       try {
         final uri = Uri.parse(url);
         final path = uri.queryParameters['path'];

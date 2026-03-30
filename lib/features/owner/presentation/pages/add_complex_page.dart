@@ -52,16 +52,16 @@ class _AddComplexPageState extends State<AddComplexPage> {
   }
 
   final List<Map<String, String>> _facilityConfigs = [
-    {'id': 'parking', 'name': 'Parking', 'icon': '🅿️'},
-    {'id': 'washrooms', 'name': 'Washrooms', 'icon': '🚻'},
-    {'id': 'changing-rooms', 'name': 'Changing Rooms', 'icon': '🚿'},
-    {'id': 'seating', 'name': 'Seating Area', 'icon': '💺'},
-    {'id': 'lighting', 'name': 'Floodlights', 'icon': '💡'},
-    {'id': 'cafe', 'name': 'Café', 'icon': '☕'},
-    {'id': 'first-aid', 'name': 'First Aid', 'icon': '🏥'},
-    {'id': 'wifi', 'name': 'WiFi', 'icon': '📶'},
-    {'id': 'lockers', 'name': 'Lockers', 'icon': '🔐'},
-    {'id': 'equipment', 'name': 'Equipment Rental', 'icon': '🎯'},
+    {'id': 'parking', 'name': 'Parking', 'icon': '🅿️', 'asset': 'assets/Icons/FreeParking.png'},
+    {'id': 'washrooms', 'name': 'Washrooms', 'icon': '🚻', 'asset': 'assets/Icons/Washrooms.png'},
+    {'id': 'changing-rooms', 'name': 'Changing Rooms', 'icon': '🚿', 'asset': 'assets/Icons/ChangingRooms.png'},
+    {'id': 'seating', 'name': 'Seating Area', 'icon': '💺', 'asset': 'assets/Icons/Seating.png'},
+    {'id': 'lighting', 'name': 'Floodlights', 'icon': '💡', 'asset': 'assets/Icons/Floodlights.png'},
+    {'id': 'cafe', 'name': 'Café', 'icon': '☕', 'asset': 'assets/Icons/Cafe.png'},
+    {'id': 'first-aid', 'name': 'First Aid', 'icon': '🏥', 'asset': 'assets/Icons/FirstAid.png'},
+    {'id': 'wifi', 'name': 'WiFi', 'icon': '📶', 'asset': 'assets/Icons/FreeWiFi.png'},
+    {'id': 'lockers', 'name': 'Lockers', 'icon': '🔐', 'asset': 'assets/Icons/Lockers.png'},
+    {'id': 'equipment', 'name': 'Equipment Rental', 'icon': '🎯', 'asset': 'assets/Icons/Equipment.png'},
   ];
 
   final Set<String> _selectedAmenities = {};
@@ -100,6 +100,12 @@ class _AddComplexPageState extends State<AddComplexPage> {
   Future<void> _submit() async {
     if (_nameCtrl.text.isEmpty || _addressCtrl.text.isEmpty) {
       AppUtils.showError(message: 'Please fill name and address');
+      return;
+    }
+
+    // Image validation: Must have at least one image (either new or existing)
+    if (_pickedImages.isEmpty && _existingImageUrls.isEmpty) {
+      AppUtils.showError(message: 'Please upload at least one image for your complex.');
       return;
     }
 
@@ -197,9 +203,14 @@ class _AddComplexPageState extends State<AddComplexPage> {
   }
 
   Future<void> _pickImages() async {
-    final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
-    if (images.isNotEmpty) {
-      setState(() => _pickedImages.addAll(images));
+    try {
+      final List<XFile> images = await _picker.pickMultiImage(imageQuality: 85);
+      if (images.isNotEmpty) {
+        setState(() => _pickedImages.addAll(images));
+      }
+    } catch (e) {
+      debugPrint('❌ [AddComplex] Pick Error: $e');
+      AppUtils.showError(message: 'Failed to pick images: $e');
     }
   }
 
@@ -338,7 +349,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 children: [
                   const _SectionTitle(
                     icon: Icons.photo_library_outlined,
-                    label: 'Complex Images & Gallery',
+                    label: 'Complex Images & Gallery *',
                   ),
                   const SizedBox(height: AppSpacing.m),
                   _buildImageSection(),
@@ -649,6 +660,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
       itemBuilder: (context, index) {
         final facility = _facilityConfigs[index];
         final isSelected = _selectedAmenities.contains(facility['id']);
+        final assetPath = facility['asset'];
         return GestureDetector(
           onTap: () {
             setState(() {
@@ -687,10 +699,19 @@ class _AddComplexPageState extends State<AddComplexPage> {
             ),
             child: Row(
               children: [
-                Text(
-                  facility['icon']!,
-                  style: TextStyle(fontSize: isSelected ? 22 : 20),
-                ),
+                if (assetPath != null)
+                  Image.asset(
+                    assetPath, 
+                    width: 24, 
+                    height: 24, 
+                    fit: BoxFit.contain,
+                    color: isSelected ? Colors.white : null,
+                  )
+                else
+                  Text(
+                    facility['icon']!,
+                    style: TextStyle(fontSize: isSelected ? 22 : 20),
+                  ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

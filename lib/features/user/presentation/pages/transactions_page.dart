@@ -113,7 +113,7 @@ class TransactionsPage extends StatelessWidget {
                     child: Icon(statusIcon, color: statusColor),
                   ),
                   title: Text(
-                    'Rs. ${tx.amount.toStringAsFixed(0)}',
+                    '${AppConstants.currencySymbol} ${tx.amount.toStringAsFixed(0)}',
                     style: AppTextStyles.bodyLarge.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
