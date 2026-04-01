@@ -101,10 +101,14 @@ class BookingSlotPage extends StatelessWidget {
                       color: AppColors.textSecondary,
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      ground['location'] ?? 'Location TBD',
-                      style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                    Expanded(
+                      child: Text(
+                        ground['location'] ?? (ground['complex']?['address'] ?? 'Location TBD'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
                       ),
                     ),
                   ],

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
@@ -68,6 +69,7 @@ class PhoneVerificationController extends GetxController {
 
       if (response.statusCode == 200) {
         isLoading.value = false;
+        log('check Phone verification response: ${response.data}');
         final msg = response.data['message'] ?? 'Verification code sent';
         AppUtils.showSuccess(title: 'Code Sent', message: msg);
         

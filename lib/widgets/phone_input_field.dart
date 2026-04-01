@@ -15,6 +15,7 @@ class PhoneTextfield extends StatelessWidget {
   final String label;
   final bool isRequired;
   final Function(String)? onPhoneChanged;
+  final bool readOnly;
 
   const PhoneTextfield({
     super.key,
@@ -24,6 +25,7 @@ class PhoneTextfield extends StatelessWidget {
     this.label = 'Phone Number',
     this.isRequired = false,
     this.onPhoneChanged,
+    this.readOnly = false,
   });
 
   @override
@@ -91,6 +93,7 @@ class PhoneTextfield extends StatelessWidget {
                     showCountryOnly: false,
                     showOnlyCountryWhenClosed: false,
                     alignLeft: false,
+                    enabled: !readOnly,
                   ),
                 ),
               ),
@@ -102,6 +105,7 @@ class PhoneTextfield extends StatelessWidget {
                   keyboardType: TextInputType.number,
                   hasBorder: false,
                   hintText: "Enter phone number",
+                  readOnly: readOnly,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (v) {
                     String processedValue = v;

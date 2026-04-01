@@ -27,18 +27,23 @@ class _NewsletterSubscribePageState extends State<NewsletterSubscribePage> {
 
   Future<void> _subscribe() async {
     final email = _emailCtrl.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
+    if (email.isEmpty || !email.isEmail) {
       AppUtils.showError(message: 'Enter a valid email');
       return;
     }
     setState(() => _loading = true);
     try {
+      print('🌐 [NewsletterAPI] Subscribing UI >>>>> 1 : $email');
       await _api.subscribe(email);
+      print('🌐 [NewsletterAPI] Subscribing UI >>>>> 2');
       AppUtils.showSuccess(message: 'Subscribed successfully');
       if (mounted) Get.back(result: true);
+      print('🌐 [NewsletterAPI] Subscribing UI >>>>> 3');
     } catch (e) {
-      AppUtils.showError(message: e.toString());
+      print('🌐 [NewsletterAPI] Subscribing UI >>>>> error : $e');
+      AppUtils.showError(message: 'Something went wrong. Try again later.');
     } finally {
+      print('🌐 [NewsletterAPI] Finished subscription attempt');
       if (mounted) setState(() => _loading = false);
     }
   }

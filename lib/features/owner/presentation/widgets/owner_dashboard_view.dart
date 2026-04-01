@@ -41,66 +41,66 @@ class OwnerDashboardView extends StatelessWidget {
               const SizedBox(height: AppSpacing.l),
 
               // ── Analytics Stat Grid ─────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                child: Obx(() {
-                  if (controller.isLoading.value) {
-                    return GridView.count(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      crossAxisCount: 2,
-                      crossAxisSpacing: AppSpacing.m,
-                      mainAxisSpacing: AppSpacing.m,
-                      childAspectRatio: 1.4,
-                      children: List.generate(
-                        4,
-                        (index) => const AppShimmer.rectangular(
-                          height: 100,
-                          shapeBorder: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(20)),
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                  return GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: AppSpacing.m,
-                    mainAxisSpacing: AppSpacing.m,
-                    childAspectRatio: 1.1,
-                    children: [
-                      _buildStatCard(
-                        'Total Complexes',
-                        '${controller.totalComplexes.value}',
-                        Icons.business_outlined,
-                        AppColors.primary,
-                      ),
-                      _buildStatCard(
-                        'Total Grounds',
-                        '${controller.totalGrounds.value}',
-                        Icons.map_outlined,
-                        Colors.orange,
-                      ),
-                      _buildStatCard(
-                        'Total Bookings',
-                        '${controller.totalBookings.value}',
-                        Icons.calendar_today_outlined,
-                        Colors.blue,
-                      ),
-                      _buildStatCard(
-                        'Total Revenue',
-                        '${AppConstants.currencySymbol} ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
-                        Icons.payments_outlined,
-                        Colors.green,
-                      ),
-                    ],
-                  );
-                }),
-              ),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+              //   child: Obx(() {
+              //     if (controller.isLoading.value) {
+              //       return GridView.count(
+              //         shrinkWrap: true,
+              //         physics: const NeverScrollableScrollPhysics(),
+              //         crossAxisCount: 2,
+              //         crossAxisSpacing: AppSpacing.m,
+              //         mainAxisSpacing: AppSpacing.m,
+              //         childAspectRatio: 1.4,
+              //         children: List.generate(
+              //           4,
+              //           (index) => const AppShimmer.rectangular(
+              //             height: 100,
+              //             shapeBorder: RoundedRectangleBorder(
+              //               borderRadius: BorderRadius.all(Radius.circular(20)),
+              //             ),
+              //           ),
+              //         ),
+              //       );
+              //     }
+              //     return GridView.count(
+              //       shrinkWrap: true,
+              //       physics: const NeverScrollableScrollPhysics(),
+              //       crossAxisCount: 2,
+              //       crossAxisSpacing: AppSpacing.m,
+              //       mainAxisSpacing: AppSpacing.m,
+              //       childAspectRatio: 1.1,
+              //       children: [
+              //         _buildStatCard(
+              //           'Total Complexes',
+              //           '${controller.totalComplexes.value}',
+              //           Icons.business_outlined,
+              //           AppColors.primary,
+              //         ),
+              //         _buildStatCard(
+              //           'Total Grounds',
+              //           '${controller.totalGrounds.value}',
+              //           Icons.map_outlined,
+              //           Colors.orange,
+              //         ),
+              //         _buildStatCard(
+              //           'Total Bookings',
+              //           '${controller.totalBookings.value}',
+              //           Icons.calendar_today_outlined,
+              //           Colors.blue,
+              //         ),
+              //         _buildStatCard(
+              //           'Total Revenue',
+              //           '${AppConstants.currencySymbol} ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
+              //           Icons.payments_outlined,
+              //           Colors.green,
+              //         ),
+              //       ],
+              //     );
+              //   }),
+              // ),
 
-              const SizedBox(height: AppSpacing.l),
+              // const SizedBox(height: AppSpacing.l),
 
               // ── Quick Management Grid ──────────────────────────
               Padding(
@@ -300,6 +300,14 @@ class OwnerDashboardView extends StatelessWidget {
               () => Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                   _buildBannerStat(
+                    'Complexes',
+                    '${controller.totalComplexes.value}',
+                  ),
+                   _buildBannerStat(
+                    'Grounds',
+                    '${controller.totalGrounds.value}',
+                  ),
                   _buildBannerStat(
                     'Bookings',
                     '${controller.totalBookings.value}',
@@ -307,14 +315,6 @@ class OwnerDashboardView extends StatelessWidget {
                   _buildBannerStat(
                     'Revenue',
                     '${(controller.monthlyRevenue.value / 1000).toStringAsFixed(1)}K',
-                  ),
-                  _buildBannerStat(
-                    'Complexes',
-                    '${controller.totalComplexes.value}',
-                  ),
-                  _buildBannerStat(
-                    'Grounds',
-                    '${controller.totalGrounds.value}',
                   ),
                 ],
               ),

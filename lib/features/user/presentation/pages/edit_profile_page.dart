@@ -6,6 +6,7 @@ import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 import 'package:sports_studio/widgets/phone_input_field.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
@@ -182,7 +183,53 @@ class _EditProfilePageState extends State<EditProfilePage> {
           label: 'Phone Number',
           isRequired: true,
           onPhoneChanged: (v) => controller.fullPhone.value = v,
+          readOnly: controller.isPhoneVerified,
         ),
+        if (!controller.isPhoneVerified) ...[
+          const SizedBox(height: AppSpacing.s),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.amber.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.amber.shade200),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+                const SizedBox(width: AppSpacing.s),
+                Expanded(
+                  child: Text(
+                    'Your phone number needs verification.',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: Colors.amber.shade900,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Get.dialog(
+                      PhoneVerificationDialog(
+                        initialPhone: controller.phoneController.text.trim(),
+                        onVerified: () {
+                          controller.fetchProfile();
+                        },
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.amber,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  child: const Text('Verify'),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

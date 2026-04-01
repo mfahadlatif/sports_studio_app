@@ -16,7 +16,7 @@ class FavoritesPage extends StatelessWidget {
     final controller = Get.put(FavoritesController());
 
     return Scaffold(
-      appBar: AppBar(title: const Text('My Favorites'), centerTitle: true),
+      appBar: AppBar(title: const Text('Saved Grounds'), centerTitle: true),
       body: Obx(() {
         if (controller.favoriteGrounds.isEmpty) {
           return Center(
@@ -40,7 +40,7 @@ class FavoritesPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.l),
-                    Text('No favorites yet', style: AppTextStyles.h2),
+                    Text('No saved grounds yet', style: AppTextStyles.h2),
                     const SizedBox(height: AppSpacing.s),
                     Text(
                       'Tap the ♡ button on any ground to save it here.',

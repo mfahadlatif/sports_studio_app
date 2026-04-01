@@ -1220,6 +1220,20 @@ class UserApiService {
     }
   }
 
+  Future<void> deleteAccount() async {
+    try {
+      print('🌐 [UserAPI] Deleting account...');
+      final response = await _client.dio.delete('/user');
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Failed to delete account');
+      }
+      print('✅ [UserAPI] Account deleted');
+    } catch (e) {
+      print('❌ [UserAPI] deleteAccount error: $e');
+      throw Exception('Failed to delete account: $e');
+    }
+  }
+
   Future<void> requestPhoneVerification(String phone) async {
     try {
       print('🌐 [UserAPI] Requesting phone verification for: $phone');
@@ -1315,14 +1329,17 @@ class NewsletterApiService {
     final trimmed = email.trim();
     if (trimmed.isEmpty) throw Exception('Email is required');
     try {
-      print('🌐 [NewsletterAPI] Subscribing...');
+      print('🌐 [NewsletterAPI] Subscribing... >>>>> 1');
       final res = await _client.dio.post(
         '/newsletter/subscribe',
         data: {'email': trimmed},
       );
+      print('🌐 [NewsletterAPI] Subscribing... >>>>> 2');
       if (res.statusCode == 200 || res.statusCode == 201) return;
+      print('🌐 [NewsletterAPI] Subscribing... >>>>> 3 : ${res.data}');
       throw Exception('Failed to subscribe');
     } catch (e) {
+      print('🌐 [NewsletterAPI] Subscribing... >>>>> error : $e');
       rethrow;
     }
   }

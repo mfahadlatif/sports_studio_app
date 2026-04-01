@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
@@ -29,6 +30,8 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
   final otpController = TextEditingController();
   bool showOtpField = false;
   bool isSuccess = false;
+  Timer? _resendTimer;
+  int _resendSeconds = 0;
 
   @override
   void initState() {
@@ -38,9 +41,26 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
 
   @override
   void dispose() {
+    _resendTimer?.cancel();
     phoneController.dispose();
     otpController.dispose();
     super.dispose();
+  }
+
+  void _startResendTimer() {
+    setState(() => _resendSeconds = 60);
+    _resendTimer?.cancel();
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_resendSeconds > 0) {
+        setState(() => _resendSeconds--);
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   @override
@@ -178,15 +198,43 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
           ),
         ),
         const SizedBox(height: AppSpacing.m),
-        TextButton(
-          onPressed: () => setState(() => showOtpField = false),
-          child: Text(
-            'Edit Phone Number',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.primary,
-              decoration: TextDecoration.underline,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextButton(
+              onPressed: () {
+                _resendTimer?.cancel();
+                setState(() => showOtpField = false);
+              },
+              child: Text(
+                'Edit Phone Number',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.primary,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: AppSpacing.s),
+            Text(
+              '|',
+              style: TextStyle(color: Colors.grey.shade400),
+            ),
+            const SizedBox(width: AppSpacing.s),
+            TextButton(
+              onPressed: _resendSeconds == 0 && !controller.isLoading.value
+                  ? () => _handleSendCode()
+                  : null,
+              child: Text(
+                _resendSeconds > 0 
+                  ? 'Resend in ${_resendSeconds}s'
+                  : 'Resend OTP',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: _resendSeconds > 0 ? Colors.grey : AppColors.primary,
+                  decoration: _resendSeconds > 0 ? TextDecoration.none : TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -256,7 +304,10 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
     );
     final success = await controller.requestVerification(formattedPhone);
     if (success) {
-      setState(() => showOtpField = true);
+      if (!showOtpField) {
+        setState(() => showOtpField = true);
+      }
+      _startResendTimer();
     }
   }
 

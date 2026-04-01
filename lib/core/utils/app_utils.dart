@@ -80,6 +80,7 @@ class AppUtils {
     required String message,
     Duration? duration,
   }) {
+    Get.closeAllSnackbars();
     Get.snackbar(
       title,
       message,
@@ -110,6 +111,7 @@ class AppUtils {
 
     if (errorMessage.isEmpty) return; // Handled globally or nothing to show
 
+    Get.closeAllSnackbars();
     Get.snackbar(
       title,
       errorMessage,
@@ -193,6 +195,7 @@ class AppUtils {
     required String message,
     Duration? duration,
   }) {
+    Get.closeAllSnackbars();
     Get.snackbar(
       title,
       message,
@@ -219,6 +222,7 @@ class AppUtils {
     required String message,
     Duration? duration,
   }) {
+    Get.closeAllSnackbars();
     Get.snackbar(
       title,
       message,

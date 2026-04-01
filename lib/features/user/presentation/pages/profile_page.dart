@@ -11,7 +11,7 @@ import 'package:sports_studio/features/user/presentation/pages/user_bookings_pag
 import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
-// import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
 // import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
@@ -60,6 +60,18 @@ class ProfilePage extends StatelessWidget {
                   child: Column(
                     children: [
                       const SizedBox(height: AppSpacing.m),
+                      _buildSectionTitle('ACCOUNT'),
+                      _buildOption(
+                        icon: Icons.person_outline,
+                        title: 'Personal Information',
+                        subtitle: 'Update your name, email and details',
+                        onTap: () => Get.to(() => const EditProfilePage()),
+                        color: Colors.teal,
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                        child: Divider(height: 32),
+                      ),
                       _buildSectionTitle('ACTIVITY'),
                       _buildOption(
                         icon: Icons.calendar_today_outlined,
@@ -110,13 +122,6 @@ class ProfilePage extends StatelessWidget {
                       ),
 
                       _buildSectionTitle('SETTINGS'),
-                      // _buildOption(
-                      //   icon: Icons.person_outline,
-                      //   title: 'Personal Information',
-                      //   subtitle: 'Update your name, email and details',
-                      //   onTap: () => Get.to(() => const EditProfilePage()),
-                      //   color: Colors.teal,
-                      // ),
                       // if (!profileController.isSocialUser)
                       //   _buildOption(
                       //     icon: Icons.security_outlined,
@@ -238,51 +243,28 @@ class ProfilePage extends StatelessWidget {
 
         return Column(
           children: [
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                  child: CircleAvatar(
-                    radius: 54,
-                    backgroundColor: AppColors.primaryLight,
-                    backgroundImage: user['avatar'] != null
-                        ? NetworkImage(
-                            UrlHelper.sanitizeUrl(user['avatar'].toString()),
-                          )
-                        : null,
-                    child: user['avatar'] == null
-                        ? const Icon(
-                            Icons.person,
-                            size: 60,
-                            color: AppColors.primary,
-                          )
-                        : null,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: profileController.updateAvatar,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(color: Colors.black12, blurRadius: 10),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.edit,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: CircleAvatar(
+                radius: 54,
+                backgroundColor: AppColors.primaryLight,
+                backgroundImage: user['avatar'] != null
+                    ? NetworkImage(
+                        UrlHelper.sanitizeUrl(user['avatar'].toString()),
+                      )
+                    : null,
+                child: user['avatar'] == null
+                    ? const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: AppColors.primary,
+                      )
+                    : null,
+              ),
             ),
             const SizedBox(height: AppSpacing.m),
             Text(name, style: AppTextStyles.h2.copyWith(color: Colors.white)),
@@ -416,26 +398,176 @@ class ProfilePage extends StatelessWidget {
   Widget _buildLogoutButton(LandingController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-      child: SizedBox(
-        width: double.infinity,
-        height: 56,
-        child: TextButton(
-          onPressed: () => controller.logout(),
-          style: TextButton.styleFrom(
-            backgroundColor: Colors.red.withOpacity(0.05),
-            foregroundColor: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: TextButton(
+              onPressed: () {
+                Get.dialog(
+                  _buildCustomDialog(
+                    icon: Icons.logout_rounded,
+                    color: AppColors.primary,
+                    title: 'Sign Out',
+                    message: 'Are you sure you want to sign out from your account?',
+                    confirmText: 'Sign Out',
+                    onConfirm: () => controller.logout(),
+                  ),
+                );
+              },
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.red.withOpacity(0.05),
+                foregroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.logout, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Sign Out',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
             ),
           ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          const SizedBox(height: AppSpacing.m),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: OutlinedButton(
+              onPressed: () {
+                Get.dialog(
+                  _buildCustomDialog(
+                    icon: Icons.delete_forever_rounded,
+                    color: Colors.red,
+                    title: 'Delete Account',
+                    message: 'Are you sure you want to permanently delete your account? This action cannot be undone.',
+                    confirmText: 'Delete',
+                    onConfirm: () {
+                      final profileController = Get.find<ProfileController>();
+                      profileController.deleteAccount();
+                    },
+                  ),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.grey.shade700,
+                side: BorderSide(color: Colors.grey.shade300),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.delete_forever, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'Delete Account',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomDialog({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String message,
+    required String confirmText,
+    required VoidCallback onConfirm,
+  }) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.logout, size: 20),
-              SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 40, color: color),
+              ),
+              const SizedBox(height: AppSpacing.l),
               Text(
-                'Sign Out',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                title,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: AppSpacing.s),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textMuted,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Get.back(),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Get.back();
+                        onConfirm();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: color,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: Text(confirmText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

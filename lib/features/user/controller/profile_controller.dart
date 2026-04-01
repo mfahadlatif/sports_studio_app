@@ -5,6 +5,7 @@ import 'package:sports_studio/core/models/models.dart' as models;
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 
 class ProfileController extends GetxController {
   final RxBool isLoadingProfile = false.obs;
@@ -297,6 +298,21 @@ class ProfileController extends GetxController {
     } catch (e) {
       AppUtils.showError(message: e);
       rethrow;
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      await _userApiService.deleteAccount();
+      AppUtils.showSuccess(message: 'Account deleted successfully');
+      if (Get.isRegistered<LandingController>()) {
+        Get.find<LandingController>().logout();
+      } else {
+        final landingController = Get.put(LandingController(), permanent: true);
+        landingController.logout();
+      }
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to delete account. Please test with proper backend.');
     }
   }
 

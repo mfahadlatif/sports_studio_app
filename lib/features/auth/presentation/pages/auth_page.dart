@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -297,8 +299,7 @@ class AuthPage extends StatelessWidget {
   }
 
   Widget _buildSocialAuth(AuthController controller) {
-    final bool isIOS =
-        !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
+    final bool isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     return Column(
       children: [
         Row(
@@ -316,7 +317,7 @@ class AuthPage extends StatelessWidget {
         Obx(
           () => Column(
             children: [
-              if (!isIOS)
+              if (Platform.isAndroid)
                 _socialButton(
                   AppConstants.googleLogo,
                   'Continue with Google',
@@ -324,9 +325,8 @@ class AuthPage extends StatelessWidget {
                   onTap: controller.loginWithGoogle,
                   isFullWidth: true,
                   isLoading: controller.isGoogleLoading.value,
-                ),
-              if (isIOS) ...[
-                const SizedBox(height: AppSpacing.m),
+                )
+              else
                 _socialButton(
                   AppConstants.appleLogo,
                   'Continue with Apple',
@@ -335,7 +335,6 @@ class AuthPage extends StatelessWidget {
                   isFullWidth: true,
                   isLoading: controller.isAppleLoading.value,
                 ),
-              ],
             ],
           ),
         ),

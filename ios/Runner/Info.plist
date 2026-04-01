@@ -12,6 +12,19 @@
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.945595614098-i1k2jt292lrvbnn4652tapit60fbgjsl</string>
+			</array>
+		</dict>
+	</array>
+	<key>GMSApiKey</key>
+	<string>AIzaSyAY9KTE4x_NevYZJ5ayqvhs7G4s0vZpQwE</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
