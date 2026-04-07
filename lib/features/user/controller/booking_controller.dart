@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:sports_studio/core/network/api_services.dart';
@@ -69,6 +70,14 @@ class BookingController extends GetxController {
   Future<void> fetchAvailability(int groundId) async {
     isLoadingSlots.value = true;
     try {
+      // Use fallback slots (06:00 AM to 10:00 PM) for now as requested
+      allSlots.value = [
+        '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM',
+        '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM',
+        '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM',
+        '09:00 PM', '10:00 PM',
+      ];
+
       final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
       final bookings = await _dataFetchService.fetchGroundBookings(
         groundId,
@@ -84,7 +93,7 @@ class BookingController extends GetxController {
 
           // Identify which of our 1-hour slots overlap with this booking
           for (var slotStr in allSlots) {
-            final slotTime = DateFormat('hh:mm a').parse(slotStr);
+            final slotTime = _parseSlotTime(slotStr);
             // Construct a DateTime for slot on selected date
             final slotStart = DateTime(
               selectedDate.value.year,
@@ -113,6 +122,21 @@ class BookingController extends GetxController {
     }
   }
 
+  TimeOfDay _parseSlotTime(String slotStr) {
+    try {
+      // Try formats: "06:00 AM" or "06:00"
+      if (slotStr.contains('AM') || slotStr.contains('PM')) {
+        final time = DateFormat('hh:mm a').parse(slotStr);
+        return TimeOfDay(hour: time.hour, minute: time.minute);
+      } else {
+        final parts = slotStr.split(':');
+        return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+      }
+    } catch (e) {
+      return const TimeOfDay(hour: 6, minute: 0);
+    }
+  }
+
   bool isSlotPassed(String slotStr) {
     try {
       final now = DateTime.now();
@@ -128,7 +152,7 @@ class BookingController extends GetxController {
       }
 
       // If it's today, parse slot and compare time
-      final slotTime = DateFormat('hh:mm a').parse(slotStr);
+      final slotTime = _parseSlotTime(slotStr);
       final slotDateTime = DateTime(
         now.year,
         now.month,
@@ -250,10 +274,9 @@ class BookingController extends GetxController {
 
   double get subtotal {
     final ground = Get.arguments;
-    final price = ground != null
-        ? double.tryParse(ground['price_per_hour'].toString()) ?? 100.0
-        : 100.0;
-    return selectedSlots.length * price;
+    if (ground == null) return 0.0;
+    final groundObj = Ground.fromJson(ground);
+    return selectedSlots.length * groundObj.pricePerHour;
   }
 
   double get totalPrice {

@@ -14,7 +14,6 @@ import 'package:sports_studio/core/constants/user_roles.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_grounds_view.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_settings_view.dart';
 import 'package:sports_studio/features/user/presentation/pages/profile_page.dart';
 import 'package:sports_studio/features/admin/presentation/widgets/admin_dashboard_view.dart';
 import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
@@ -40,7 +39,6 @@ class LandingPage extends StatelessWidget {
       const OwnerDashboardView(),
       OwnerGroundsView(),
       const OwnerBookingsView(),
-      const OwnerSettingsView(),
       const ProfilePage(),
     ];
 
@@ -63,7 +61,6 @@ class LandingPage extends StatelessWidget {
       GButton(icon: Icons.dashboard_outlined, text: 'Dashboard'),
       GButton(icon: Icons.manage_accounts_outlined, text: 'Manage'),
       GButton(icon: Icons.calendar_month_outlined, text: 'Bookings'),
-      GButton(icon: Icons.settings_outlined, text: 'Settings'),
       GButton(icon: Icons.person_outline, text: 'Profile'),
     ];
 

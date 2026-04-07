@@ -6,12 +6,12 @@ import 'package:sports_studio/features/landing/controller/landing_controller.dar
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthController extends GetxController {
   final RxBool isLogin = true.obs;
@@ -128,6 +128,10 @@ class AuthController extends GetxController {
       print('Response status: ${e.response?.statusCode}');
       print('Response data: ${e.response?.data}');
 
+      if (e.response?.statusCode == 403) {
+        AppUtils.showDeactivatedDialog();
+        return;
+      }
       final errorMessage =
           e.response?.data?['message'] ?? 'Invalid email or password';
       AppUtils.showError(
@@ -359,8 +363,12 @@ class AuthController extends GetxController {
         }
       }
     } catch (e) {
-      print('Google Login Exception: $e');
-      AppUtils.showError(title: 'Google Login Failed', message: e.toString());
+      if (e is DioException && e.response?.statusCode == 403) {
+        AppUtils.showDeactivatedDialog();
+      } else {
+        print('Google Login Exception: $e');
+        AppUtils.showError(title: 'Google Login Failed', message: e.toString());
+      }
     } finally {
       isGoogleLoading.value = false;
     }
@@ -369,58 +377,66 @@ class AuthController extends GetxController {
   Future<void> loginWithApple() async {
     isAppleLoading.value = true;
     try {
-      final credential = await SignInWithApple.getAppleIDCredential(
-        scopes: [
-          AppleIDAuthorizationScopes.email,
-          AppleIDAuthorizationScopes.fullName,
-        ],
-      );
+      print('--- APPLE LOGIN START (FIREBASE) ---');
+      final appleProvider = AppleAuthProvider();
+      
+      // Perform Apple Sign-In through Firebase
+      final userCredential = await FirebaseAuth.instance.signInWithProvider(appleProvider);
+      final idToken = await userCredential.user?.getIdToken();
 
-      // Send to backend
-      final roleString = selectedRole.value == UserRole.owner
-          ? 'owner'
-          : 'user';
-      final response = await ApiClient().dio.post(
-        '/login/apple',
-        data: {
-          'id_token': credential.identityToken,
-          'name': '${credential.givenName ?? ""} ${credential.familyName ?? ""}'
-              .trim(),
-          'email': credential.email,
-          'role': roleString,
-        },
-      );
+      if (idToken != null) {
+        print('Firebase Apple Token obtained. Sending to backend...');
+        final roleString = selectedRole.value == UserRole.owner
+            ? 'owner'
+            : 'user';
+            
+        final response = await ApiClient().dio.post(
+          '/login/apple',
+          data: {
+            'id_token': idToken,
+            'name': userCredential.user?.displayName ?? 'Apple User',
+            'email': userCredential.user?.email,
+            'role': roleString,
+            'firebase_uid': userCredential.user?.uid,
+          },
+        );
 
-      if (response.statusCode == 200) {
-        final data = response.data;
-        final token = data['access_token'];
-        if (token != null) {
+        if (response.statusCode == 200) {
+          final data = response.data;
+          final token = data['access_token'];
+          if (token != null) {
+            const storage = FlutterSecureStorage();
+            await storage.write(key: 'auth_token', value: token);
+          }
+
+          UserRole userRole = UserRole.user;
+          final roleString =
+              data['user']?['role']?.toString().toLowerCase() ?? 'user';
+          if (roleString == 'owner') {
+            userRole = UserRole.owner;
+          } else if (roleString == 'admin') {
+            userRole = UserRole.admin;
+          }
+
+          // Save role to storage
           const storage = FlutterSecureStorage();
-          await storage.write(key: 'auth_token', value: token);
+          await storage.write(key: 'user_role', value: userRole.name);
+
+          // Update profile data immediately
+          if (Get.isRegistered<ProfileController>()) {
+            Get.find<ProfileController>().updateUserData(data['user'] ?? data);
+          }
+
+          _navigateToHome(userRole);
         }
-
-        UserRole userRole = UserRole.user;
-        final roleString =
-            data['user']?['role']?.toString().toLowerCase() ?? 'user';
-        if (roleString == 'owner') {
-          userRole = UserRole.owner;
-        } else if (roleString == 'admin') {
-          userRole = UserRole.admin;
-        }
-
-        // Save role to storage
-        const storage = FlutterSecureStorage();
-        await storage.write(key: 'user_role', value: userRole.name);
-
-        // Update profile data immediately
-        if (Get.isRegistered<ProfileController>()) {
-          Get.find<ProfileController>().updateUserData(data['user'] ?? data);
-        }
-
-        _navigateToHome(userRole);
       }
     } catch (e) {
-      AppUtils.showError(title: 'Apple Login Failed', message: e.toString());
+      if (e is DioException && e.response?.statusCode == 403) {
+        AppUtils.showDeactivatedDialog();
+      } else {
+        print('Apple Login Exception: $e');
+        AppUtils.showError(title: 'Apple Login Failed', message: e.toString());
+      }
     } finally {
       isAppleLoading.value = false;
     }

@@ -58,7 +58,20 @@ class _AdminComplexManagementPageState extends State<AdminComplexManagementPage>
       AppUtils.showSuccess(message: 'Ground status updated');
       await _fetchAll();
     } catch (e) {
-      AppUtils.showError(message: 'Failed to update status: $e');
+      AppUtils.showError(message: 'Failed to update ground status: $e');
+    }
+  }
+
+  Future<void> _updateComplexStatus(int complexId, String status) async {
+    try {
+      await ApiClient().dio.put(
+        '/admin/complexes/$complexId/status',
+        data: {'status': status},
+      );
+      AppUtils.showSuccess(message: 'Complex status updated');
+      await _fetchAll();
+    } catch (e) {
+      AppUtils.showError(message: 'Failed to update complex status: $e');
     }
   }
 
@@ -159,15 +172,37 @@ class _AdminComplexManagementPageState extends State<AdminComplexManagementPage>
                             .copyWith(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    if (status != null)
+                    if (status != null) ...[
                       _statusChip(status, isWarning: status == 'pending'),
+                      if (status != 'active') ...[
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: () {
+                            final id = int.tryParse(c['id']?.toString() ?? '');
+                            if (id != null) _updateComplexStatus(id, 'active');
+                          },
+                          icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                          tooltip: 'Approve Complex',
+                        ),
+                      ] else ...[
+                        const SizedBox(width: 8),
+                         IconButton(
+                          onPressed: () {
+                            final id = int.tryParse(c['id']?.toString() ?? '');
+                            if (id != null) _updateComplexStatus(id, 'inactive');
+                          },
+                          icon: const Icon(Icons.pause_circle_outline, color: Colors.orange),
+                          tooltip: 'Deactivate Complex',
+                        ),
+                      ],
+                    ],
                   ],
                 ),
                 if (location != null || ownerName != null) ...[
                   const SizedBox(height: 6),
                   Text(
                     [
-                      ?location,
+                      if (location != null) location,
                       if (ownerName != null) 'Owner: $ownerName',
                     ].join(' • '),
                     style: AppTextStyles.bodySmall.copyWith(
@@ -230,51 +265,30 @@ class _AdminComplexManagementPageState extends State<AdminComplexManagementPage>
                   ),
                 ),
                 const SizedBox(width: 12),
-                _statusDropdown(
-                  current: status,
-                  onChanged: (next) {
-                    if (id == null) return;
-                    _updateGroundStatus(id, next);
-                  },
-                ),
+                if (status != 'active') ...[
+                  IconButton(
+                    onPressed: () {
+                      if (id != null) _updateGroundStatus(id, 'active');
+                    },
+                    icon: const Icon(Icons.check_circle_outline, color: Colors.green),
+                    tooltip: 'Approve Ground',
+                  ),
+                ] else ...[
+                  IconButton(
+                    onPressed: () {
+                      if (id != null) _updateGroundStatus(id, 'inactive');
+                    },
+                    icon: const Icon(Icons.pause_circle_outline, color: Colors.orange),
+                    tooltip: 'Deactivate Ground',
+                  ),
+                ],
+                const SizedBox(width: 8),
+                _statusChip(status, isWarning: status == 'pending'),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _statusDropdown({
-    required String current,
-    required ValueChanged<String> onChanged,
-  }) {
-    const statuses = ['active', 'inactive', 'maintenance', 'pending'];
-    final safeCurrent = statuses.contains(current) ? current : 'pending';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      decoration: BoxDecoration(
-        border: Border.all(color: AppColors.border),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: safeCurrent,
-          onChanged: (v) {
-            if (v == null || v == safeCurrent) return;
-            onChanged(v);
-          },
-          items: statuses
-              .map(
-                (s) => DropdownMenuItem(
-                  value: s,
-                  child: Text(s, style: AppTextStyles.bodySmall),
-                ),
-              )
-              .toList(),
-        ),
-      ),
     );
   }
 

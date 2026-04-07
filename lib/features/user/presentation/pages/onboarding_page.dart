@@ -21,9 +21,9 @@ class OnboardingPage extends StatelessWidget {
         "icon": "Icons.stadium_rounded",
       },
       {
-        "title": "Assemble Your Team",
+        "title": "Organize Matches",
         "description":
-            "Join public events or create private matches with friends.",
+            "Join public events or host your own matches with friends.",
         "icon": "Icons.groups_rounded",
       },
       {

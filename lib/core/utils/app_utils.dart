@@ -258,4 +258,36 @@ class AppUtils {
     if (s.contains('padel')) return Icons.sports_tennis;
     return Icons.sports_soccer_outlined;
   }
+
+  static void showDeactivatedDialog() {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.lock_outline, color: AppColors.error),
+            const SizedBox(width: 10),
+            const Text(
+              'Account Deactivated',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Your account has been deactivated by the administrator. Please contact support to regain access to your profile and bookings.',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'OK',
+              style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+      barrierDismissible: false,
+    );
+  }
 }

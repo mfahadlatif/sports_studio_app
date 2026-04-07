@@ -12,7 +12,6 @@ import 'package:sports_studio/features/user/presentation/pages/favorites_page.da
 import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
-// import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
@@ -23,6 +22,15 @@ import 'package:sports_studio/features/user/presentation/pages/newsletter_subscr
 import 'package:sports_studio/features/user/presentation/pages/joined_events_page.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sports_studio/core/constants/user_roles.dart';
+
+// Owner Features
+import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
+import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -57,144 +65,201 @@ class ProfilePage extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: AppSpacing.m),
-                      _buildSectionTitle('ACCOUNT'),
-                      _buildOption(
-                        icon: Icons.person_outline,
-                        title: 'Personal Information',
-                        subtitle: 'Update your name, email and details',
-                        onTap: () => Get.to(() => const EditProfilePage()),
-                        color: Colors.teal,
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
-                        child: Divider(height: 32),
-                      ),
-                      _buildSectionTitle('ACTIVITY'),
-                      _buildOption(
-                        icon: Icons.calendar_today_outlined,
-                        title: 'My Match Bookings',
-                        subtitle: 'View your upcoming and past arena games',
-                        onTap: () => Get.to(() => const UserBookingsPage()),
-                        color: Colors.blue,
-                      ),
-                      _buildOption(
-                        icon: Icons.event_seat_outlined,
-                        title: 'My Booked Events',
-                        subtitle: 'Manage events you have joined',
-                        onTap: () => Get.to(() => const JoinedEventsPage()),
-                        color: Colors.cyan,
-                      ),
-                      _buildOption(
-                        icon: Icons.favorite_border,
-                        title: 'Saved Grounds',
-                        subtitle: 'Quick access to your favorite arenas',
-                        onTap: () => Get.to(() => const FavoritesPage()),
-                        color: Colors.red,
-                      ),
-                      _buildOption(
-                        icon: Icons.account_balance_wallet_outlined,
-                        title: 'Wallet & Withdrawals',
-                        subtitle: 'Balance, bank accounts, and cash-out requests',
-                        onTap: () => Get.to(() => const WalletPage()),
-                        color: Colors.green,
-                      ),
-                      _buildOption(
-                        icon: Icons.event_note_outlined,
-                        title: 'My Managed Events',
-                        subtitle: 'Events you organize for the community',
-                        onTap: () => Get.to(() => const ManagedEventsPage()),
-                        color: Colors.pink,
-                      ),
-                      _buildOption(
-                        icon: Icons.local_offer_outlined,
-                        title: 'Active Promo Codes',
-                        subtitle: 'Exclusive deals just for you',
-                        onTap: () => Get.to(() => const DealsPage()),
-                        color: Colors.orange,
-                      ),
+                  child: Obx(() {
+                    final role = landingController.currentRole.value;
+                    final isOwner = role == UserRole.owner;
 
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
-                        child: Divider(height: 32),
-                      ),
+                    return Column(
+                      children: [
+                        const SizedBox(height: AppSpacing.m),
 
-                      _buildSectionTitle('SETTINGS'),
-                      // if (!profileController.isSocialUser)
-                      //   _buildOption(
-                      //     icon: Icons.security_outlined,
-                      //     title: 'Account Security',
-                      //     subtitle: 'Manage password and privacy',
-                      //     onTap: () => Get.to(
-                      //       () => const SettingDetailPage(),
-                      //       arguments: {'title': 'Security & Privacy'},
-                      //     ),
-                      //     color: Colors.indigo,
-                      //   ),
-                      _buildOption(
-                        icon: Icons.notifications_none_outlined,
-                        title: 'Notifications',
-                        subtitle: 'Manage alerts and push notifications',
-                        onTap: () => Get.to(() => const NotificationsPage()),
-                        color: Colors.amber,
-                      ),
-                      _buildOption(
-                        icon: Icons.policy_outlined,
-                        title: 'Privacy Policy',
-                        subtitle: 'How we handle your data',
-                        onTap: () => Get.to(() => const PrivacyPolicyPage()),
-                        color: Colors.blueGrey,
-                      ),
-                      _buildOption(
-                        icon: Icons.gavel_outlined,
-                        title: 'Terms & Conditions',
-                        subtitle: 'Legal terms for using the platform',
-                        onTap: () => Get.to(() => const TermsPage()),
-                        color: Colors.indigo,
-                      ),
-                      _buildOption(
-                        icon: Icons.rule_outlined,
-                        title: 'Booking Policy',
-                        subtitle: 'How reservations and time windows work',
-                        onTap: () => Get.to(() => const BookingPolicyPage()),
-                        color: Colors.deepOrange,
-                      ),
-                      _buildOption(
-                        icon: Icons.policy,
-                        title: 'Cancellation & Refund Policy',
-                        subtitle: 'Cancellation rules and refunds overview',
-                        onTap: () => Get.to(() => const CancellationPolicyPage()),
-                        color: Colors.brown,
-                      ),
+                        // BUSINESS MANAGEMENT (For Owners)
+                        if (isOwner) ...[
+                          _buildSectionTitle('BUSINESS MANAGEMENT'),
+                          _buildOption(
+                            icon: Icons.analytics_outlined,
+                            title: 'Reports & Analytics',
+                            subtitle: 'Revenue, bookings and performance',
+                            onTap: () => Get.to(() => const OwnerReportsPage()),
+                            color: Colors.blue,
+                          ),
+                          _buildOption(
+                            icon: Icons.corporate_fare_outlined,
+                            title: 'Sports Complexes',
+                            subtitle: 'Manage your complexes & facilities',
+                            onTap: () => Get.to(() => const SportsComplexesPage()),
+                            color: Colors.indigo,
+                          ),
+                          _buildOption(
+                            icon: Icons.local_offer_outlined,
+                            title: 'Manage Deals',
+                            subtitle: 'Create & edit discount offers',
+                            onTap: () => Get.to(() => const OwnerDealsPage()),
+                            color: Colors.orange,
+                          ),
+                          _buildOption(
+                            icon: Icons.calendar_month_outlined,
+                            title: 'All Bookings',
+                            subtitle: 'View and manage all facility bookings',
+                            onTap: () => Get.to(() => const OwnerBookingsView()),
+                            color: Colors.green,
+                          ),
+                          _buildOption(
+                            icon: Icons.rate_review_outlined,
+                            title: 'Review Moderation',
+                            subtitle: 'Manage player feedback & ratings',
+                            onTap: () => Get.to(() => const ReviewModerationPage()),
+                            color: Colors.purple,
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                            child: Divider(height: 32),
+                          ),
+                        ],
 
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
-                        child: Divider(height: 32),
-                      ),
+                        _buildSectionTitle('ACCOUNT'),
+                        _buildOption(
+                          icon: Icons.person_outline,
+                          title: 'Personal Information',
+                          subtitle: 'Update your name, email and details',
+                          onTap: () => Get.to(() => const EditProfilePage()),
+                          color: Colors.teal,
+                        ),
+                        _buildOption(
+                          icon: Icons.lock_outline,
+                          title: 'Change Password',
+                          subtitle: 'Update your account security',
+                          onTap: () => Get.to(
+                            () => const SettingDetailPage(),
+                            arguments: const {
+                              'title': 'Change Password',
+                              'description': 'Update your password',
+                            },
+                          ),
+                          color: Colors.blueGrey,
+                        ),
 
-                      _buildSectionTitle('SUPPORT'),
-                      _buildOption(
-                        icon: Icons.help_outline,
-                        title: 'Help & FAQ',
-                        subtitle: 'Find answers and contact support',
-                        onTap: () => Get.to(() => const ContactPage()),
-                        color: Colors.deepPurple,
-                      ),
-                      _buildOption(
-                        icon: Icons.mark_email_read_outlined,
-                        title: 'Newsletter',
-                        subtitle: 'Subscribe for updates and deals',
-                        onTap: () => Get.to(() => const NewsletterSubscribePage()),
-                        color: Colors.teal,
-                      ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                          child: Divider(height: 32),
+                        ),
 
-                      const SizedBox(height: AppSpacing.l),
-                      _buildLogoutButton(landingController),
-                      const SizedBox(height: AppSpacing.xl),
-                    ],
-                  ),
+                        _buildSectionTitle(isOwner ? 'PERSONAL ACTIVITY' : 'ACTIVITY'),
+                        _buildOption(
+                          icon: Icons.calendar_today_outlined,
+                          title: 'My Match Bookings',
+                          subtitle: 'Upcoming and past arena games',
+                          onTap: () => Get.to(() => const UserBookingsPage()),
+                          color: Colors.blue,
+                        ),
+                        _buildOption(
+                          icon: Icons.account_balance_wallet_outlined,
+                          title: isOwner ? 'Earnings & Wallet' : 'Wallet & Withdrawals',
+                          subtitle: 'Balance and cash-out requests',
+                          onTap: () => Get.to(() => const WalletPage()),
+                          color: Colors.green,
+                        ),
+                        if (!isOwner) ...[
+                          _buildOption(
+                            icon: Icons.favorite_border,
+                            title: 'Saved Grounds',
+                            subtitle: 'Quick access to your favorite arenas',
+                            onTap: () => Get.to(() => const FavoritesPage()),
+                            color: Colors.red,
+                          ),
+                          _buildOption(
+                            icon: Icons.event_seat_outlined,
+                            title: 'My Booked Events',
+                            subtitle: 'Manage events you have joined',
+                            onTap: () => Get.to(() => const JoinedEventsPage()),
+                            color: Colors.cyan,
+                          ),
+                        ],
+                        _buildOption(
+                          icon: Icons.event_note_outlined,
+                          title: 'My Managed Events',
+                          subtitle: 'Events you organize for the community',
+                          onTap: () => Get.to(() => const ManagedEventsPage()),
+                          color: Colors.pink,
+                        ),
+                        if (!isOwner)
+                          _buildOption(
+                            icon: Icons.local_offer_outlined,
+                            title: 'Active Promo Codes',
+                            subtitle: 'Exclusive deals just for you',
+                            onTap: () => Get.to(() => const DealsPage()),
+                            color: Colors.orange,
+                          ),
+
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                          child: Divider(height: 32),
+                        ),
+
+                        _buildSectionTitle('SETTINGS'),
+                        _buildOption(
+                          icon: Icons.notifications_none_outlined,
+                          title: 'Notifications',
+                          subtitle: 'Manage alerts and push notifications',
+                          onTap: () => Get.to(() => const NotificationsPage()),
+                          color: Colors.amber,
+                        ),
+                        _buildOption(
+                          icon: Icons.policy_outlined,
+                          title: 'Privacy Policy',
+                          subtitle: 'How we handle your data',
+                          onTap: () => Get.to(() => const PrivacyPolicyPage()),
+                          color: Colors.blueGrey,
+                        ),
+                        _buildOption(
+                          icon: Icons.gavel_outlined,
+                          title: 'Terms & Conditions',
+                          subtitle: 'Legal terms for using the platform',
+                          onTap: () => Get.to(() => const TermsPage()),
+                          color: Colors.indigo,
+                        ),
+                        _buildOption(
+                          icon: Icons.rule_outlined,
+                          title: 'Booking Policy',
+                          subtitle: 'Reservations and time windows',
+                          onTap: () => Get.to(() => const BookingPolicyPage()),
+                          color: Colors.deepOrange,
+                        ),
+                        _buildOption(
+                          icon: Icons.policy,
+                          title: 'Cancellation & Refund Policy',
+                          subtitle: 'Cancellation rules and refunds',
+                          onTap: () => Get.to(() => const CancellationPolicyPage()),
+                          color: Colors.brown,
+                        ),
+
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                          child: Divider(height: 32),
+                        ),
+
+                        _buildSectionTitle('SUPPORT'),
+                        _buildOption(
+                          icon: Icons.help_outline,
+                          title: 'Help & FAQ',
+                          subtitle: 'Find answers and contact support',
+                          onTap: () => Get.to(() => const ContactPage()),
+                          color: Colors.deepPurple,
+                        ),
+                        _buildOption(
+                          icon: Icons.mark_email_read_outlined,
+                          title: 'Newsletter',
+                          subtitle: 'Subscribe for updates and deals',
+                          onTap: () => Get.to(() => const NewsletterSubscribePage()),
+                          color: Colors.teal,
+                        ),
+
+                        const SizedBox(height: AppSpacing.l),
+                        _buildLogoutButton(landingController),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
+                    );
+                  }),
                 ),
                 const SizedBox(height: AppSpacing.l),
                 // Branding Footer
@@ -204,7 +269,6 @@ class ProfilePage extends StatelessWidget {
                       AppConstants.appLogo,
                       height: 30,
                       fit: BoxFit.contain,
-                      // color: AppColors.textMuted.withOpacity(0.5),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -229,7 +293,11 @@ class ProfilePage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 60, AppSpacing.xl, 40),
       decoration: const BoxDecoration(
-        color: AppColors.primary,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.primary, Color(0xFF1B6CF2)],
+        ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
       ),
       child: Obx(() {

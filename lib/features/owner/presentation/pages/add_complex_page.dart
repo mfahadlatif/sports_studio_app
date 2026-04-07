@@ -36,20 +36,12 @@ class _AddComplexPageState extends State<AddComplexPage> {
   bool _isActive = true;
 
   final List<XFile> _pickedImages = [];
+  final List<String> _existingUrls = [];
   final ImagePicker _picker = ImagePicker();
 
   bool get _isEdit => widget.complex != null;
 
-  List<String> get _existingImageUrls {
-    if (!_isEdit || widget.complex == null) return [];
-    final c = widget.complex as Map<String, dynamic>;
-    final list = UrlHelper.getParsedImages(c['images']);
-    if (list.isNotEmpty) return list.map(UrlHelper.sanitizeUrl).toList();
-    if (c['image_path'] != null && c['image_path'].toString().isNotEmpty) {
-      return [UrlHelper.sanitizeUrl(c['image_path'].toString())];
-    }
-    return [];
-  }
+
 
   final List<Map<String, String>> _facilityConfigs = [
     {'id': 'parking', 'name': 'Parking', 'icon': '🅿️', 'asset': 'assets/Icons/FreeParking.png'},
@@ -79,6 +71,14 @@ class _AddComplexPageState extends State<AddComplexPage> {
       final status = c['status'];
       _isActive = status == 'active' || status == 1 || status == true;
 
+      // Initialize existing images
+      final list = UrlHelper.getParsedImages(c['images']);
+      if (list.isNotEmpty) {
+        _existingUrls.addAll(list.map(UrlHelper.sanitizeUrl).toList());
+      } else if (c['image_path'] != null && c['image_path'].toString().isNotEmpty) {
+        _existingUrls.add(UrlHelper.sanitizeUrl(c['image_path'].toString()));
+      }
+
       // Pre-select amenities
       try {
         if (c['amenities'] != null) {
@@ -103,8 +103,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
       return;
     }
 
-    // Image validation: Must have at least one image (either new or existing)
-    if (_pickedImages.isEmpty && _existingImageUrls.isEmpty) {
+    if (_pickedImages.isEmpty && _existingUrls.isEmpty) {
       AppUtils.showError(message: 'Please upload at least one image for your complex.');
       return;
     }
@@ -124,16 +123,13 @@ class _AddComplexPageState extends State<AddComplexPage> {
       if (_isEdit) {
         final id = widget.complex['id'];
         
+        dio_form.FormData formData = dio_form.FormData.fromMap({
+          ...dataMap,
+          '_method': 'PUT',
+          if (_existingUrls.isNotEmpty) 'images': jsonEncode(_existingUrls),
+        });
+        
         if (_pickedImages.isNotEmpty) {
-          // If images are picked, we must use FormData. 
-          // Laravel requires POST with _method=PUT for multipart updates.
-          final existing = UrlHelper.getParsedImages(widget.complex['images']);
-          dio_form.FormData formData = dio_form.FormData.fromMap({
-            ...dataMap,
-            '_method': 'PUT',
-            if (existing.isNotEmpty) 'images': jsonEncode(existing),
-          });
-          
           for (var file in _pickedImages) {
             formData.files.add(
               MapEntry(
@@ -145,20 +141,13 @@ class _AddComplexPageState extends State<AddComplexPage> {
               ),
             );
           }
-          
-          final res = await ApiClient().dio.post('/complexes/$id', data: formData);
-          if (res.statusCode == 200 || res.statusCode == 201) {
-            _onSuccess('Complex updated successfully!');
-          }
-        } else {
-          // Normal JSON update if no new images
-          final res = await ApiClient().dio.put('/complexes/$id', data: dataMap);
-          if (res.statusCode == 200 || res.statusCode == 201) {
-            _onSuccess('Complex updated successfully!');
-          }
+        }
+        
+        final res = await ApiClient().dio.post('/complexes/$id', data: formData);
+        if (res.statusCode == 200 || res.statusCode == 201) {
+          _onSuccess('Complex updated successfully!');
         }
       } else {
-        // Add: POST with FormData
         dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
         for (var file in _pickedImages) {
           formData.files.add(
@@ -179,9 +168,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
       }
     } on dio_form.DioException catch (e) {
       debugPrint('❌ [AddComplex] Error: ${e.response?.data}');
-      String msg = _isEdit
-          ? 'Failed to update complex'
-          : 'Failed to create complex';
+      String msg = _isEdit ? 'Failed to update complex' : 'Failed to create complex';
       if (e.response?.data != null && e.response?.data['message'] != null) {
         msg = e.response?.data['message'];
       }
@@ -198,8 +185,24 @@ class _AddComplexPageState extends State<AddComplexPage> {
       final groundsController = Get.find<GroundsController>();
       groundsController.fetchComplexesAndGrounds();
     } catch (_) {}
+    
     Get.back(result: true);
-    AppUtils.showSuccess(message: message);
+    
+    if (!_isEdit) {
+      Get.defaultDialog(
+        title: 'Submission Successful',
+        contentPadding: const EdgeInsets.all(AppSpacing.m),
+        titleStyle: AppTextStyles.h3,
+        middleText: 'Your complex has been added successfully. Please wait for admin approval. Once approved, your complex will be activated.',
+        middleTextStyle: AppTextStyles.bodySmall,
+        textConfirm: 'Got it',
+        confirmTextColor: Colors.white,
+        buttonColor: AppColors.primary,
+        onConfirm: () => Get.back(),
+      );
+    } else {
+      AppUtils.showSuccess(message: message);
+    }
   }
 
   Future<void> _pickImages() async {
@@ -240,7 +243,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Basic Information Card ──────────────────────────────
             _Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,7 +252,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     label: 'Basic Information',
                   ),
                   const SizedBox(height: AppSpacing.m),
-
                   _lbl('Complex Name *'),
                   _textField(
                     _nameCtrl,
@@ -258,7 +259,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     Icons.business_outlined,
                   ),
                   const SizedBox(height: AppSpacing.m),
-
                   _lbl('Location / Area *'),
                   AddressAutocompleteField(
                     controller: _addressCtrl,
@@ -268,7 +268,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     lngController: _lngCtrl,
                   ),
                   const SizedBox(height: AppSpacing.m),
-
                   _lbl('Description'),
                   TextField(
                     controller: _descCtrl,
@@ -277,23 +276,18 @@ class _AddComplexPageState extends State<AddComplexPage> {
                       color: AppColors.textPrimary,
                     ),
                     decoration: InputDecoration(
-                      hintText:
-                          'Describe your sports complex, highlights, and special features...',
+                      hintText: 'Describe your sports complex, highlights, and special features...',
                       hintStyle: AppTextStyles.bodySmall,
                       filled: true,
                       fillColor: AppColors.inputBackground,
                       contentPadding: const EdgeInsets.all(14),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.borderRadius,
-                        ),
+                        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                         borderSide: BorderSide.none,
                       ),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.m),
-
-                  // ── Status toggle (inside same card, like web) ──
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.m,
@@ -301,9 +295,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.inputBackground,
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.borderRadius,
-                      ),
+                      borderRadius: BorderRadius.circular(AppConstants.borderRadius),
                     ),
                     child: Row(
                       children: [
@@ -341,8 +333,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
               ),
             ),
             const SizedBox(height: AppSpacing.m),
-
-            // ── Complex Images & Gallery Card ───────────────────────
             _Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -357,8 +347,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
               ),
             ),
             const SizedBox(height: AppSpacing.m),
-
-            // ── Facilities Card ─────────────────────────────────────
             _Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -381,8 +369,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
               ),
             ),
             const SizedBox(height: AppSpacing.l),
-
-            // ── Action Buttons ──────────────────────────────────────
             Row(
               children: [
                 Expanded(
@@ -391,14 +377,9 @@ class _AddComplexPageState extends State<AddComplexPage> {
                     child: OutlinedButton(
                       onPressed: _isLoading ? null : () => Get.back(),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: AppColors.border,
-                          width: 1.5,
-                        ),
+                        side: const BorderSide(color: AppColors.border, width: 1.5),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppConstants.buttonRadius + 4,
-                          ),
+                          borderRadius: BorderRadius.circular(AppConstants.buttonRadius + 4),
                         ),
                       ),
                       child: Text(
@@ -420,37 +401,21 @@ class _AddComplexPageState extends State<AddComplexPage> {
                       onPressed: _isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        disabledBackgroundColor: AppColors.primary.withOpacity(
-                          0.7,
-                        ),
+                        disabledBackgroundColor: AppColors.primary.withOpacity(0.7),
                         elevation: 2,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppConstants.buttonRadius + 4,
-                          ),
+                          borderRadius: BorderRadius.circular(AppConstants.buttonRadius + 4),
                         ),
                       ),
                       child: _isLoading
-                          ? const AppProgressIndicator(
-                              size: 20,
-                              color: Colors.white,
-                              strokeWidth: 2.5,
-                            )
+                          ? const AppProgressIndicator(size: 20, color: Colors.white, strokeWidth: 2.5)
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(
-                                  _isEdit
-                                      ? Icons.update_rounded
-                                      : Icons.save_rounded,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
+                                Icon(_isEdit ? Icons.update_rounded : Icons.save_rounded, size: 18, color: Colors.white),
                                 const SizedBox(width: 8),
                                 Text(
-                                  _isEdit
-                                      ? 'Update Complex'
-                                      : 'Save & Continue',
+                                  _isEdit ? 'Update Complex' : 'Save & Continue',
                                   style: AppTextStyles.bodySmall.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
@@ -475,15 +440,10 @@ class _AddComplexPageState extends State<AddComplexPage> {
       width: 100,
       height: 100,
       color: AppColors.primaryLight,
-      child: const Icon(
-        Icons.add_photo_alternate_outlined,
-        color: AppColors.primary,
-        size: 32,
-      ),
+      child: const Icon(Icons.add_photo_alternate_outlined, color: AppColors.primary, size: 32),
     );
   }
 
-  // ── Image Section ────────────────────────────────────────────────
   Widget _buildImageSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -497,93 +457,65 @@ class _AddComplexPageState extends State<AddComplexPage> {
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               border: Border.all(
-                color: _pickedImages.isEmpty
-                    ? AppColors.primary.withOpacity(0.3)
-                    : AppColors.primary.withOpacity(0.6),
+                color: _pickedImages.isEmpty ? AppColors.primary.withOpacity(0.3) : AppColors.primary.withOpacity(0.6),
                 width: 1.5,
               ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.add_photo_alternate_outlined,
-                  size: 36,
-                  color: AppColors.primary,
-                ),
+                const Icon(Icons.add_photo_alternate_outlined, size: 36, color: AppColors.primary),
                 const SizedBox(height: 10),
                 Text(
                   _pickedImages.isEmpty
                       ? 'Tap to upload complex photos'
                       : '${_pickedImages.length} image${_pickedImages.length > 1 ? 's' : ''} selected — tap to add more',
-                  style: AppTextStyles.label.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: AppTextStyles.label.copyWith(color: AppColors.primary, fontWeight: FontWeight.w700),
                   textAlign: TextAlign.center,
                 ),
-                if (_pickedImages.isEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    'JPG, PNG supported',
-                    style: AppTextStyles.label.copyWith(
-                      color: AppColors.textMuted,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
         ),
-        if (_existingImageUrls.isNotEmpty) ...[
+        if (_existingUrls.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.m),
-          Text(
-            'Current photos',
-            style: AppTextStyles.label.copyWith(color: AppColors.textMuted),
-          ),
+          Text('Current photos', style: AppTextStyles.label.copyWith(color: AppColors.textMuted)),
           const SizedBox(height: 6),
           SizedBox(
             height: 100,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              itemCount: _existingImageUrls.length,
+              itemCount: _existingUrls.length,
               itemBuilder: (context, index) {
-                final url = _existingImageUrls[index];
-                return Container(
-                  margin: const EdgeInsets.only(right: 10),
-                  width: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadius,
+                final url = _existingUrls[index];
+                return Stack(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(right: 10),
+                      width: 100,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                        child: url.startsWith('http')
+                            ? Image.network(url, fit: BoxFit.cover, width: 100, height: 100, errorBuilder: (_, __, ___) => _imagePlaceholder())
+                            : _imagePlaceholder(),
+                      ),
                     ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.borderRadius,
+                    Positioned(
+                      top: 4, right: 14,
+                      child: GestureDetector(
+                        onTap: () => setState(() => _existingUrls.removeAt(index)),
+                        child: const CircleAvatar(radius: 10, backgroundColor: Colors.red, child: Icon(Icons.close, size: 12, color: Colors.white)),
+                      ),
                     ),
-                    child: url.startsWith('http')
-                        ? Image.network(
-                            url,
-                            fit: BoxFit.cover,
-                            width: 100,
-                            height: 100,
-                            errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                          )
-                        : _imagePlaceholder(),
-                  ),
+                  ],
                 );
               },
             ),
           ),
-          const SizedBox(height: AppSpacing.m),
         ],
         if (_pickedImages.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.m),
-          Text(
-            'New photos',
-            style: AppTextStyles.label.copyWith(color: AppColors.textMuted),
-          ),
+          Text('New photos', style: AppTextStyles.label.copyWith(color: AppColors.textMuted)),
           const SizedBox(height: 6),
           SizedBox(
             height: 100,
@@ -591,48 +523,21 @@ class _AddComplexPageState extends State<AddComplexPage> {
               scrollDirection: Axis.horizontal,
               itemCount: _pickedImages.length,
               itemBuilder: (context, index) {
-                final file = File(_pickedImages[index].path);
                 return Stack(
                   children: [
                     Container(
                       margin: const EdgeInsets.only(right: 10),
                       width: 100,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.borderRadius,
-                        ),
-                      ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.borderRadius,
-                        ),
-                        child: Image.file(
-                          file,
-                          fit: BoxFit.cover,
-                          width: 100,
-                          height: 100,
-                          errorBuilder: (_, __, ___) => _imagePlaceholder(),
-                        ),
+                        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
+                        child: Image.file(File(_pickedImages[index].path), fit: BoxFit.cover, width: 100, height: 100),
                       ),
                     ),
                     Positioned(
-                      top: 4,
-                      right: 14,
+                      top: 4, right: 14,
                       child: GestureDetector(
-                        onTap: () =>
-                            setState(() => _pickedImages.removeAt(index)),
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.close,
-                            size: 12,
-                            color: Colors.white,
-                          ),
-                        ),
+                        onTap: () => setState(() => _pickedImages.removeAt(index)),
+                        child: const CircleAvatar(radius: 10, backgroundColor: Colors.red, child: Icon(Icons.close, size: 12, color: Colors.white)),
                       ),
                     ),
                   ],
@@ -645,87 +550,31 @@ class _AddComplexPageState extends State<AddComplexPage> {
     );
   }
 
-  // ── Facilities Grid ──────────────────────────────────────────────
   Widget _buildAmenitiesGrid() {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 2.4,
+        crossAxisCount: 2, crossAxisSpacing: 10, mainAxisSpacing: 10, childAspectRatio: 2.4,
       ),
       itemCount: _facilityConfigs.length,
       itemBuilder: (context, index) {
         final facility = _facilityConfigs[index];
         final isSelected = _selectedAmenities.contains(facility['id']);
-        final assetPath = facility['asset'];
         return GestureDetector(
-          onTap: () {
-            setState(() {
-              if (isSelected) {
-                _selectedAmenities.remove(facility['id']);
-              } else {
-                _selectedAmenities.add(facility['id']!);
-              }
-            });
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          onTap: () => setState(() => isSelected ? _selectedAmenities.remove(facility['id']) : _selectedAmenities.add(facility['id']!)),
+          child: Container(
             decoration: BoxDecoration(
               color: isSelected ? AppColors.primary : Colors.white,
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-              border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.border,
-                width: isSelected ? 0 : 1.5,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: AppColors.primary.withOpacity(0.25),
-                        blurRadius: 8,
-                        offset: const Offset(0, 3),
-                      ),
-                    ]
-                  : [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+              border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
             ),
             child: Row(
               children: [
-                if (assetPath != null)
-                  Image.asset(
-                    assetPath, 
-                    width: 24, 
-                    height: 24, 
-                    fit: BoxFit.contain,
-                    color: isSelected ? Colors.white : null,
-                  )
-                else
-                  Text(
-                    facility['icon']!,
-                    style: TextStyle(fontSize: isSelected ? 22 : 20),
-                  ),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    facility['name']!,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : AppColors.textPrimary,
-                      letterSpacing: 0.5,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+                Text(facility['icon']!, style: const TextStyle(fontSize: 20)),
+                const SizedBox(width: 10),
+                Expanded(child: Text(facility['name']!, style: TextStyle(color: isSelected ? Colors.white : AppColors.textPrimary, fontWeight: FontWeight.w700))),
               ],
             ),
           ),
@@ -734,38 +583,19 @@ class _AddComplexPageState extends State<AddComplexPage> {
     );
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────
   Widget _lbl(String t) => Padding(
     padding: const EdgeInsets.only(bottom: 6),
-    child: Text(
-      t,
-      style: AppTextStyles.label.copyWith(
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w700,
-      ),
-    ),
+    child: Text(t, style: AppTextStyles.label.copyWith(color: AppColors.textPrimary, fontWeight: FontWeight.w700)),
   );
 
-  Widget _textField(
-    TextEditingController ctrl,
-    String hint,
-    IconData icon, {
-    TextInputType? keyboardType,
-  }) => TextField(
+  Widget _textField(TextEditingController ctrl, String hint, IconData icon) => TextField(
     controller: ctrl,
-    keyboardType: keyboardType,
-    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textPrimary),
     decoration: InputDecoration(
       hintText: hint,
-      hintStyle: AppTextStyles.bodySmall,
       prefixIcon: Icon(icon, size: 18, color: AppColors.textMuted),
       filled: true,
       fillColor: AppColors.inputBackground,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-        borderSide: BorderSide.none,
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppConstants.borderRadius), borderSide: BorderSide.none),
     ),
   );
 
@@ -780,7 +610,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
   }
 }
 
-// ── Reusable Card wrapper ─────────────────────────────────────────────
 class _Card extends StatelessWidget {
   final Widget child;
   const _Card({required this.child});
@@ -792,14 +621,9 @@ class _Card extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(AppConstants.cardRadius),
-        border: Border.all(color: AppColors.border.withOpacity(0.6)),
+        borderRadius: BorderRadius.circular(AppConstants.borderRadius + 8),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 15, offset: const Offset(0, 5)),
         ],
       ),
       child: child,

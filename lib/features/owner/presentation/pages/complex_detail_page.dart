@@ -575,6 +575,13 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                         ),
                         ElevatedButton.icon(
                           onPressed: () async {
+                            if (!isActive) {
+                              AppUtils.showError(
+                                message:
+                                    'You can add grounds only after your complex is approved.',
+                              );
+                              return;
+                            }
                             final result = await Get.toNamed(
                               '/add-ground',
                               arguments: {
