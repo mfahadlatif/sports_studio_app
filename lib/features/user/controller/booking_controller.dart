@@ -15,7 +15,7 @@ class BookingController extends GetxController {
   final RxList<String> selectedSlots = <String>[].obs;
   final RxBool isBooking = false.obs;
   final RxInt players = 2.obs;
-  final double serviceFee = 2.0;
+  final double serviceFee = 0.0;
 
   final RxList<String> allSlots = <String>[
     '06:00 AM',
@@ -43,6 +43,8 @@ class BookingController extends GetxController {
   final RxString promoCode = ''.obs;
   final RxBool isCheckingPromo = false.obs;
   final Rxn<Deal> selectedDeal = Rxn<Deal>();
+  final RxList<Deal> availableDeals = <Deal>[].obs;
+  final RxBool isLoadingDeals = false.obs;
 
   double get discount => selectedDeal.value != null 
     ? (subtotal * (selectedDeal.value!.discountPercentage / 100)) 
@@ -62,6 +64,7 @@ class BookingController extends GetxController {
         final id = int.tryParse(idData.toString());
         if (id != null) {
           fetchAvailability(id);
+          fetchAvailableDeals(ground);
         }
       }
     }
@@ -189,6 +192,25 @@ class BookingController extends GetxController {
       selectedSlots.remove(slot);
     } else {
       selectedSlots.add(slot);
+    }
+  }
+
+  Future<void> fetchAvailableDeals(dynamic ground) async {
+    isLoadingDeals.value = true;
+    try {
+      final deals = await _dealApiService.getPublicDeals();
+      final now = DateTime.now();
+      final groundSport = (ground?['type'] ?? '').toString().toLowerCase();
+
+      availableDeals.value = deals.where((deal) {
+        return deal.isActive && 
+               deal.validUntil.isAfter(now) && 
+               _dealAppliesToSport(deal.applicableSports, groundSport);
+      }).toList();
+    } catch (e) {
+      print('Error fetching available deals: $e');
+    } finally {
+      isLoadingDeals.value = false;
     }
   }
 

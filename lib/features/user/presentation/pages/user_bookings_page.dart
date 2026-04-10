@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -5,10 +7,12 @@ import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
 import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/user_booking_detail_page.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class UserBookingsPage extends StatelessWidget {
   const UserBookingsPage({super.key});
@@ -24,16 +28,54 @@ class UserBookingsPage extends StatelessWidget {
         appBar: AppBar(
           title: const Text('My Match Bookings'),
           centerTitle: true,
-          bottom: const TabBar(
-            isScrollable: false,
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.textMuted,
-            tabs: [
-              Tab(text: 'Upcoming'),
-              Tab(text: 'Past'),
-              Tab(text: 'Cancelled'),
-            ],
+          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.textPrimary,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(50),
+            child: Container(
+              height: 42,
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                padding: const EdgeInsets.all(0),
+                indicatorSize: TabBarIndicatorSize.tab,
+                isScrollable: false,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                labelColor: AppColors.surface,
+                unselectedLabelColor: AppColors.textMuted,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                indicatorPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                tabs: const [
+                  Tab(text: 'Upcoming'),
+                  Tab(text: 'History'),
+                  Tab(text: 'Cancelled'),
+                ],
+              ),
+            ),
           ),
         ),
         body: TabBarView(
@@ -153,9 +195,13 @@ class _BookingCard extends StatelessWidget {
       timeRange = '${booking['start_time']} - ${booking['end_time']}';
     }
 
-    final totalAmount = double.tryParse((booking['price'] ?? 0).toString()) ?? 0.0;
+    final totalAmount =
+        double.tryParse((booking['price'] ?? 0).toString()) ?? 0.0;
     final status = booking['status'] ?? 'pending';
     final paymentStatus = booking['payment_status'] ?? 'unpaid';
+
+    final ground = booking['ground'] is Map ? booking['ground'] as Map : null;
+    final groundImage = UrlHelper.getFirstImage(ground?['images']);
 
     Color statusColor;
     IconData statusIcon;
@@ -174,16 +220,24 @@ class _BookingCard extends StatelessWidget {
         break;
       default:
         statusColor = Colors.orange;
-        statusIcon = Icons.access_time;
+        statusIcon = Icons.access_time_rounded;
     }
 
+    final expiresRaw = booking['payment_expires_at'];
+    final expiresAt = expiresRaw != null
+        ? DateTime.tryParse(expiresRaw.toString())
+        : null;
+    final isExpired = expiresAt != null && DateTime.now().isAfter(expiresAt);
+    final canPay =
+        paymentStatus == 'unpaid' &&
+        (status == 'pending' || status == 'confirmed') &&
+        !isExpired;
+
     return GestureDetector(
-      onTap: () => Get.to(
-        () => const UserBookingDetailPage(),
-        arguments: booking,
-      ),
+      onTap: () =>
+          Get.to(() => const UserBookingDetailPage(), arguments: booking),
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.m),
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -191,161 +245,188 @@ class _BookingCard extends StatelessWidget {
             BoxShadow(
               color: Colors.black.withOpacity(0.04),
               blurRadius: 20,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-        child: Column(
-          children: [
-            Padding(
-            padding: const EdgeInsets.all(AppSpacing.l),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Sport Icon / Ground Image Placeholder (Web Sync Emojis)
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      isEvent ? Icons.confirmation_number_outlined : AppUtils.getSportIcon(sportType),
-                      color: AppColors.primary,
-                      size: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              isEvent ? 'EVENT' : sportType,
-                              style: AppTextStyles.label.copyWith(
-                                color: AppColors.primary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            children: [
+              // Ticket Top: Match Discovery
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Hero(
+                      tag: 'booking_img_${booking['id']}',
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: CachedNetworkImage(
+                          imageUrl: groundImage,
+                          width: 90,
+                          height: 90,
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Container(
+                            width: 90,
+                            height: 90,
+                            color: Colors.grey[100],
+                            child: const Center(
+                              child: AppProgressIndicator(size: 20),
                             ),
                           ),
-                          _StatusBadge(
-                            status: status,
-                            color: statusColor,
-                            icon: statusIcon,
+                          errorWidget: (context, url, error) => Container(
+                            width: 90,
+                            height: 90,
+                            color: AppColors.primaryLight,
+                            child: Icon(
+                              AppUtils.getSportIcon(sportType),
+                              color: AppColors.primary,
+                            ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(displayName, style: AppTextStyles.h3),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Booking ID: #${booking['id']}',
-                        style: AppTextStyles.label.copyWith(
-                          color: AppColors.textMuted,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, indent: 20, endIndent: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l, vertical: AppSpacing.m),
-            child: Wrap(
-              spacing: AppSpacing.m,
-              runSpacing: AppSpacing.s,
-              children: [
-                _InfoItem(Icons.calendar_today_outlined, dateStr),
-                _InfoItem(Icons.access_time, timeRange),
-                _InfoItem(
-                  Icons.payment_outlined,
-                  paymentStatus.toString().toUpperCase(),
-                  color: paymentStatus == 'paid'
-                      ? Colors.green
-                      : Colors.orange,
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.l),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.03),
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(24),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'TOTAL AMOUNT',
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.textMuted,
-                        fontSize: 10,
-                        letterSpacing: 1,
-                      ),
                     ),
-                    Text(
-                      '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(totalAmount)}',
-                      style: AppTextStyles.h3.copyWith(
-                        color: AppColors.primary,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                sportType,
+                                style: AppTextStyles.label.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 10,
+                                ),
+                              ),
+                              const Spacer(),
+                              _StatusTag(status: status, color: statusColor),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            displayName,
+                            style: AppTextStyles.h3.copyWith(fontSize: 18),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Booking ID: #${booking['id']}',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textMuted,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-                if (!isEvent && (status == 'pending' || status == 'confirmed') && booking['payment_method'] == 'cash')
-                  Row(
-                    children: [
-                      if (paymentStatus == 'unpaid' && status == 'confirmed')
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: ElevatedButton(
-                            onPressed: () => Get.to(
-                              () => const PaymentPage(),
-                              arguments: {
-                                'bookingId': booking['id'],
-                                'totalPrice': totalAmount,
-                              },
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: const Text('Pay Now', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+
+              // Dotted Ticket Divider
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: List.generate(
+                    20,
+                    (index) => Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 2),
+                        height: 1,
+                        color: Colors.grey[200],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Match Schedule Section
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    _DetailPill(Icons.calendar_month_rounded, dateStr),
+                    const SizedBox(width: 8),
+                    _DetailPill(Icons.history_toggle_off_rounded, timeRange),
+                  ],
+                ),
+              ),
+
+              // Footer: Price & Actions
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.04),
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.withOpacity(0.05)),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'TOTAL PAYABLE',
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.textMuted,
+                            fontSize: 9,
+                            letterSpacing: 0.5,
                           ),
                         ),
+                        Text(
+                          '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(totalAmount)}',
+                          style: AppTextStyles.h2.copyWith(
+                            color: AppColors.primary,
+                            fontSize: 22,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    if (canPay) ...[
+                      if (expiresAt != null && status == 'pending')
+                        _BookingCountdown(expiresAt: expiresAt),
+                      const SizedBox(width: 12),
+                      ElevatedButton(
+                        onPressed: () => Get.to(
+                          () => const PaymentPage(),
+                          arguments: {
+                            'bookingId': booking['id'],
+                            'totalPrice': totalAmount,
+                          },
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Pay Now',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ] else if (status == 'pending' || status == 'confirmed')
                       _CancelButton(
                         onPressed: () => _confirmCancel(context, booking),
                       ),
-                    ],
-                  ),
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
         ),
       ),
     );
@@ -363,6 +444,132 @@ class _BookingCard extends StatelessWidget {
         Get.back();
         controller.updateBookingStatus(booking, 'cancelled');
       },
+    );
+  }
+}
+
+class _StatusTag extends StatelessWidget {
+  final String status;
+  final Color color;
+
+  const _StatusTag({required this.status, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailPill extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _DetailPill(this.icon, this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[100]!),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textMuted),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BookingCountdown extends StatefulWidget {
+  final DateTime expiresAt;
+  const _BookingCountdown({required this.expiresAt});
+
+  @override
+  State<_BookingCountdown> createState() => _BookingCountdownState();
+}
+
+class _BookingCountdownState extends State<_BookingCountdown> {
+  late Timer _timer;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _update();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) => _update());
+  }
+
+  void _update() {
+    final diff = widget.expiresAt.difference(DateTime.now());
+    if (mounted) {
+      setState(() => _remaining = diff.isNegative ? Duration.zero : diff);
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_remaining.isNegative || _remaining == Duration.zero) {
+      return const SizedBox.shrink();
+    }
+    final mins = _remaining.inMinutes.toString().padLeft(2, '0');
+    final secs = (_remaining.inSeconds % 60).toString().padLeft(2, '0');
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.red.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.timer_outlined, size: 10, color: Colors.red),
+          const SizedBox(width: 4),
+          Text(
+            'Expires in $mins:$secs',
+            style: const TextStyle(
+              color: Colors.red,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -14,6 +14,7 @@ import 'package:sports_studio/features/user/presentation/pages/create_match_page
 import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
 import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:sports_studio/core/constants/user_roles.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -47,13 +48,29 @@ class HomeView extends StatelessWidget {
                         },
                       ),
                       const SizedBox(width: AppSpacing.m),
-                      _buildQuickAction(
-                        'Host Match',
-                        LucideIcons.circlePlay,
-                        Colors.orange,
-                        () => Get.to(() => const CreateMatchPage()),
-                      ),
-                      const SizedBox(width: AppSpacing.m),
+                      Obx(() {
+                        final landingController =
+                            Get.find<sports_landing.LandingController>();
+                        final isOwner =
+                            landingController.currentRole.value ==
+                            UserRole.owner;
+
+                        if (isOwner) return const SizedBox.shrink();
+
+                        return Expanded(
+                          child: Row(
+                            children: [
+                              _buildQuickAction(
+                                'Host Match',
+                                LucideIcons.circlePlay,
+                                Colors.orange,
+                                () => Get.to(() => const CreateMatchPage()),
+                              ),
+                              const SizedBox(width: AppSpacing.m),
+                            ],
+                          ),
+                        );
+                      }),
                       _buildQuickAction(
                         'My Tickets',
                         LucideIcons.ticket,
@@ -93,7 +110,7 @@ class HomeView extends StatelessWidget {
                     );
                   }
                   return SizedBox(
-                    height: 140,
+                    height: 160,
                     child: ListView.builder(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSpacing.m,
@@ -155,8 +172,7 @@ class HomeView extends StatelessWidget {
                       stats['total_favorites'] ??
                       0;
                   final events = stats['hosted_events'] ?? stats['events'] ?? 0;
-                  final spent =
-                      stats['total_spent'] ?? stats['total_payments'];
+                  final spent = stats['total_spent'] ?? stats['total_payments'];
 
                   return Container(
                     margin: const EdgeInsets.symmetric(
@@ -385,7 +401,7 @@ class HomeView extends StatelessWidget {
     return GestureDetector(
       onTap: () => Get.to(() => const DealsPage()),
       child: Container(
-        width: 250,
+        // width: 250,
         margin: const EdgeInsets.only(right: AppSpacing.m),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),

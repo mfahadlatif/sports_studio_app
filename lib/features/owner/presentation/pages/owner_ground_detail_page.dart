@@ -409,6 +409,13 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
         children: [
           _infoRow('Price per Hour', '${AppConstants.currencySymbol} ${_ground['price_per_hour']}'),
           const Divider(height: AppSpacing.l),
+          _infoRow('Dimensions', _ground['dimensions']?.toString() ?? 'N/A'),
+          const Divider(height: AppSpacing.l),
+          _infoRow(
+            'Capacity',
+            '${_ground['max_participants'] ?? _ground['capacity'] ?? _ground['max_players'] ?? 'N/A'} Players',
+          ),
+          const Divider(height: AppSpacing.l),
           _infoRow(
             'Lighting',
             (_ground['has_lighting'] == 1 || _ground['has_lighting'] == true)

@@ -105,16 +105,50 @@ class _AdminComplexManagementPageState extends State<AdminComplexManagementPage>
                   ],
                 ),
                 const SizedBox(height: AppSpacing.s),
-                TabBar(
-                  controller: _tabController,
-                  labelColor: AppColors.primary,
-                  unselectedLabelColor: AppColors.textSecondary,
-                  indicatorColor: AppColors.primary,
-                  tabs: const [
-                    Tab(icon: Icon(Icons.business_outlined), text: 'Complexes'),
-                    Tab(icon: Icon(Icons.sports_soccer_outlined), text: 'Grounds'),
-                  ],
+                const SizedBox(height: AppSpacing.s),
+                Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    padding: const EdgeInsets.all(0),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    isScrollable: false,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.primary,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    labelColor: AppColors.surface,
+                    unselectedLabelColor: AppColors.textMuted,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    indicatorPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    tabs: const [
+                      Tab(icon: Icon(Icons.business_outlined, size: 18), text: 'Complexes'),
+                      Tab(icon: Icon(Icons.sports_soccer_outlined, size: 18), text: 'Grounds'),
+                    ],
+                  ),
                 ),
+                const SizedBox(height: AppSpacing.m),
                 const SizedBox(height: AppSpacing.m),
                 Expanded(
                   child: _loading

@@ -83,6 +83,11 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           'addressdetails': 1,
           'limit': 5,
         },
+        options: Options(
+          headers: {
+            'User-Agent': 'SportsStudioApp/1.0',
+          },
+        ),
       );
 
       if (mounted) {

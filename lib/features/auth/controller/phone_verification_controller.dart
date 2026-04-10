@@ -5,6 +5,7 @@ import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PhoneVerificationController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -12,6 +13,10 @@ class PhoneVerificationController extends GetxController {
   final RxString phoneNumber = ''.obs;
   final countryCode = 'PK'.obs;
   final dialCode = '+92'.obs;
+  
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? _verificationId;
+  int? _resendToken;
 
   String formatPhone(String? dCode, String? p) {
     if (dCode == null || p == null) return '';
@@ -55,61 +60,100 @@ class PhoneVerificationController extends GetxController {
 
   Future<bool> requestVerification(String phone) async {
     if (phone.isEmpty) {
-      Get.snackbar('Error', 'Please enter a valid phone number');
+      AppUtils.showError(message: 'Please enter a valid phone number');
       return false;
     }
 
     isLoading.value = true;
-    try {
-      print('🌐 [PhoneVerification] Requesting OTP from backend for: $phone');
-      final response = await ApiClient().dio.post(
-        '/request-phone-verification',
-        data: {'phone': phone},
-      );
+    final completer = Completer<bool>();
 
-      if (response.statusCode == 200) {
-        isLoading.value = false;
-        log('check Phone verification response: ${response.data}');
-        final msg = response.data['message'] ?? 'Verification code sent';
-        AppUtils.showSuccess(title: 'Code Sent', message: msg);
-        
-        // Return true to indicate we can proceed to OTP input
-        return true;
-      }
-      return false;
+    try {
+      print('🌐 [PhoneVerification] Requesting Firebase OTP for: $phone');
+      
+      await _auth.verifyPhoneNumber(
+        phoneNumber: phone,
+        timeout: const Duration(seconds: 60),
+        forceResendingToken: _resendToken,
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification (rare on some devices, common on others)
+          log('✅ [PhoneVerification] Auto-verification completed');
+          await _onFirebaseVerified(phone, credential);
+          if (!completer.isCompleted) completer.complete(true);
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          log('❌ [PhoneVerification] Firebase Error: ${e.code} | ${e.message}');
+          isLoading.value = false;
+          AppUtils.showError(title: 'Verification Failed', message: e.message ?? 'An error occurred');
+          if (!completer.isCompleted) completer.complete(false);
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          log('📩 [PhoneVerification] Code sent to $phone');
+          _verificationId = verificationId;
+          _resendToken = resendToken;
+          isLoading.value = false;
+          AppUtils.showSuccess(title: 'Code Sent', message: 'Verification code has been sent to your phone');
+          if (!completer.isCompleted) completer.complete(true);
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+      );
+      
+      return completer.future;
     } catch (e) {
       isLoading.value = false;
-      print('❌ [PhoneVerification] Backend Request Error: $e');
-      String errorMsg = 'Failed to send code';
-      if (e is DioException) {
-        errorMsg = e.response?.data?['message'] ?? errorMsg;
-      }
-      AppUtils.showError(title: 'Error', message: errorMsg);
+      log('❌ [PhoneVerification] Unexpected Error: $e');
+      AppUtils.showError(title: 'Error', message: 'Failed to initiate verification');
       return false;
     }
   }
 
   Future<bool> verifyPhone(String phone, String code) async {
-    if (code.isEmpty) {
-      AppUtils.showError(message: 'Please enter verification code');
+    if (_verificationId == null) {
+      AppUtils.showError(message: 'Session expired. Please request a new code.');
       return false;
     }
 
     isLoading.value = true;
     try {
-      print('🌐 [PhoneVerification] Verifying OTP with backend: $phone | $code');
-      // Directly call the backend verify endpoint. 
-      // The backend handles both standard and magic code (123456) checks.
+      log('🌐 [PhoneVerification] Verifying SMS Code: $code');
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: _verificationId!,
+        smsCode: code,
+      );
+      
+      return await _onFirebaseVerified(phone, credential);
+    } catch (e) {
+      isLoading.value = false;
+      log('❌ [PhoneVerification] Manual Verify Error: $e');
+      AppUtils.showError(title: 'Error', message: 'Incorrect or expired code');
+      return false;
+    }
+  }
+
+  Future<bool> _onFirebaseVerified(String phone, PhoneAuthCredential credential) async {
+    try {
+      // 1. Sign in with the credential to confirm with Firebase
+      final userCredential = await _auth.signInWithCredential(credential);
+      final firebaseUser = userCredential.user;
+      
+      if (firebaseUser == null) throw Exception('Firebase user is null after sign in');
+
+      // 2. Synchronize with backend
+      log('📡 [PhoneVerification] Syncing with backend...');
       final response = await ApiClient().dio.post(
         '/verify-phone',
-        data: {'phone': phone, 'code': code},
+        data: {
+          'phone': phone,
+          'verified': true,
+          'firebase_uid': firebaseUser.uid,
+          'code': 'firebase_verified', // Handshake with backend
+        },
       );
 
       if (response.statusCode == 200) {
         isVerified.value = true;
         phoneNumber.value = phone;
-        
-        final backendMessage = response.data['message'] ?? 'Phone verified successfully';
         
         // Refresh profile to update UI flags
         try {
@@ -117,17 +161,16 @@ class PhoneVerificationController extends GetxController {
           await profileController.fetchProfile();
         } catch (_) {}
 
-        AppUtils.showSuccess(title: 'Success', message: backendMessage);
         return true;
       }
       return false;
     } catch (e) {
-      String msg = 'Verification failed';
+      log('❌ [PhoneVerification] Backend Sync Error: $e');
+      String msg = 'Failed to sync verification with server';
       if (e is DioException) {
         msg = e.response?.data?['message'] ?? msg;
       }
-      AppUtils.showError(title: 'Failed', message: msg);
-      print('❌ [PhoneVerification] Verify Error: $e');
+      AppUtils.showError(title: 'Sync Error', message: msg);
       return false;
     } finally {
       isLoading.value = false;

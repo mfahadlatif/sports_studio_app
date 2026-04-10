@@ -72,8 +72,6 @@ class LandingPage extends StatelessWidget {
       GButton(icon: Icons.person_outline, text: 'Profile'),
     ];
 
-    DateTime? lastPressed;
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -88,11 +86,12 @@ class LandingPage extends StatelessWidget {
         // 2. Double-tap to exit logic
         final now = DateTime.now();
         final backButtonHasNotBeenPressedOrSnackBarHasClosed =
-            lastPressed == null ||
-            now.difference(lastPressed!) > const Duration(seconds: 2);
+            controller.lastPressedTime == null ||
+            now.difference(controller.lastPressedTime!) >
+                const Duration(seconds: 2);
 
         if (backButtonHasNotBeenPressedOrSnackBarHasClosed) {
-          lastPressed = now;
+          controller.lastPressedTime = now;
           Get.snackbar(
             'Exit App',
             'Press back again to exit',
@@ -212,53 +211,60 @@ class LandingPage extends StatelessWidget {
             if (constraints.maxWidth > 800) {
               return const SizedBox.shrink(); // Hide bottom nav on web
             }
-            return ClipRRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.8),
-                    boxShadow: [
-                      BoxShadow(
-                        blurRadius: 20,
-                        color: Colors.black.withOpacity(.1),
-                      ),
-                    ],
-                    border: Border(
-                      top: BorderSide(color: Colors.white.withOpacity(0.2)),
-                    ),
+            return Container(
+              margin: const EdgeInsets.fromLTRB(10, 0, 10, 20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    blurRadius: 20,
+                    color: Colors.black.withOpacity(.1),
+                    offset: const Offset(0, 10),
                   ),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 0.0,
-                        vertical: 8,
-                      ),
-                      child: Obx(
-                        () => GNav(
-                          rippleColor: AppColors.primary.withOpacity(0.1),
-                          hoverColor: AppColors.primary.withOpacity(0.05),
-                          gap: 8,
-                          activeColor: AppColors.primary,
-                          iconSize: 24,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 12,
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(30),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12.0,
+                          vertical: 8,
+                        ),
+                        child: Obx(
+                          () => GNav(
+                            rippleColor: AppColors.primary.withOpacity(0.1),
+                            hoverColor: AppColors.primary.withOpacity(0.05),
+                            gap: 8,
+                            activeColor: AppColors.primary,
+                            iconSize: 24,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 12,
+                            ),
+                            duration: const Duration(milliseconds: 400),
+                            tabBackgroundColor: AppColors.primary.withOpacity(
+                              0.1,
+                            ),
+                            color: AppColors.textSecondary,
+                            tabs: controller.currentRole.value == UserRole.user
+                                ? userTabs
+                                : controller.currentRole.value == UserRole.owner
+                                ? ownerTabs
+                                : adminTabs,
+                            selectedIndex: controller.currentNavIndex.value,
+                            onTabChange: (index) {
+                              controller.changeNavIndex(index);
+                            },
                           ),
-                          duration: const Duration(milliseconds: 400),
-                          tabBackgroundColor: AppColors.primary.withOpacity(
-                            0.1,
-                          ),
-                          color: AppColors.textSecondary,
-                          tabs: controller.currentRole.value == UserRole.user
-                              ? userTabs
-                              : controller.currentRole.value == UserRole.owner
-                              ? ownerTabs
-                              : adminTabs,
-                          selectedIndex: controller.currentNavIndex.value,
-                          onTabChange: (index) {
-                            controller.changeNavIndex(index);
-                          },
                         ),
                       ),
                     ),

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -32,16 +33,26 @@ class FullScreenImageViewer extends StatelessWidget {
               itemCount: images.length,
               onPageChanged: (index) => currentIndex.value = index,
               itemBuilder: (context, index) {
+                final path = images[index];
+                final isUrl = path.startsWith('http') || path.startsWith('https');
+
                 return InteractiveViewer(
                   child: Center(
-                    child: CachedNetworkImage(
-                      imageUrl: images[index],
-                      fit: BoxFit.contain,
-                      placeholder: (context, url) =>
-                          const CircularProgressIndicator(color: Colors.white),
-                      errorWidget: (context, url, error) =>
-                          const Icon(Icons.broken_image, color: Colors.white, size: 50),
-                    ),
+                    child: isUrl 
+                      ? CachedNetworkImage(
+                          imageUrl: path,
+                          fit: BoxFit.contain,
+                          placeholder: (context, url) =>
+                              const CircularProgressIndicator(color: Colors.white),
+                          errorWidget: (context, url, error) =>
+                              const Icon(Icons.broken_image, color: Colors.white, size: 50),
+                        )
+                      : Image.file(
+                          File(path),
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => 
+                              const Icon(Icons.broken_image, color: Colors.white, size: 50),
+                        ),
                   ),
                 );
               },

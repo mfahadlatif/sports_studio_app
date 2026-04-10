@@ -86,7 +86,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                     crossAxisCount: 2,
                     crossAxisSpacing: AppSpacing.m,
                     mainAxisSpacing: AppSpacing.m,
-                    childAspectRatio: 1.4,
+                    childAspectRatio: 1.2,
                     children: [
                       _statCard(
                         'Total Revenue',
@@ -135,7 +135,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                   _buildTopGames(),
 
                   const SizedBox(height: AppSpacing.l),
-                  
+
                   // Payment Breakdown
                   _buildSectionTitle('Payment Methods', 'Cash vs Online'),
                   const SizedBox(height: AppSpacing.m),
@@ -211,7 +211,11 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
             children: [
               Text(
                 title.toUpperCase(),
-                style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppColors.textMuted),
+                style: const TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textMuted,
+                ),
               ),
               Text(
                 value,
@@ -226,7 +230,10 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
 
   Widget _miniStatCard(String title, String value, IconData icon, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 8),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.m,
+        vertical: 8,
+      ),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(20),
@@ -242,12 +249,20 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                   title.toUpperCase(),
-                  style: const TextStyle(fontSize: 7, fontWeight: FontWeight.w900, color: AppColors.textMuted),
+                  title.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 7,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textMuted,
+                  ),
                 ),
                 Text(
                   value,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -263,7 +278,15 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title, style: AppTextStyles.h3),
-        Text(subtitle.toUpperCase(), style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900, color: AppColors.textMuted, letterSpacing: 1)),
+        Text(
+          subtitle.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+            color: AppColors.textMuted,
+            letterSpacing: 1,
+          ),
+        ),
       ],
     );
   }
@@ -273,12 +296,14 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
     final values = _revenueTrend
         .map((e) => double.tryParse(e['revenue'].toString()) ?? 0.0)
         .toList();
-    final maxVal = values.isNotEmpty ? values.reduce((a, b) => a > b ? a : b) : 1000;
+    final maxVal = values.isNotEmpty
+        ? values.reduce((a, b) => a > b ? a : b)
+        : 1000;
     final maxRevenue = maxVal > 0 ? maxVal : 1000;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
-      height: 200,
+      height: 210,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -295,7 +320,10 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                 if (val > 0)
                   Text(
                     _fmtShort(val),
-                    style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 const SizedBox(height: 4),
                 Container(
@@ -309,7 +337,10 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                 const SizedBox(height: 6),
                 Text(
                   item['label']?.toString().toUpperCase() ?? '',
-                  style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w900),
+                  style: const TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ],
             ),
@@ -331,7 +362,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
         children: _topGames.map((g) {
           final name = g['name']?.toString().toUpperCase() ?? 'SPORT';
           final pct = (g['percentage'] as num?)?.toDouble() ?? 0;
-          
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Column(
@@ -339,8 +370,21 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(name, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
-                    Text('${pct.toStringAsFixed(1)}%', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      '${pct.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
@@ -379,13 +423,23 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Row(
               children: [
-                Icon(name == 'cash' ? Icons.payments : Icons.credit_card, color: color, size: 16),
+                Icon(
+                  name == 'cash' ? Icons.payments : Icons.credit_card,
+                  color: color,
+                  size: 16,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(name.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                      Text(
+                        name.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                       const SizedBox(height: 4),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
@@ -400,7 +454,14 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Text('${pct.toInt()}%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
+                Text(
+                  '${pct.toInt()}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
               ],
             ),
           );
@@ -411,11 +472,15 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
 
   Widget _buildDayAnalytics() {
     if (_dayStats.isEmpty) return _empty();
-    final maxCount = _dayStats.map((e) => (e['count'] as num).toInt()).reduce((a, b) => a > b ? a : b) * 1.0;
+    final maxCount =
+        _dayStats
+            .map((e) => (e['count'] as num).toInt())
+            .reduce((a, b) => a > b ? a : b) *
+        1.0;
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
-      height: 140,
+      height: 150,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -430,18 +495,34 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
           return Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Text(day['day'].substring(0, 1).toUpperCase(), style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: isPeak ? AppColors.primary : AppColors.textMuted)),
+              Text(
+                day['day'].substring(0, 1).toUpperCase(),
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  color: isPeak ? AppColors.primary : AppColors.textMuted,
+                ),
+              ),
               const SizedBox(height: 8),
               Container(
                 width: 16,
                 height: height.clamp(4.0, 80.0),
                 decoration: BoxDecoration(
-                  color: isPeak ? AppColors.primary : AppColors.primary.withOpacity(0.2),
+                  color: isPeak
+                      ? AppColors.primary
+                      : AppColors.primary.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
               const SizedBox(height: 4),
-              Text(count.toInt().toString(), style: TextStyle(fontSize: 8, fontWeight: FontWeight.bold, color: isPeak ? AppColors.primary : AppColors.textMuted)),
+              Text(
+                count.toInt().toString(),
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                  color: isPeak ? AppColors.primary : AppColors.textMuted,
+                ),
+              ),
             ],
           );
         }).toList(),
@@ -449,7 +530,16 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
     );
   }
 
-  Widget _empty() => Center(child: Text('NO DATA AVAILABLE', style: AppTextStyles.label.copyWith(color: AppColors.textMuted, fontSize: 8, letterSpacing: 1)));
+  Widget _empty() => Center(
+    child: Text(
+      'NO DATA AVAILABLE',
+      style: AppTextStyles.label.copyWith(
+        color: AppColors.textMuted,
+        fontSize: 8,
+        letterSpacing: 1,
+      ),
+    ),
+  );
 
   String _fmt(dynamic val) {
     final d = double.tryParse(val.toString()) ?? 0;

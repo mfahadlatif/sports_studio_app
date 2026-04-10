@@ -21,6 +21,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
 
   final _commissionCtrl = TextEditingController();
   final _refundPolicyCtrl = TextEditingController();
+  final _minWithdrawalCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
       setState(() => _settings = map);
       _commissionCtrl.text = (_settings['commission_fee'] ?? '').toString();
       _refundPolicyCtrl.text = (_settings['refund_policy'] ?? '').toString();
+      _minWithdrawalCtrl.text = (_settings['minimum_withdrawal'] ?? '').toString();
     } catch (e) {
       AppUtils.showError(message: 'Failed to load settings: $e');
     } finally {
@@ -62,6 +64,7 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
           // flat object form supported by backend
           'commission_fee': _commissionCtrl.text.trim(),
           'refund_policy': _refundPolicyCtrl.text.trim(),
+          'minimum_withdrawal': _minWithdrawalCtrl.text.trim(),
         },
       );
       AppUtils.showSuccess(message: 'Settings updated');
@@ -124,6 +127,15 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
                             decoration: const InputDecoration(
                               labelText: 'Refund Policy',
                               hintText: 'Describe refund rules shown to users',
+                            ),
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                          TextField(
+                            controller: _minWithdrawalCtrl,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Minimum Withdrawal Amount',
+                              hintText: 'e.g. 10',
                             ),
                           ),
                         ],

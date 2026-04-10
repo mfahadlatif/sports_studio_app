@@ -51,30 +51,22 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
   }
 
   Future<void> _deleteComplex(Complex complex) async {
-    Get.defaultDialog(
+    final confirmed = await AppUtils.showDeleteConfirmation(
       title: 'Delete Complex?',
-      middleText: 'Remove "${complex.name}" and all its grounds?',
-      textConfirm: 'Delete',
-      textCancel: 'Cancel',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.red,
-      onConfirm: () async {
-        Get.back();
-        try {
-          final res = await ApiClient().dio.delete(
-            '/complexes/${complex.id}',
-          );
-          if (res.statusCode == 200 || res.statusCode == 204) {
-            setState(
-              () => _complexes.removeWhere((c) => c.id == complex.id),
-            );
-            AppUtils.showSuccess(message: 'Complex removed successfully');
-          }
-        } catch (_) {
-          AppUtils.showError(message: 'Failed to delete complex');
-        }
-      },
+      message: 'Are you sure you want to remove "${complex.name}"? All associated grounds and arenas will also be permanently deleted.',
     );
+
+    if (confirmed == true) {
+      try {
+        final res = await ApiClient().dio.delete('/complexes/${complex.id}');
+        if (res.statusCode == 200 || res.statusCode == 204) {
+          setState(() => _complexes.removeWhere((c) => c.id == complex.id));
+          AppUtils.showSuccess(message: 'Complex removed successfully');
+        }
+      } catch (_) {
+        AppUtils.showError(message: 'Failed to delete complex');
+      }
+    }
   }
 
   void _openForm({Complex? complex}) async {
@@ -295,26 +287,27 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                             complex.grounds!.isNotEmpty)
                           Wrap(
                             spacing: 4,
-                            children: (complex.grounds?.first.amenities ?? [])
+                            runSpacing: 4,
+                            children: (complex.grounds != null && complex.grounds!.isNotEmpty 
+                                ? (complex.grounds!.first.amenities ?? []) 
+                                : (complex.amenities ?? []))
                                 .take(6)
-                                .map<Widget>(
-                                  (fId) => Container(
+                                .map<Widget>((fId) {
+                                  final info = _getFacilityInfo(fId.toString());
+                                  return Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
                                       color: AppColors.background,
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
-                                        color: AppColors.border.withOpacity(
-                                          0.3,
-                                        ),
+                                        color: AppColors.border.withOpacity(0.3),
                                       ),
                                     ),
-                                    child: Text(
-                                      _getFacilityIcon(fId.toString()),
-                                      style: const TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                                )
+                                    child: info['asset'] != null 
+                                        ? Image.asset(info['asset']!, width: 14, height: 14)
+                                        : Text(info['icon']!, style: const TextStyle(fontSize: 10)),
+                                  );
+                                })
                                 .toList(),
                           ),
                       ],
@@ -426,22 +419,16 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     ),
   );
 
-  String _getFacilityIcon(String id) {
-    final configs = [
-      {'id': 'parking', 'icon': '🅿️'},
-      {'id': 'washrooms', 'icon': '🚻'},
-      {'id': 'changing-rooms', 'icon': '🚿'},
-      {'id': 'seating', 'icon': '💺'},
-      {'id': 'lighting', 'icon': '💡'},
-      {'id': 'cafe', 'icon': '☕'},
-      {'id': 'first-aid', 'icon': '🏥'},
-      {'id': 'wifi', 'icon': '📶'},
-      {'id': 'lockers', 'icon': '🔐'},
-      {'id': 'equipment', 'icon': '🎯'},
-    ];
-    return configs.firstWhere(
-      (c) => c['id'] == id,
-      orElse: () => {'id': id, 'icon': '✓'},
-    )['icon']!;
+  Map<String, String> _getFacilityInfo(String id) {
+    // Normalize ID (e.g., 'washroom' -> 'washrooms')
+    String normalizedId = id.toLowerCase().trim();
+    if (normalizedId == 'washroom') normalizedId = 'washrooms';
+    if (normalizedId == 'changing-room') normalizedId = 'changing-rooms';
+    if (normalizedId == 'firstaid') normalizedId = 'first-aid';
+
+    return AppConstants.groundAmenities.firstWhere(
+      (a) => a['id'] == normalizedId,
+      orElse: () => {'id': id, 'name': id, 'icon': '✓'},
+    );
   }
 }

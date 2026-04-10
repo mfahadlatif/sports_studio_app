@@ -30,10 +30,12 @@ class ApiClient {
         },
         onError: (DioException e, handler) async {
           if (e.response?.statusCode == 401) {
+            print('⚠️ [API] 401 Unauthorized detected. Clearing session.');
             // Unauthorized - probably means token expired or was cleared
             await _storage.delete(key: 'auth_token');
             await _storage.delete(key: 'user_role');
 
+            print('🔒 [API] Session cleared. Redirecting to auth.');
             // Navigate to auth screen if not already there
             if (Get.currentRoute != '/auth' && Get.currentRoute != '/login') {
               Get.offAllNamed('/auth');

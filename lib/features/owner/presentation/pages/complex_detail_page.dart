@@ -39,11 +39,17 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
 
   void _startAutoScroll() {
     _carouselTimer?.cancel();
-    _carouselTimer = Timer.periodic(const Duration(milliseconds: 3800), (timer) {
+    _carouselTimer = Timer.periodic(const Duration(milliseconds: 3800), (
+      timer,
+    ) {
       if (_complex != null) {
         List<String> images = [];
-        if (_complex['images'] != null && (_complex['images'] as List).isNotEmpty) {
-          images = (_complex['images'] as List).where((e) => e != null).map((e) => e.toString()).toList();
+        if (_complex['images'] != null &&
+            (_complex['images'] as List).isNotEmpty) {
+          images = (_complex['images'] as List)
+              .where((e) => e != null)
+              .map((e) => e.toString())
+              .toList();
         } else if (_complex['image_path'] != null) {
           images.add(_complex['image_path'].toString());
         }
@@ -123,7 +129,8 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
       debugPrint('❌ [ComplexDetail] DioException: ${e.type} ${e.message}');
       if (mounted) {
         setState(() => _complex = null);
-        final msg = e.type == DioExceptionType.connectionTimeout ||
+        final msg =
+            e.type == DioExceptionType.connectionTimeout ||
                 e.type == DioExceptionType.receiveTimeout
             ? 'Request timed out. Please try again.'
             : 'Failed to load complex details';
@@ -141,15 +148,9 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   }
 
   Future<void> _deleteGround(dynamic ground) async {
-    final confirmed = await Get.defaultDialog<bool>(
+    final confirmed = await AppUtils.showDeleteConfirmation(
       title: 'Delete Ground?',
-      middleText: 'Remove "${ground['name']}" permanently?',
-      textConfirm: 'Delete',
-      textCancel: 'Cancel',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.red,
-      onConfirm: () => Get.back(result: true),
-      onCancel: () => Get.back(result: false),
+      message: 'Are you sure you want to remove "${ground['name']}" permanently? This action cannot be undone.',
     );
     if (confirmed != true) return;
     try {
@@ -190,21 +191,97 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
 
   Map<String, String> _getFacilityInfo(String id) {
     final configs = [
-      {'id': 'parking', 'name': 'Parking Area', 'icon': '🚗'},
-      {'id': 'washroom', 'name': 'Washrooms', 'icon': '🚻'},
-      {'id': 'changing', 'name': 'Changing Rooms', 'icon': '👕'},
-      {'id': 'seating', 'name': 'Seating Area', 'icon': '💺'},
-      {'id': 'lighting', 'name': 'Floodlights', 'icon': '💡'},
-      {'id': 'cafe', 'name': 'Café / Snacks', 'icon': '☕'},
-      {'id': 'first_aid', 'name': 'First Aid', 'icon': '🏥'},
-      {'id': 'wifi', 'name': 'Free WiFi', 'icon': '📶'},
-      {'id': 'water', 'name': 'Drinking Water', 'icon': '🚰'},
-      {'id': 'lockers', 'name': 'Lockers', 'icon': '🔐'},
-      {'id': 'equipment', 'name': 'Equipment Rental', 'icon': '🎯'},
+      {
+        'id': 'parking',
+        'name': 'Free Parking',
+        'icon': '🚗',
+        'asset': 'assets/Icons/FreeParking.png',
+      },
+      {
+        'id': 'washrooms',
+        'name': 'Washrooms',
+        'icon': '🚻',
+        'asset': 'assets/Icons/Washrooms.png',
+      },
+      {
+        'id': 'washroom',
+        'name': 'Washrooms',
+        'icon': '🚻',
+        'asset': 'assets/Icons/Washrooms.png',
+      },
+      {
+        'id': 'changing-rooms',
+        'name': 'Changing Rooms',
+        'icon': '👕',
+        'asset': 'assets/Icons/ChangingRooms.png',
+      },
+      {
+        'id': 'changing',
+        'name': 'Changing Rooms',
+        'icon': '👕',
+        'asset': 'assets/Icons/ChangingRooms.png',
+      },
+      {
+        'id': 'seating',
+        'name': 'Seating Area',
+        'icon': '💺',
+        'asset': 'assets/Icons/Seating.png',
+      },
+      {
+        'id': 'lighting',
+        'name': 'Floodlights',
+        'icon': '💡',
+        'asset': 'assets/Icons/Floodlights.png',
+      },
+      {
+        'id': 'cafe',
+        'name': 'Cafeteria',
+        'icon': '☕',
+        'asset': 'assets/Icons/Cafe.png',
+      },
+      {
+        'id': 'first-aid',
+        'name': 'First Aid',
+        'icon': '🏥',
+        'asset': 'assets/Icons/FirstAid.png',
+      },
+      {
+        'id': 'first_aid',
+        'name': 'First Aid',
+        'icon': '🏥',
+        'asset': 'assets/Icons/FirstAid.png',
+      },
+      {
+        'id': 'wifi',
+        'name': 'Free WiFi',
+        'icon': '📶',
+        'asset': 'assets/Icons/FreeWiFi.png',
+      },
+      {
+        'id': 'water',
+        'name': 'Drinking Water',
+        'icon': '🚰',
+        'asset': 'assets/Icons/Washrooms.png',
+      },
+      {
+        'id': 'lockers',
+        'name': 'Lockers',
+        'icon': '🔐',
+        'asset': 'assets/Icons/Lockers.png',
+      },
+      {
+        'id': 'equipment',
+        'name': 'Equipment',
+        'icon': '🎯',
+        'asset': 'assets/Icons/Equipment.png',
+      },
     ];
     return configs.firstWhere(
-      (c) => c['id'] == id,
-      orElse: () => {'id': id, 'name': id, 'icon': '✓'},
+      (c) => c['id'] == id.replaceAll('_', '-'),
+      orElse: () => configs.firstWhere(
+        (c) => c['id'] == id,
+        orElse: () => {'id': id, 'name': id, 'icon': '✓', 'asset': ''},
+      ),
     );
   }
 
@@ -275,10 +352,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () => Get.to(
-            () => FullScreenImageViewer(
-              images: sanitized,
-              initialIndex: index,
-            ),
+            () => FullScreenImageViewer(images: sanitized, initialIndex: index),
           ),
           child: CachedNetworkImage(
             imageUrl: sanitized[index],
@@ -340,8 +414,8 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
               fit: StackFit.expand,
               children: [
                 _buildCarousel(),
-                if (_complex != null && 
-                   ((_complex['images'] as List?)?.length ?? 0) > 1)
+                if (_complex != null &&
+                    ((_complex['images'] as List?)?.length ?? 0) > 1)
                   Positioned(
                     bottom: 20,
                     left: 0,
@@ -350,29 +424,33 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(
                         (_complex['images'] as List).length,
-                        (index) => Obx(() => Container(
-                          width: _currentPage.value == index ? 16 : 8,
-                          height: 4,
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            color: _currentPage.value == index 
-                              ? Colors.white 
-                              : Colors.white.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(2),
+                        (index) => Obx(
+                          () => Container(
+                            width: _currentPage.value == index ? 16 : 8,
+                            height: 4,
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            decoration: BoxDecoration(
+                              color: _currentPage.value == index
+                                  ? Colors.white
+                                  : Colors.white.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
                           ),
-                        )),
+                        ),
                       ),
                     ),
                   ),
-                Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.black.withOpacity(0.7),
-                      ],
+                IgnorePointer(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -520,15 +598,18 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                                         final f = _getFacilityInfo(
                                           fId.toString(),
                                         );
+                                        final hasAsset =
+                                            f['asset'] != null &&
+                                            f['asset']!.isNotEmpty;
                                         return Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 8,
+                                            horizontal: 10,
+                                            vertical: 6,
                                           ),
                                           decoration: BoxDecoration(
                                             color: AppColors.background,
                                             borderRadius: BorderRadius.circular(
-                                              12,
+                                              10,
                                             ),
                                             border: Border.all(
                                               color: AppColors.border
@@ -538,17 +619,30 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(
-                                                f['icon'] ?? '✓',
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                ),
+                                              SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: hasAsset
+                                                    ? Image.asset(
+                                                        f['asset']!,
+                                                        fit: BoxFit.contain,
+                                                      )
+                                                    : Text(
+                                                        f['icon'] ?? '✓',
+                                                        style: const TextStyle(
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
                                               ),
-                                              const SizedBox(width: 8),
+                                              const SizedBox(width: 6),
                                               Text(
                                                 f['name'] ?? fId.toString(),
                                                 style: AppTextStyles.label
-                                                    .copyWith(fontSize: 12),
+                                                    .copyWith(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
                                               ),
                                             ],
                                           ),
@@ -556,6 +650,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                                       })
                                       .toList(),
                             ),
+                            const SizedBox(height: AppSpacing.l),
                             const SizedBox(height: AppSpacing.l),
                           ],
                         ],
@@ -587,6 +682,9 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                               arguments: {
                                 'complexId': _complex['id'],
                                 'complexName': name,
+                                'complexAddress': address,
+                                'complexLat': _complex['latitude'],
+                                'complexLng': _complex['longitude'],
                               },
                             );
                             if (result == true) _fetch();

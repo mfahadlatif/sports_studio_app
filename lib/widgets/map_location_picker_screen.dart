@@ -53,12 +53,17 @@ class _MapLocationPickerScreenState extends State<MapLocationPickerScreen> {
           'lon': location.longitude,
           'addressdetails': 1,
         },
+        options: Options(
+          headers: {
+            'User-Agent': 'SportsStudioApp/1.0',
+          },
+        ),
       );
 
       if (mounted) {
         final data = res.data;
         setState(() {
-          _address = data['display_name'] ?? 'Unknown location';
+          _address = data['display_name'] ?? 'Selected location';
         });
       }
     } catch (e) {

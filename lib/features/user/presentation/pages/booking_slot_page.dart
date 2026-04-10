@@ -1,3 +1,5 @@
+import 'package:cached_network_image/cached_network_image.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,7 @@ import 'package:sports_studio/features/user/controller/booking_controller.dart';
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class BookingSlotPage extends StatelessWidget {
   const BookingSlotPage({super.key});
@@ -76,16 +79,39 @@ class BookingSlotPage extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(AppSpacing.m),
+            width: 70,
+            height: 70,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.primaryLight.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(
-              AppUtils.getSportIcon(ground['type']),
-              color: AppColors.primary,
-              size: 32,
-            ),
+            clipBehavior: Clip.antiAlias,
+            child: () {
+              final String imageUrl = UrlHelper.getFirstImage(
+                ground['images'], 
+                fallbackPath: ground['image_path'] ?? ground['image'] ?? ground['image_url']
+              );
+
+              return CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  color: Colors.grey[100],
+                  child: const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Icon(
+                  AppUtils.getSportIcon(ground['type']),
+                  color: AppColors.primary,
+                  size: 30,
+                ),
+              );
+            }(),
           ),
           const SizedBox(width: AppSpacing.m),
           Expanded(
@@ -103,7 +129,8 @@ class BookingSlotPage extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        ground['location'] ?? (ground['complex']?['address'] ?? 'Location TBD'),
+                        ground['location'] ??
+                            (ground['complex']?['address'] ?? 'Location TBD'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTextStyles.bodySmall.copyWith(
@@ -325,37 +352,109 @@ class BookingSlotPage extends StatelessWidget {
               );
             }
 
-            return Row(
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: TextField(
-                    controller: promoCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Enter code',
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: promoCtrl,
+                        decoration: InputDecoration(
+                          hintText: 'Enter code',
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: controller.isCheckingPromo.value
+                          ? null
+                          : () => controller.applyPromoCode(promoCtrl.text),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        minimumSize: const Size(0, 42),
+                      ),
+                      child: controller.isCheckingPromo.value
+                          ? const AppProgressIndicator(size: 16, strokeWidth: 2)
+                          : const Text('Apply'),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: controller.isCheckingPromo.value
-                      ? null
-                      : () => controller.applyPromoCode(promoCtrl.text),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    minimumSize: const Size(0, 42),
+                if (controller.availableDeals.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Available Offers',
+                    style: AppTextStyles.label.copyWith(fontSize: 12),
                   ),
-                  child: controller.isCheckingPromo.value
-                      ? const AppProgressIndicator(size: 16, strokeWidth: 2)
-                      : const Text('Apply'),
-                ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 50,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: controller.availableDeals.length,
+                      itemBuilder: (context, index) {
+                        final deal = controller.availableDeals[index];
+                        return GestureDetector(
+                          onTap: () {
+                            promoCtrl.text = deal.code ?? '';
+                            controller.applyPromoCode(deal.code ?? '');
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(right: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryLight.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: AppColors.primary.withOpacity(0.1),
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.local_offer_outlined,
+                                  size: 16,
+                                  color: AppColors.primary,
+                                ),
+                                const SizedBox(width: 8),
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      deal.code ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    Text(
+                                      '${deal.discountPercentage.toInt()}% OFF',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ],
             );
           }),
@@ -413,7 +512,9 @@ class BookingSlotPage extends StatelessWidget {
                     final isUnavailable = isBooked || isPassed;
 
                     return GestureDetector(
-                      onTap: isUnavailable ? null : () => controller.toggleSlot(slot),
+                      onTap: isUnavailable
+                          ? null
+                          : () => controller.toggleSlot(slot),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 200),
                         decoration: BoxDecoration(
@@ -423,7 +524,9 @@ class BookingSlotPage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isUnavailable
-                                ? (isBooked ? Colors.red[100]! : Colors.transparent)
+                                ? (isBooked
+                                      ? Colors.red[100]!
+                                      : Colors.transparent)
                                 : (isSelected
                                       ? AppColors.primary
                                       : AppColors.border),
@@ -441,10 +544,14 @@ class BookingSlotPage extends StatelessWidget {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          isBooked ? 'TAKEN' : (isPassed ? 'PASSED' : _getSlotDisplay(slot)),
+                          isBooked
+                              ? 'TAKEN'
+                              : (isPassed ? 'PASSED' : _getSlotDisplay(slot)),
                           style: AppTextStyles.bodySmall.copyWith(
                             color: isUnavailable
-                                ? (isBooked ? Colors.red[400] : AppColors.textMuted)
+                                ? (isBooked
+                                      ? Colors.red[400]
+                                      : AppColors.textMuted)
                                 : (isSelected
                                       ? Colors.white
                                       : AppColors.textPrimary),
@@ -494,16 +601,6 @@ class BookingSlotPage extends StatelessWidget {
                           Text('Slot Price:', style: AppTextStyles.bodySmall),
                           Text(
                             '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(controller.subtotal)}',
-                            style: AppTextStyles.bodySmall,
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Service Fee:', style: AppTextStyles.bodySmall),
-                          Text(
-                            '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(controller.serviceFee)}',
                             style: AppTextStyles.bodySmall,
                           ),
                         ],

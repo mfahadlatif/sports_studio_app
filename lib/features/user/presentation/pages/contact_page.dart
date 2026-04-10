@@ -16,6 +16,7 @@ class ContactPage extends StatefulWidget {
 class _ContactPageState extends State<ContactPage> {
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _subjectController = TextEditingController();
   final _messageController = TextEditingController();
   final _controller = Get.put(ContactController());
 
@@ -23,6 +24,7 @@ class _ContactPageState extends State<ContactPage> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _subjectController.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -107,6 +109,14 @@ class _ContactPageState extends State<ContactPage> {
                       ),
                       const SizedBox(height: AppSpacing.m),
                       TextField(
+                        controller: _subjectController,
+                        decoration: const InputDecoration(
+                          hintText: 'Subject',
+                          prefixIcon: Icon(Icons.subject_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      TextField(
                         controller: _messageController,
                         maxLines: 4,
                         decoration: const InputDecoration(
@@ -119,16 +129,18 @@ class _ContactPageState extends State<ContactPage> {
                           label: 'Send Message',
                           isLoading: _controller.isLoading.value,
                           onPressed: () async {
-                            final success = await _controller.submitContactForm(
-                              name: _nameController.text,
-                              email: _emailController.text,
-                              message: _messageController.text,
-                            );
-                            if (success) {
-                              _nameController.clear();
-                              _emailController.clear();
-                              _messageController.clear();
-                            }
+                             final success = await _controller.submitContactForm(
+                                name: _nameController.text,
+                                email: _emailController.text,
+                                subject: _subjectController.text,
+                                message: _messageController.text,
+                              );
+                              if (success) {
+                                _nameController.clear();
+                                _emailController.clear();
+                                _subjectController.clear();
+                                _messageController.clear();
+                              }
                           },
                         ),
                       ),

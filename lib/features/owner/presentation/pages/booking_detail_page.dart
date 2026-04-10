@@ -165,13 +165,16 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
   Widget _buildBody() {
     final String status = (_booking['status'] ?? 'pending').toString();
-    final String paymentStatus = (_booking['payment_status'] ?? 'unpaid').toString();
+    final String paymentStatus = (_booking['payment_status'] ?? 'unpaid')
+        .toString();
     final userName =
         _booking['user']?['name'] ??
         _booking['customer_name'] ??
         'Walk-in Customer';
     final userEmail =
         _booking['user']?['email'] ?? _booking['customer_email'] ?? 'N/A';
+    final userPhone =
+        _booking['user']?['phone'] ?? _booking['customer_phone'] ?? 'N/A';
     final groundName = _booking['ground']?['name'] ?? 'Ground';
     final groundType = _booking['ground']?['type'] ?? '';
     final startTime = _booking['start_time'] ?? '';
@@ -317,7 +320,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 crossAxisCount: 2,
                 mainAxisSpacing: AppSpacing.m,
                 crossAxisSpacing: AppSpacing.m,
-                childAspectRatio: 2.8,
+                childAspectRatio: 2.7,
                 children: [
                   _infoCell(
                     Icons.calendar_today_outlined,
@@ -334,7 +337,11 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     'Players',
                     '${_booking['players'] ?? 1} people',
                   ),
-                  _infoCell(null, 'Total', '${AppConstants.currencySymbol} $totalPrice'),
+                  _infoCell(
+                    null,
+                    'Total',
+                    '${AppConstants.currencySymbol} $totalPrice',
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.l),
@@ -347,14 +354,44 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 decoration: _cardDecoration(),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 28,
-                      backgroundColor: AppColors.primaryLight,
-                      child: Text(
-                        userName.isNotEmpty ? userName[0].toUpperCase() : 'W',
-                        style: AppTextStyles.h2.copyWith(
-                          color: AppColors.primary,
-                        ),
+                    Container(
+                      height: 56,
+                      width: 56,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primaryLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: ClipOval(
+                        child:
+                            (_booking['user'] != null &&
+                                _booking['user']['avatar'] != null)
+                            ? CachedNetworkImage(
+                                imageUrl: UrlHelper.sanitizeUrl(
+                                  _booking['user']['avatar'].toString(),
+                                ),
+                                fit: BoxFit.cover,
+                                placeholder: (context, url) => const Center(
+                                  child: SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  ),
+                                ),
+                                errorWidget: (context, url, error) =>
+                                    const Icon(Icons.person),
+                              )
+                            : Center(
+                                child: Text(
+                                  userName.isNotEmpty
+                                      ? userName[0].toUpperCase()
+                                      : 'W',
+                                  style: AppTextStyles.h2.copyWith(
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(width: AppSpacing.m),
@@ -362,7 +399,26 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(userName, style: AppTextStyles.bodyLarge),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(userName, style: AppTextStyles.bodyLarge),
+                              if (userPhone != 'N/A')
+                                IconButton(
+                                  onPressed: () =>
+                                      AppUtils.launchUrl('tel:$userPhone'),
+                                  icon: const Icon(
+                                    Icons.call,
+                                    color: AppColors.primary,
+                                    size: 20,
+                                  ),
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: AppColors.primaryLight
+                                        .withOpacity(0.1),
+                                  ),
+                                ),
+                            ],
+                          ),
                           const SizedBox(height: 4),
                           Row(
                             children: [
@@ -380,6 +436,25 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                               ),
                             ],
                           ),
+                          if (userPhone != 'N/A') ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.phone_outlined,
+                                  size: 14,
+                                  color: AppColors.textMuted,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  userPhone,
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -389,123 +464,148 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               const SizedBox(height: AppSpacing.l),
 
               // Actions panel (if pending or unpaid)
-              if (status == 'pending' ||
-                  paymentStatus == 'unpaid' ||
-                  paymentStatus == 'pending') ...[
-                // NEW: Only show manual actions for cash payments. 
-                // Online payments (Safepay) are handled automatically by the system.
-                if (_booking['payment_method']?.toString().toLowerCase() != 'safepay' &&
-                    _booking['payment_method']?.toString().toLowerCase() != 'online') ...[
-                _sectionHeader(
-                  'Pending Actions',
-                  Icons.pending_actions_outlined,
-                ),
-                const SizedBox(height: AppSpacing.s),
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.m),
-                  decoration: _cardDecoration(),
-                  child: Column(
+              // Only show if there's actually something to do.
+              () {
+                final isNotOnline =
+                    _booking['payment_method']?.toString().toLowerCase() !=
+                        'safepay' &&
+                    _booking['payment_method']?.toString().toLowerCase() !=
+                        'online' &&
+                    _booking['payment_method']?.toString().toLowerCase() !=
+                        'wallet';
+
+                final canAcceptDecline = status == 'pending';
+                final canMarkPaid =
+                    paymentStatus != 'paid' && status != 'cancelled';
+                final canMarkCompleted =
+                    status == 'confirmed' && paymentStatus == 'paid';
+
+                if (isNotOnline &&
+                    (canAcceptDecline || canMarkPaid || canMarkCompleted)) {
+                  return Column(
                     children: [
-                      if (status == 'pending') ...[
-                        Row(
+                      _sectionHeader(
+                        'Pending Actions',
+                        Icons.pending_actions_outlined,
+                      ),
+                      const SizedBox(height: AppSpacing.s),
+                      Container(
+                        padding: const EdgeInsets.all(AppSpacing.m),
+                        decoration: _cardDecoration(),
+                        child: Column(
                           children: [
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _isUpdating
-                                    ? null
-                                    : () => _confirmDialog(
-                                        'Accept this booking?',
-                                        () => _updateStatus('confirmed'),
+                            if (canAcceptDecline) ...[
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _isUpdating
+                                          ? null
+                                          : () => _confirmDialog(
+                                              'Accept this booking?',
+                                              () => _updateStatus('confirmed'),
+                                            ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
                                       ),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                      icon: const Icon(
+                                        Icons.check_circle_outline,
+                                      ),
+                                      label: const Text('Accept'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.s),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _isUpdating
+                                          ? null
+                                          : () => _showDeclineSheet(),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: const Icon(Icons.cancel_outlined),
+                                      label: const Text('Decline'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (canMarkPaid)
+                                const SizedBox(height: AppSpacing.s),
+                            ],
+                            if (canMarkPaid)
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: _isUpdating
+                                      ? null
+                                      : () => _confirmDialog(
+                                          'Mark as Paid (cash received)?',
+                                          _markAsPaid,
+                                        ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: const BorderSide(
+                                      color: AppColors.primary,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  icon: Padding(
+                                    padding: const EdgeInsets.all(4.0),
+                                    child: Text(
+                                      AppConstants.currencySymbol,
+                                      style: const TextStyle(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  label: const Text(
+                                    'Mark as Paid',
+                                    style: TextStyle(color: AppColors.primary),
                                   ),
                                 ),
-                                icon: const Icon(Icons.check_circle_outline),
-                                label: const Text('Accept'),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.s),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: _isUpdating
-                                    ? null
-                                    : () => _showDeclineSheet(),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                            if (canMarkCompleted)
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: _isUpdating
+                                      ? null
+                                      : () => _confirmDialog(
+                                          'Mark this booking as Completed?',
+                                          () => _updateStatus('completed'),
+                                        ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.blue,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
                                   ),
+                                  icon: const Icon(Icons.verified_outlined),
+                                  label: const Text('Mark as Completed'),
                                 ),
-                                icon: const Icon(Icons.cancel_outlined),
-                                label: const Text('Decline'),
                               ),
-                            ),
                           ],
                         ),
-                        const SizedBox(height: AppSpacing.s),
-                      ],
-                      if (paymentStatus != 'paid' && status != 'cancelled')
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _isUpdating
-                                ? null
-                                : () => _confirmDialog(
-                                    'Mark as Paid (cash received)?',
-                                    _markAsPaid,
-                                  ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.primary),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: Padding(
-                              padding: const EdgeInsets.all(4.0),
-                              child: Text(
-                                AppConstants.currencySymbol,
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                            label: const Text(
-                              'Mark as Paid',
-                              style: TextStyle(color: AppColors.primary),
-                            ),
-                          ),
-                        ),
-                      if (status == 'confirmed' && paymentStatus == 'paid')
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: _isUpdating
-                                ? null
-                                : () => _confirmDialog(
-                                    'Mark this booking as Completed?',
-                                    () => _updateStatus('completed'),
-                                  ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: const Icon(Icons.verified_outlined),
-                            label: const Text('Mark as Completed'),
-                          ),
-                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.l),
                     ],
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.l),
-                ], // End cash-only actions check
-              ],
+                  );
+                }
+                return const SizedBox.shrink();
+              }(),
 
               // Activity timeline
               _sectionHeader('Activity Timeline', Icons.timeline_outlined),
@@ -545,7 +645,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   Widget _infoCell(IconData? icon, String label, String value) => Container(
     padding: const EdgeInsets.all(AppSpacing.m),
     decoration: BoxDecoration(
-      color: AppColors.background,
+      color: Colors.white,
       borderRadius: BorderRadius.circular(14),
     ),
     child: Row(
@@ -623,13 +723,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                    if (time.isNotEmpty)
-                      Text(
-                        AppUtils.formatDateTime(time),
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textMuted,
-                        ),
+                  if (time.isNotEmpty)
+                    Text(
+                      AppUtils.formatDateTime(time),
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textMuted,
                       ),
+                    ),
                 ],
               ),
             ),
@@ -646,17 +746,13 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   );
 
   void _confirmDialog(String message, VoidCallback onConfirm) {
-    Get.defaultDialog(
-      title: 'Confirm',
-      middleText: message,
-      textConfirm: 'Yes',
-      textCancel: 'Cancel',
-      confirmTextColor: Colors.white,
-      buttonColor: AppColors.primary,
-      onConfirm: () {
-        Get.back();
-        onConfirm();
-      },
+    AppUtils.showConfirmDialog(
+      title: 'Confirm Action',
+      message: message,
+      onConfirm: onConfirm,
+      confirmText: 'Yes, Proceed',
+      cancelText: 'Cancel',
+      icon: Icons.help_outline_rounded,
     );
   }
 

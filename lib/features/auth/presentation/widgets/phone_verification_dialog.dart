@@ -8,6 +8,7 @@ import 'package:sports_studio/features/auth/controller/phone_verification_contro
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/phone_input_field.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class PhoneVerificationDialog extends StatefulWidget {
   final String initialPhone;
@@ -27,7 +28,9 @@ class PhoneVerificationDialog extends StatefulWidget {
 class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
   final controller = Get.put(PhoneVerificationController());
   late TextEditingController phoneController;
-  final otpController = TextEditingController();
+  final List<TextEditingController> otpControllers = List.generate(6, (_) => TextEditingController());
+  final List<FocusNode> otpFocusNodes = List.generate(6, (_) => FocusNode());
+  
   bool showOtpField = false;
   bool isSuccess = false;
   Timer? _resendTimer;
@@ -37,18 +40,27 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
   void initState() {
     super.initState();
     phoneController = TextEditingController(text: widget.initialPhone);
+    // Add listener to update UI when phone changes (enables button)
+    phoneController.addListener(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
     _resendTimer?.cancel();
     phoneController.dispose();
-    otpController.dispose();
+    for (var c in otpControllers) {
+      c.dispose();
+    }
+    for (var f in otpFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
   void _startResendTimer() {
-    setState(() => _resendSeconds = 60);
+    setState(() => _resendSeconds = 30);
     _resendTimer?.cancel();
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -65,69 +77,64 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 360;
+
     return Dialog(
       backgroundColor: Colors.transparent,
+      elevation: 0,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Obx(
-            () => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Header with Illustration-like Icon
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    showOtpField ? Icons.vibration : Icons.phone_iphone_rounded,
-                    size: 40,
-                    color: AppColors.primary,
-                  ),
+      child: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 415),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.98),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFF0D4F5C).withOpacity(0.09)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0A1628).withOpacity(0.1),
+                  blurRadius: 60,
+                  offset: const Offset(0, 20),
                 ),
-                const SizedBox(height: AppSpacing.l),
-                
-                Text(
-                  showOtpField ? 'Verify OTP' : 'Phone Verification',
-                  style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w800),
+                BoxShadow(
+                  color: const Color(0xFF0D4F5C).withOpacity(0.06),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-                const SizedBox(height: AppSpacing.s),
-                Text(
-                  showOtpField 
-                    ? 'Enter the 6-digit code we sent to your phone'
-                    : 'We need to verify your number to proceed with bookings',
-                  textAlign: TextAlign.center,
-                  style: AppTextStyles.bodyMedium.copyWith(
-                    color: AppColors.textMuted,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  child: isSuccess 
-                    ? _buildSuccessView() 
-                    : (!showOtpField ? _buildPhoneInput() : _buildOtpInput()),
-                ),
-
-                const SizedBox(height: AppSpacing.xl),
-                if (!isSuccess) _buildActionButtons(),
               ],
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 24 : 38),
+              child: Obx(
+                () => Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Step Progress
+                    _buildProgressBar(),
+                    const SizedBox(height: 34),
+                    
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      transitionBuilder: (child, animation) => FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0, 0.05),
+                            end: Offset.zero,
+                          ).animate(animation),
+                          child: child,
+                        ),
+                      ),
+                      child: isSuccess 
+                        ? _buildSuccessView() 
+                        : (showOtpField ? _buildOtpView() : _buildPhoneView()),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -135,227 +142,410 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
     );
   }
 
-  Widget _buildPhoneInput() {
-    return Column(
-      key: const ValueKey('phone_input'),
+  Widget _buildProgressBar() {
+    return Row(
       children: [
+        for (int i = 0; i < 2; i++)
+          Expanded(
+            flex: (showOtpField && i == 1) || (!showOtpField && i == 0) || isSuccess ? 2 : 1,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 450),
+              height: 3.5,
+              margin: EdgeInsets.only(right: i == 0 ? 5 : 0),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(4),
+                gradient: (i == 0 || (showOtpField && i == 1) || isSuccess)
+                  ? const LinearGradient(colors: [Color(0xFF0D4F5C), Color(0xFF1E8FA3)])
+                  : null,
+                color: (i == 0 || (showOtpField && i == 1) || isSuccess) ? null : const Color(0xFFDCE4EA),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneView() {
+    return Column(
+      key: const ValueKey('phone_view'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildIconHeader(Icons.phone_iphone_rounded),
+        const SizedBox(height: 22),
+        Text(
+          'Verify your number',
+          style: GoogleFonts.fraunces(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF0A1628),
+            letterSpacing: -0.3,
+          ),
+        ),
+        const SizedBox(height: 9),
+        Text(
+          "We'll send a 6-digit code to confirm it's really you.",
+          style: GoogleFonts.dmSans(
+            color: const Color(0xFF5A6A7A),
+            fontSize: 15,
+            height: 1.65,
+          ),
+        ),
+        const SizedBox(height: 30),
+        Text(
+          'PHONE NUMBER',
+          style: GoogleFonts.dmSans(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF8596A6),
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 9),
         PhoneTextfield(
           controller: phoneController,
           countryCode: controller.countryCode,
           dialCode: controller.dialCode,
-          label: 'Your Number',
+          label: '',
           isRequired: true,
+        ),
+        const SizedBox(height: 14),
+        Text(
+          'Standard message and data rates may apply.',
+          style: TextStyle(fontSize: 12.5, color: const Color(0xFFA0B0BC)),
+        ),
+        const SizedBox(height: 26),
+        _buildMainButton(
+          label: controller.isLoading.value ? "Sending..." : "Send Verification Code →",
+          onPressed: _handleSendCode,
+          enabled: !controller.isLoading.value && phoneController.text.length >= 7,
+        ),
+        const SizedBox(height: 10),
+        Center(
+          child: TextButton(
+            onPressed: () => Get.back(),
+            child: Text(
+              'Skip for now',
+              style: GoogleFonts.dmSans(
+                color: const Color(0xFF9AAAB6),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildOtpInput() {
+  Widget _buildOtpView() {
     return Column(
-      key: const ValueKey('otp_input'),
+      key: const ValueKey('otp_view'),
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          controller.formatPhone(controller.dialCode.value, phoneController.text.trim()),
-          style: AppTextStyles.bodyLarge.copyWith(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.l),
-        TextField(
-          controller: otpController,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          textAlign: TextAlign.center,
-          autofocus: true,
-          style: const TextStyle(
-            letterSpacing: 12,
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
-            color: AppColors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: '●●●●●●',
-            hintStyle: TextStyle(
-              color: Colors.grey.shade300,
-              letterSpacing: 12,
-            ),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(color: Colors.grey.shade200),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(color: Colors.grey.shade200),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: const BorderSide(color: AppColors.primary, width: 2),
-            ),
-            counterText: '',
-          ),
-        ),
-        const SizedBox(height: AppSpacing.m),
         Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextButton(
-              onPressed: () {
-                _resendTimer?.cancel();
-                setState(() => showOtpField = false);
-              },
-              child: Text(
-                'Edit Phone Number',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.primary,
-                  decoration: TextDecoration.underline,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.s),
-            Text(
-              '|',
-              style: TextStyle(color: Colors.grey.shade400),
-            ),
-            const SizedBox(width: AppSpacing.s),
-            TextButton(
-              onPressed: _resendSeconds == 0 && !controller.isLoading.value
-                  ? () => _handleSendCode()
-                  : null,
-              child: Text(
-                _resendSeconds > 0 
-                  ? 'Resend in ${_resendSeconds}s'
-                  : 'Resend OTP',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: _resendSeconds > 0 ? Colors.grey : AppColors.primary,
-                  decoration: _resendSeconds > 0 ? TextDecoration.none : TextDecoration.underline,
-                ),
+            _buildIconHeader(Icons.vibration_rounded),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Enter the code',
+                    style: GoogleFonts.fraunces(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0A1628),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text.rich(
+                    TextSpan(
+                      text: "Sent to ",
+                      children: [
+                        TextSpan(
+                          text: controller.formatPhone(controller.dialCode.value, phoneController.text.trim()),
+                          style: const TextStyle(color: Color(0xFF0D4F5C), fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    style: const TextStyle(fontSize: 14, color: Color(0xFF5A6A7A), height: 1.55),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons() {
-    return Column(
-      children: [
+        const SizedBox(height: 18),
+        InkWell(
+          onTap: () => setState(() => showOtpField = false),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: const Color(0xFFDCE4EA), width: 1.5),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.chevron_left, size: 16, color: Color(0xFF4A6070)),
+                Text(
+                  'Change number',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF4A6070),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 28),
+        Text(
+          '6-DIGIT CODE',
+          style: GoogleFonts.dmSans(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF8596A6),
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 12),
         Row(
-          children: [
-            if (showOtpField)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: OutlinedButton(
-                    onPressed: () => Get.back(),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(18),
-                      ),
-                      side: BorderSide(color: Colors.grey.shade300),
-                    ),
-                    child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(6, (index) => _buildOtpDigitBox(index)),
+        ),
+        const SizedBox(height: 28),
+        _buildMainButton(
+          label: controller.isLoading.value ? "Verifying..." : "Verify Code →",
+          onPressed: _handleVerify,
+          enabled: !controller.isLoading.value && otpControllers.every((c) => c.text.isNotEmpty),
+        ),
+        const SizedBox(height: 18),
+        Center(
+          child: Column(
+            children: [
+              Text(
+                "Didn't receive it?",
+                style: TextStyle(color: const Color(0xFF9AAAB6), fontSize: 13),
+              ),
+              const SizedBox(height: 4),
+              TextButton(
+                onPressed: _resendSeconds == 0 && !controller.isLoading.value ? _handleSendCode : null,
+                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: Size.zero),
+                child: Text(
+                  _resendSeconds > 0 ? "Resend in ${_resendSeconds}s" : "Resend code",
+                  style: GoogleFonts.dmSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _resendSeconds > 0 ? const Color(0xFF9AAAB6) : const Color(0xFF0D4F5C),
                   ),
                 ),
               ),
-            Expanded(
-              flex: 2,
-              child: AppButton(
-                label: showOtpField ? 'Confirm & Verify' : 'Get Verification Code',
-                isLoading: controller.isLoading.value,
-                onPressed: () async {
-                  if (!showOtpField) {
-                    _handleSendCode();
-                  } else {
-                    _handleVerify();
-                  }
-                },
-              ),
-            ),
-          ],
-        ),
-        if (!showOtpField) ...[
-          const SizedBox(height: AppSpacing.m),
-          GestureDetector(
-            onTap: () => Get.back(),
-            child: Text(
-              'Not now, maybe later',
-              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-            ),
+            ],
           ),
-        ],
+        ),
       ],
     );
   }
 
-  void _handleSendCode() async {
-    if (phoneController.text.trim().isEmpty) {
-      AppUtils.showWarning(message: 'Please enter your phone number');
-      return;
-    }
-    FocusScope.of(context).unfocus();
-    final formattedPhone = controller.formatPhone(
-      controller.dialCode.value,
-      phoneController.text.trim(),
+  Widget _buildIconHeader(IconData icon) {
+    return Container(
+      width: 52,
+      height: 52,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0D4F5C), Color(0xFF1A7A8A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0D4F5C).withOpacity(0.35),
+            blurRadius: 28,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: const Color(0xFFE8F4F1), size: 24),
     );
-    final success = await controller.requestVerification(formattedPhone);
-    if (success) {
-      if (!showOtpField) {
-        setState(() => showOtpField = true);
-      }
-      _startResendTimer();
-    }
   }
 
-  void _handleVerify() async {
-    if (otpController.text.trim().length != 6) {
-      AppUtils.showWarning(message: 'Please enter the 6-digit code');
-      return;
-    }
-    FocusScope.of(context).unfocus();
-    final formattedPhone = controller.formatPhone(
-      controller.dialCode.value,
-      phoneController.text.trim(),
+  Widget _buildOtpDigitBox(int index) {
+    return SizedBox(
+      width: 45,
+      height: 45,
+      child: TextField(
+        controller: otpControllers[index],
+        focusNode: otpFocusNodes[index],
+        keyboardType: TextInputType.number,
+        textAlign: TextAlign.center,
+        maxLength: 1,
+        onChanged: (val) {
+          if (val.isNotEmpty && index < 5) {
+            otpFocusNodes[index + 1].requestFocus();
+          } else if (val.isEmpty && index > 0) {
+            otpFocusNodes[index - 1].requestFocus();
+          }
+          if (otpControllers.every((c) => c.text.isNotEmpty)) {
+            _handleVerify();
+          }
+          setState(() {});
+        },
+        style: GoogleFonts.fraunces(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: const Color(0xFF0A1628),
+        ),
+        decoration: InputDecoration(
+          counterText: '',
+          contentPadding: EdgeInsets.zero,
+          filled: true,
+          fillColor: const Color(0xFFF7FAFC),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide(
+              color: otpControllers[index].text.isNotEmpty 
+                ? const Color(0xFF0D4F5C) 
+                : const Color(0xFFDCE4EA),
+              width: 1.5,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: Color(0xFF0D4F5C), width: 2),
+          ),
+        ),
+      ),
     );
-    final success = await controller.verifyPhone(
-      formattedPhone,
-      otpController.text.trim(),
+  }
+
+  Widget _buildMainButton({required String label, required VoidCallback onPressed, bool enabled = true}) {
+    return Container(
+      width: double.infinity,
+      height: 54,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        gradient: enabled 
+          ? const LinearGradient(colors: [Color(0xFF0D4F5C), Color(0xFF1E8FA3)]) 
+          : null,
+        color: enabled ? null : const Color(0xFFE8EEF2),
+        boxShadow: enabled ? [
+          BoxShadow(
+            color: const Color(0xFF0D4F5C).withOpacity(0.3),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ] : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: enabled ? onPressed : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child: Text(
+              label,
+              style: GoogleFonts.dmSans(
+                color: enabled ? const Color(0xFFE8F8F5) : const Color(0xFFB0C0CC),
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
-    if (success) {
-      setState(() => isSuccess = true);
-      widget.onVerified();
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) {
-          Navigator.of(context, rootNavigator: true).pop();
-        }
-      });
-    }
   }
 
   Widget _buildSuccessView() {
     return Column(
       key: const ValueKey('success_view'),
       children: [
-        const Icon(
-          Icons.check_circle_rounded,
-          color: Colors.green,
-          size: 64,
+        Container(
+          width: 68,
+          height: 68,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: const LinearGradient(colors: [Color(0xFF0D7A5C), Color(0xFF1AAB82)]),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0D7A5C).withOpacity(0.32),
+                blurRadius: 36,
+                offset: const Offset(0, 12),
+              ),
+            ],
+          ),
+          child: const Icon(Icons.check_rounded, color: Colors.white, size: 30),
         ),
-        const SizedBox(height: AppSpacing.l),
+        const SizedBox(height: 22),
         Text(
-          'Verified Successfully!',
-          style: AppTextStyles.h3.copyWith(color: Colors.green),
+          'All verified!',
+          style: GoogleFonts.fraunces(
+            fontSize: 28,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF0A1628),
+            letterSpacing: -0.3,
+          ),
         ),
-        const SizedBox(height: AppSpacing.s),
+        const SizedBox(height: 10),
         Text(
-          'Closing in a moment...',
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+          'Your phone number has been confirmed successfully.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: const Color(0xFF5A6A7A), fontSize: 15, height: 1.6),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            gradient: const LinearGradient(colors: [Color(0xFFEDFAF5), Color(0xFFD4F5E9)]),
+            border: Border.all(color: const Color(0xFF7DE8BE), width: 1.5),
+          ),
+          child: Text(
+            '✓ ${controller.formatPhone(controller.dialCode.value, phoneController.text.trim())}',
+            style: const TextStyle(color: Color(0xFF065F46), fontSize: 14, fontWeight: FontWeight.w600),
+          ),
         ),
       ],
     );
+  }
+
+  void _handleSendCode() async {
+    final phone = phoneController.text.trim();
+    if (phone.isEmpty) {
+      AppUtils.showWarning(message: 'Please enter your phone number');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final formattedPhone = controller.formatPhone(controller.dialCode.value, phone);
+    final success = await controller.requestVerification(formattedPhone);
+    if (success) {
+      if (!showOtpField) setState(() => showOtpField = true);
+      _startResendTimer();
+    }
+  }
+
+  void _handleVerify() async {
+    final code = otpControllers.map((c) => c.text).join();
+    if (code.length != 6) {
+      AppUtils.showWarning(message: 'Please enter the complete 6-digit code');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    final formattedPhone = controller.formatPhone(controller.dialCode.value, phoneController.text.trim());
+    final success = await controller.verifyPhone(formattedPhone, code);
+    if (success) {
+      setState(() => isSuccess = true);
+      widget.onVerified();
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) Get.back();
+      });
+    }
   }
 }

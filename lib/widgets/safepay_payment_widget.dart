@@ -64,7 +64,7 @@ class SafepayPaymentWidget extends StatelessWidget {
       successUrl: 'https://sportsstudio.com/success',
       failUrl: 'https://sportsstudio.com/fail',
       onPaymentCompleted: () {
-        print("🚀 [SafepayWidget] Payment success");
+        print("✅ [SafepayWidget] onPaymentCompleted fired");
         if (onSuccess != null) {
           onSuccess!();
         } else {
@@ -72,7 +72,7 @@ class SafepayPaymentWidget extends StatelessWidget {
         }
       },
       onPaymentFailed: () {
-        print("❌ [SafepayWidget] Payment failed");
+        print("❌ [SafepayWidget] onPaymentFailed fired");
         if (onFailed != null) {
           onFailed!();
         } else {

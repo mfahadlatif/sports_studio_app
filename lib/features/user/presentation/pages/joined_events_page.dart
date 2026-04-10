@@ -23,13 +23,53 @@ class JoinedEventsPage extends StatelessWidget {
         appBar: AppBar(
           title: const Text('My Booked Events'),
           centerTitle: true,
-          bottom: const TabBar(
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
-            tabs: [
-              Tab(text: 'Upcoming'),
-              Tab(text: 'Past'),
-            ],
+          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.textPrimary,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(50),
+            child: Container(
+              height: 42,
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                padding: const EdgeInsets.all(0),
+                indicatorSize: TabBarIndicatorSize.tab,
+                isScrollable: false,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                labelColor: AppColors.surface,
+                unselectedLabelColor: AppColors.textMuted,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                indicatorPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                tabs: const [
+                  Tab(text: 'Upcoming'),
+                  Tab(text: 'Past'),
+                ],
+              ),
+            ),
           ),
         ),
         body: TabBarView(

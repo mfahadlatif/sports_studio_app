@@ -144,4 +144,27 @@ class UrlHelper {
     if (avatar == null || avatar.isEmpty) return '';
     return sanitizeUrl(avatar);
   }
+
+  /// Extracts the original raw relative path from a sanitized media/serve URL
+  /// or any URL that contains a path parameter.
+  static String getRawPath(String url) {
+    try {
+      if (url.contains('?path=')) {
+        final uri = Uri.parse(url);
+        return uri.queryParameters['path'] ?? url;
+      }
+      if (url.contains('media/serve/')) {
+        return url.split('media/serve/').last;
+      }
+      // If it's a full URL to /storage/
+      if (url.contains('/storage/')) {
+        return url.split('/storage/').last;
+      }
+       // If it's a full URL to /uploads/
+      if (url.contains('/uploads/')) {
+        return 'uploads/${url.split('/uploads/').last}';
+      }
+    } catch (_) {}
+    return url;
+  }
 }

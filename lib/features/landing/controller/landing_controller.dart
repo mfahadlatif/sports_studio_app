@@ -7,6 +7,7 @@ class LandingController extends GetxController {
   final RxInt currentNavIndex = 0.obs;
   final Rx<UserRole> currentRole = UserRole.user.obs;
   final _storage = const FlutterSecureStorage();
+  DateTime? lastPressedTime;
 
   void changeNavIndex(int index) {
     currentNavIndex.value = index;

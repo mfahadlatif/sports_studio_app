@@ -1,15 +1,18 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/features/user/controller/favorites_controller.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:sports_studio/features/user/controller/ground_controller.dart';
+import 'package:sports_studio/features/user/controller/profile_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/features/user/presentation/pages/booking_slot_page.dart';
@@ -279,8 +282,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     final name = ground?['name'] ?? '—';
     final type = ground?['type'] ?? '—';
     final complex = ground?['complex'] ?? {};
-    final location =
-        ground?['location'] ?? complex['address'] ?? '—';
+    final location = ground?['location'] ?? complex['address'] ?? '—';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,10 +349,16 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     final areaText = (dimensions != null && dimensions.isNotEmpty)
         ? dimensions
         : (ground?['length'] != null && ground?['width'] != null)
-            ? '${ground!['length']}m x ${ground['width']}m'
-            : '—';
-    final capacity = ground?['capacity'] ?? ground?['max_players'];
-    final capacityText = (capacity != null && capacity.toString().isNotEmpty)
+        ? '${ground!['length']}m x ${ground['width']}m'
+        : '—';
+    final capacity =
+        ground?['max_participants'] ??
+        ground?['capacity'] ??
+        ground?['max_players'];
+    final capacityText =
+        (capacity != null &&
+            capacity.toString().isNotEmpty &&
+            capacity.toString() != '0')
         ? '$capacity Players'
         : '—';
     return Container(
@@ -369,8 +377,11 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
             Icons.lightbulb_outline,
             'Lights',
             (ground?['has_lighting'] == 1 ||
-                    (ground?['amenities'] as List?)?.contains('Lighting') ==
-                        true)
+                    ground?['has_lighting'] == true ||
+                    (ground?['amenities']?.toString().toLowerCase().contains(
+                          'lighting',
+                        ) ??
+                        false))
                 ? 'Available'
                 : 'No',
           ),
@@ -397,61 +408,116 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   Widget _buildAmenities(dynamic ground) {
-    final List<dynamic> groundAmenities = ground?['amenities'] ?? [];
+    final dynamic groundAmenitiesRaw = ground?['amenities'] ?? [];
 
-    // Asset Mapping
-    final Map<String, String> assetIcons = {
-      'water': 'assets/Icons/Washrooms.png', // Fallback or matching
-      'washroom': 'assets/Icons/Washrooms.png',
-      'changing': 'assets/Icons/ChangingRooms.png',
-      'parking': 'assets/Icons/FreeParking.png',
-      'lighting': 'assets/Icons/Floodlights.png',
-      'wifi': 'assets/Icons/FreeWiFi.png',
-      'first_aid': 'assets/Icons/FirstAid.png',
-      'cafe': 'assets/Icons/Cafe.png',
-      'equipment': 'assets/Icons/Equipment.png',
-      'lockers': 'assets/Icons/Lockers.png',
-      'seating': 'assets/Icons/Seating.png',
-      
-      'Wifi': 'assets/Icons/FreeWiFi.png',
-      'Parking': 'assets/Icons/FreeParking.png',
-      'Changing Room': 'assets/Icons/ChangingRooms.png',
-      'Showers': 'assets/Icons/Washrooms.png',
-      'Floodlights': 'assets/Icons/Floodlights.png',
-      'First Aid': 'assets/Icons/FirstAid.png',
-      'Drinking Water': 'assets/Icons/Washrooms.png',
-      'Cafe': 'assets/Icons/Cafe.png',
-      'Lighting': 'assets/Icons/Floodlights.png',
+    // Normalize string representation if it's a JSON string
+    List<String> amenities = [];
+    if (groundAmenitiesRaw is String) {
+      try {
+        amenities = List<String>.from(jsonDecode(groundAmenitiesRaw));
+      } catch (_) {
+        amenities = groundAmenitiesRaw
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    } else if (groundAmenitiesRaw is List) {
+      amenities = groundAmenitiesRaw.map((e) => e.toString()).toList();
+    }
+
+    // Standard Mapping from AppConstants
+    final Map<String, Map<String, String>> amenityMap = {
+      'parking': {
+        'name': 'Free Parking',
+        'icon': '🚗',
+        'asset': 'assets/Icons/FreeParking.png',
+      },
+      'washrooms': {
+        'name': 'Washrooms',
+        'icon': '🚻',
+        'asset': 'assets/Icons/Washrooms.png',
+      },
+      'changing-rooms': {
+        'name': 'Changing Rooms',
+        'icon': '👕',
+        'asset': 'assets/Icons/ChangingRooms.png',
+      },
+      'seating': {
+        'name': 'Seating Area',
+        'icon': '💺',
+        'asset': 'assets/Icons/Seating.png',
+      },
+      'lighting': {
+        'name': 'Floodlights',
+        'icon': '💡',
+        'asset': 'assets/Icons/Floodlights.png',
+      },
+      'cafe': {
+        'name': 'Cafeteria',
+        'icon': '☕',
+        'asset': 'assets/Icons/Cafe.png',
+      },
+      'first-aid': {
+        'name': 'First Aid',
+        'icon': '🏥',
+        'asset': 'assets/Icons/FirstAid.png',
+      },
+      'wifi': {
+        'name': 'Free WiFi',
+        'icon': '📶',
+        'asset': 'assets/Icons/FreeWiFi.png',
+      },
+      'lockers': {
+        'name': 'Lockers',
+        'icon': '🔐',
+        'asset': 'assets/Icons/Lockers.png',
+      },
+      'equipment': {
+        'name': 'Equipment',
+        'icon': '🎯',
+        'asset': 'assets/Icons/Equipment.png',
+      },
+
+      // Legacy/Alternate support
+      'washroom': {
+        'name': 'Washrooms',
+        'icon': '🚻',
+        'asset': 'assets/Icons/Washrooms.png',
+      },
+      'changing': {
+        'name': 'Changing Rooms',
+        'icon': '👕',
+        'asset': 'assets/Icons/ChangingRooms.png',
+      },
+      'first_aid': {
+        'name': 'First Aid',
+        'icon': '🏥',
+        'asset': 'assets/Icons/FirstAid.png',
+      },
+      'Lighting': {
+        'name': 'Floodlights',
+        'icon': '💡',
+        'asset': 'assets/Icons/Floodlights.png',
+      },
+      'Floodlights': {
+        'name': 'Floodlights',
+        'icon': '💡',
+        'asset': 'assets/Icons/Floodlights.png',
+      },
+      'Wifi': {
+        'name': 'Free WiFi',
+        'icon': '📶',
+        'asset': 'assets/Icons/FreeWiFi.png',
+      },
+      'Parking': {
+        'name': 'Free Parking',
+        'icon': '🚗',
+        'asset': 'assets/Icons/FreeParking.png',
+      },
     };
 
-    // Config matching owner side and filter
-    final Map<String, Map<String, String>> config = {
-      // New Lowercase IDs
-      'water': {'name': 'Drinking Water', 'icon': '🚰'},
-      'washroom': {'name': 'Washroom', 'icon': '🚻'},
-      'changing': {'name': 'Changing Room', 'icon': '👕'},
-      'parking': {'name': 'Parking', 'icon': '🚗'},
-      'lighting': {'name': 'Lighting', 'icon': '💡'},
-      'wifi': {'name': 'Wifi', 'icon': '📡'},
-      'first_aid': {'name': 'First Aid', 'icon': '🏥'},
-      'cafe': {'name': 'Cafe', 'icon': '☕'},
-      'dugout': {'name': 'Dugout', 'icon': '⛺'},
-      'balls': {'name': 'Balls', 'icon': '🎾'},
-      'bats': {'name': 'Bats', 'icon': '🏏'},
-      
-      // Legacy Support
-      'Wifi': {'name': 'Wifi', 'icon': '📡'},
-      'Parking': {'name': 'Parking', 'icon': '🚗'},
-      'Changing Room': {'name': 'Changing Room', 'icon': '👕'},
-      'Showers': {'name': 'Showers', 'icon': '🚿'},
-      'Floodlights': {'name': 'Floodlights', 'icon': '💡'},
-      'First Aid': {'name': 'First Aid', 'icon': '🏥'},
-      'Drinking Water': {'name': 'Drinking Water', 'icon': '💧'},
-      'Cafe': {'name': 'Cafe', 'icon': '☕'},
-      'Lighting': {'name': 'Lights', 'icon': '💡'},
-    };
-
-    if (groundAmenities.isEmpty) {
+    if (amenities.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -463,15 +529,12 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
         Wrap(
           spacing: 12,
           runSpacing: 12,
-          children: groundAmenities.map((id) {
-            final String idStr = id.toString();
-            final item = config[idStr] ?? {'name': idStr, 'icon': '✨'};
-            final assetPath = assetIcons[idStr];
-            
+          children: amenities.map((id) {
+            final data = amenityMap[id] ?? {'name': id, 'icon': '✨'};
             return _amenityChip(
-              item['icon']!, 
-              item['name']!, 
-              assetPath: assetPath
+              data['icon']!,
+              data['name']!,
+              assetPath: data['asset'],
             );
           }).toList(),
         ),
@@ -497,7 +560,10 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
           const SizedBox(width: 8),
           Text(
             label,
-            style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold, fontSize: 11),
+            style: AppTextStyles.label.copyWith(
+              fontWeight: FontWeight.bold,
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -564,12 +630,17 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.location_off_outlined, color: AppColors.textMuted),
+                const Icon(
+                  Icons.location_off_outlined,
+                  color: AppColors.textMuted,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     complex['address']?.toString() ?? 'Location not set',
-                    style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textMuted),
+                    style: AppTextStyles.bodyMedium.copyWith(
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ),
               ],
@@ -639,14 +710,25 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Player Reviews', style: AppTextStyles.h2),
-            Obx(
-              () => Text(
-                '${controller.reviews.length} total',
-                style: AppTextStyles.bodySmall,
+            if (!_isOwnerOfGround(ground))
+              TextButton.icon(
+                onPressed: () => _showReviewSheet(ground),
+                icon: const Icon(Icons.rate_review_outlined, size: 18),
+                label: const Text('Write a Review'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: EdgeInsets.zero,
+                ),
               ),
-            ),
           ],
         ),
+        Obx(
+          () => Text(
+            '${controller.reviews.length} total',
+            style: AppTextStyles.bodySmall,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s),
         Obx(() {
           if (controller.isLoadingReviews.value) {
             return const Padding(
@@ -694,7 +776,12 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     return 'Just now';
   }
 
-  Widget _reviewCard(String name, String rating, String text, DateTime? createdAt) {
+  Widget _reviewCard(
+    String name,
+    String rating,
+    String text,
+    DateTime? createdAt,
+  ) {
     final displayName = name.isNotEmpty ? name : 'User';
     final initial = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
     return Container(
@@ -759,6 +846,8 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
 
   Widget _buildBottomBar(dynamic ground) {
     final price = ground?['price_per_hour'] ?? '0';
+    final isOwner = _isOwnerOfGround(ground);
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.l),
       decoration: BoxDecoration(
@@ -780,7 +869,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Total Price',
+                  isOwner ? 'Your Pricing' : 'Total Price',
                   style: AppTextStyles.label.copyWith(
                     color: AppColors.textMuted,
                   ),
@@ -796,8 +885,21 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
               child: SizedBox(
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () =>
-                      Get.to(() => const BookingSlotPage(), arguments: ground),
+                  onPressed: () {
+                    if (isOwner) {
+                      Get.toNamed(
+                        '/add-ground',
+                        arguments: {
+                          'isEdit': true,
+                          'ground': ground,
+                          'complexId': ground['complex_id'],
+                          'complexName': ground['complex']?['name'] ?? '',
+                        },
+                      );
+                    } else {
+                      Get.to(() => const BookingSlotPage(), arguments: ground);
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
@@ -806,9 +908,12 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                     elevation: 4,
                     shadowColor: AppColors.primary.withOpacity(0.4),
                   ),
-                  child: const Text(
-                    'Book Now',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  child: Text(
+                    isOwner ? 'Edit Ground' : 'Book Now',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -818,20 +923,194 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
       ),
     );
   }
+
+  void _showReviewSheet(dynamic ground) {
+    final commentCtrl = TextEditingController();
+    final RxDouble rating = 5.0.obs;
+    final groundId = int.tryParse(ground['id'].toString()) ?? 0;
+
+    Get.bottomSheet(
+      Container(
+        padding: const EdgeInsets.all(AppSpacing.l),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Rate your Experience', style: AppTextStyles.h2),
+                  IconButton(
+                    onPressed: () => Get.back(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.m),
+              Center(
+                child: Column(
+                  children: [
+                    Obx(
+                      () => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(5, (index) {
+                          final starRating = index + 1.0;
+                          return IconButton(
+                            onPressed: () => rating.value = starRating,
+                            icon: Icon(
+                              starRating <= rating.value
+                                  ? Icons.star_rounded
+                                  : Icons.star_outline_rounded,
+                              size: 42,
+                              color: Colors.amber,
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    Obx(
+                      () => Text(
+                        '${rating.value.toInt()} stars',
+                        style: AppTextStyles.bodyMedium.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.amber[800],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSpacing.l),
+              Text('Your Review', style: AppTextStyles.label),
+              const SizedBox(height: AppSpacing.s),
+              TextField(
+                controller: commentCtrl,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Tell others about the field, lighting, etc...',
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (commentCtrl.text.trim().isEmpty) {
+                      AppUtils.showWarning(message: 'Please enter a comment');
+                      return;
+                    }
+                    await controller.submitReview(
+                      groundId: groundId,
+                      rating: rating.value,
+                      comment: commentCtrl.text.trim(),
+                    );
+                    Get.back();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Submit Review',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.m),
+            ],
+          ),
+        ),
+      ),
+      isScrollControlled: true,
+    );
+  }
+
+  bool _isOwnerOfGround(dynamic ground) {
+    try {
+      if (ground == null) return false;
+      final profileCtrl = Get.find<ProfileController>();
+      final myId = profileCtrl.userProfile['id'];
+      final ownerId = ground['user_id'] ?? ground['owner_id'];
+      if (myId == null || ownerId == null) return false;
+      return myId.toString() == ownerId.toString();
+    } catch (_) {
+      return false;
+    }
+  }
 }
 
 class _FavoriteButtonDetail extends StatelessWidget {
   final dynamic ground;
   const _FavoriteButtonDetail({required this.ground});
 
+  bool _isMyGround() {
+    try {
+      if (ground == null) return false;
+      final profileCtrl = Get.find<ProfileController>();
+      final myId = profileCtrl.userProfile['id']?.toString();
+      if (myId == null) return false;
+
+      // List of possible fields for ground owner ID
+      final List<dynamic> possibleOwnerIds = [
+        ground['user_id'],
+        ground['owner_id'],
+        ground['complex']?['owner_id'],
+        ground['complex']?['user_id'],
+        ground['complex']?['owner']?['id'],
+      ];
+
+      return possibleOwnerIds.any((id) => id != null && id.toString() == myId);
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (ground == null) return const SizedBox.shrink();
-    final controller = Get.put(FavoritesController()); // Ensure it exists
-    final id = int.tryParse(ground['id'].toString()) ?? 0;
 
     return Obx(() {
+      if (_isMyGround()) {
+        return CircleAvatar(
+          backgroundColor: Colors.black.withOpacity(0.3),
+          child: IconButton(
+            icon: const Icon(Icons.edit, color: Colors.white),
+            onPressed: () => Get.toNamed(
+              '/add-ground',
+              arguments: {
+                'isEdit': true,
+                'ground': ground,
+                'complexId': ground['complex_id'],
+                'complexName': ground['complex']?['name'] ?? '',
+              },
+            ),
+          ),
+        );
+      }
+
+      final controller = Get.put(FavoritesController()); // Ensure it exists
+      final id = int.tryParse(ground['id'].toString()) ?? 0;
       final isFav = controller.isFavorite(id);
+
       return CircleAvatar(
         backgroundColor: Colors.black.withOpacity(0.3),
         child: IconButton(

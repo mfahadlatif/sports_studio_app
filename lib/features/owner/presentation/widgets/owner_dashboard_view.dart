@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
@@ -15,6 +16,10 @@ import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page
 import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
 import 'package:sports_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/sports_grounds_page.dart';
+import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
 
 class OwnerDashboardView extends StatelessWidget {
   const OwnerDashboardView({super.key});
@@ -32,148 +37,69 @@ class OwnerDashboardView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-              const SizedBox(height: AppSpacing.m),
-
-              // ── Current Status Banner ───────────────────────────
-              _buildStatusBanner(controller),
+              // ── Top Section (Header + Banner) ───────────────────
+              _buildTopSection(controller),
 
               const SizedBox(height: AppSpacing.l),
 
-              // ── Analytics Stat Grid ─────────────────────────────
-              // Padding(
-              //   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-              //   child: Obx(() {
-              //     if (controller.isLoading.value) {
-              //       return GridView.count(
-              //         shrinkWrap: true,
-              //         physics: const NeverScrollableScrollPhysics(),
-              //         crossAxisCount: 2,
-              //         crossAxisSpacing: AppSpacing.m,
-              //         mainAxisSpacing: AppSpacing.m,
-              //         childAspectRatio: 1.4,
-              //         children: List.generate(
-              //           4,
-              //           (index) => const AppShimmer.rectangular(
-              //             height: 100,
-              //             shapeBorder: RoundedRectangleBorder(
-              //               borderRadius: BorderRadius.all(Radius.circular(20)),
-              //             ),
-              //           ),
-              //         ),
-              //       );
-              //     }
-              //     return GridView.count(
-              //       shrinkWrap: true,
-              //       physics: const NeverScrollableScrollPhysics(),
-              //       crossAxisCount: 2,
-              //       crossAxisSpacing: AppSpacing.m,
-              //       mainAxisSpacing: AppSpacing.m,
-              //       childAspectRatio: 1.1,
-              //       children: [
-              //         _buildStatCard(
-              //           'Total Complexes',
-              //           '${controller.totalComplexes.value}',
-              //           Icons.business_outlined,
-              //           AppColors.primary,
-              //         ),
-              //         _buildStatCard(
-              //           'Total Grounds',
-              //           '${controller.totalGrounds.value}',
-              //           Icons.map_outlined,
-              //           Colors.orange,
-              //         ),
-              //         _buildStatCard(
-              //           'Total Bookings',
-              //           '${controller.totalBookings.value}',
-              //           Icons.calendar_today_outlined,
-              //           Colors.blue,
-              //         ),
-              //         _buildStatCard(
-              //           'Total Revenue',
-              //           '${AppConstants.currencySymbol} ${(controller.totalRevenue.value / 1000).toStringAsFixed(1)}k',
-              //           Icons.payments_outlined,
-              //           Colors.green,
-              //         ),
-              //       ],
-              //     );
-              //   }),
-              // ),
-
-              // const SizedBox(height: AppSpacing.l),
-
-              // ── Quick Management Grid ──────────────────────────
+              // ── Management Grid ──────────────────────────────────
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                child: Text('Management', style: AppTextStyles.h3),
-              ),
-              const SizedBox(height: AppSpacing.m),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                child: GridView.count(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  crossAxisCount: 2,
-                  crossAxisSpacing: AppSpacing.m,
-                  mainAxisSpacing: AppSpacing.m,
-                  childAspectRatio: 1.7,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _buildManagementCard(
-                      'Reports',
-                      Icons.analytics_outlined,
-                      Colors.indigo,
-                      () => Get.to(() => const OwnerReportsPage()),
+                    Text(
+                      'Business Control',
+                      style: AppTextStyles.h3.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                    _buildManagementCard(
-                      'Complexes',
-                      Icons.corporate_fare_outlined,
-                      Colors.teal,
-                      () => Get.to(() => const SportsComplexesPage()),
-                    ),
-                    _buildManagementCard(
-                      'Deals',
-                      Icons.local_offer_outlined,
-                      Colors.deepOrange,
-                      () => Get.to(() => const OwnerDealsPage()),
-                    ),
-                    _buildManagementCard(
-                      'Reviews',
-                      Icons.rate_review_outlined,
-                      Colors.amber,
-                      () => Get.to(() => const ReviewModerationPage()),
-                      badge: controller.pendingReviewsCount.value > 0
-                          ? controller.pendingReviewsCount.value.toString()
-                          : null,
-                    ),
-                    _buildManagementCard(
-                      'Add Complex',
-                      Icons.add_business_outlined,
-                      AppColors.primary,
-                      () async {
-                        final res = await Get.to(() => const AddComplexPage());
-                        if (res == true) controller.fetchDashboard();
-                      },
-                    ),
-                    _buildManagementCard(
-                      'Add Ground',
-                      Icons.add_location_alt_outlined,
-                      Colors.orange,
-                      () async {
-                        final res =
-                            await Get.to(() => const AddEditGroundPage());
-                        if (res == true) controller.fetchDashboard();
-                      },
+                    TextButton(
+                      onPressed: () => Get.to(() => const EditProfilePage()),
+                      child: const Text('Settings'),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: AppSpacing.m),
+              _buildManagementGrid(controller),
 
               const SizedBox(height: AppSpacing.l),
 
-              const SectionHeader(
-                title: 'My Complexes',
-                subtitle: 'Active sports facilities',
+              // ── My Complexes ─────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'My Complexes',
+                          style: AppTextStyles.h3.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          'Active sports facilities',
+                          style: AppTextStyles.label.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      onPressed: () => Get.to(() => const AddComplexPage()),
+                      icon: const Icon(
+                        Icons.add_circle,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: AppSpacing.m),
               Obx(() {
                 if (controller.isLoading.value) {
                   return Padding(
@@ -186,15 +112,9 @@ class OwnerDashboardView extends StatelessWidget {
                   );
                 }
                 if (controller.complexes.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.xl),
-                      child: Text(
-                        'No complexes listed yet.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textMuted),
-                      ),
-                    ),
+                  return _buildEmptyState(
+                    'No complexes listed yet.',
+                    Icons.business_outlined,
                   );
                 }
                 return ListView.builder(
@@ -214,10 +134,27 @@ class OwnerDashboardView extends StatelessWidget {
               const SizedBox(height: AppSpacing.l),
 
               // ── Recent Bookings ─────────────────────────────────
-              const SectionHeader(
-                title: 'Recent Bookings',
-                subtitle: 'Latest player activity',
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Recent Activity',
+                      style: AppTextStyles.h3.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'Latest player venue bookings',
+                      style: AppTextStyles.label.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(height: AppSpacing.m),
               Obx(() {
                 if (controller.isLoading.value) {
                   return Padding(
@@ -233,16 +170,7 @@ class OwnerDashboardView extends StatelessWidget {
                   );
                 }
                 if (controller.recentBookings.isEmpty) {
-                  return const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(AppSpacing.xl),
-                      child: Text(
-                        'No recent bookings.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(color: AppColors.textMuted),
-                      ),
-                    ),
-                  );
+                  return _buildEmptyState('No recent activity.', Icons.history);
                 }
                 return ListView.builder(
                   shrinkWrap: true,
@@ -264,57 +192,118 @@ class OwnerDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBanner(OwnerController controller) {
+  Widget _buildTopSection(OwnerController controller) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(40),
+          bottomRight: Radius.circular(40),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _buildHeader(),
+          _buildVisualBanner(controller),
+          const SizedBox(height: 30),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVisualBanner(OwnerController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.l),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primary, AppColors.secondary],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: Colors.black.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Current Status',
-              style: TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Monthly Revenue',
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                    Obx(
+                      () => Text(
+                        '${AppConstants.currencySymbol}${NumberFormat('#,###').format(controller.monthlyRevenue.value)}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.trending_up,
+                        color: Colors.greenAccent,
+                        size: 16,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        '+12%',
+                        style: TextStyle(
+                          color: Colors.greenAccent,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.m),
+            const SizedBox(height: 20),
             Obx(
               () => Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   _buildBannerStat(
-                    'Complexes',
-                    '${controller.totalComplexes.value}',
-                  ),
-                   _buildBannerStat(
-                    'Grounds',
-                    '${controller.totalGrounds.value}',
-                  ),
-                  _buildBannerStat(
-                    'Bookings',
+                  _buildBannerStatItem(
+                    'Total Bookings',
                     '${controller.totalBookings.value}',
+                    Icons.calendar_today,
                   ),
-                  _buildBannerStat(
-                    'Revenue',
-                    '${(controller.monthlyRevenue.value / 1000).toStringAsFixed(1)}K',
+                  Container(height: 30, width: 1, color: Colors.white24),
+                  _buildBannerStatItem(
+                    'Active Grounds',
+                    '${controller.totalGrounds.value}',
+                    Icons.map_outlined,
+                  ),
+                  Container(height: 30, width: 1, color: Colors.white24),
+                  _buildBannerStatItem(
+                    'Reviews',
+                    '${controller.pendingReviewsCount.value}',
+                    Icons.star_outline,
                   ),
                 ],
               ),
@@ -325,26 +314,167 @@ class OwnerDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildBannerStat(String label, String value) {
+  Widget _buildBannerStatItem(String label, String value, IconData icon) {
     return Column(
       children: [
+        Icon(icon, color: Colors.white70, size: 16),
+        const SizedBox(height: 4),
         Text(
           value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        Text(
-          label,
           style: const TextStyle(
-            color: Colors.white60,
-            fontSize: 10,
+            color: Colors.white,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
           ),
         ),
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 9)),
       ],
+    );
+  }
+
+  Widget _buildManagementGrid(OwnerController controller) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 4,
+        crossAxisSpacing: AppSpacing.m,
+        mainAxisSpacing: AppSpacing.m,
+        children: [
+          _buildNewManagementCard(
+            'Complex',
+            Icons.business,
+            Colors.blue,
+            () => Get.to(() => const SportsComplexesPage()),
+          ),
+          _buildNewManagementCard(
+            'Grounds',
+            Icons.sports_soccer,
+            Colors.indigo,
+            () => Get.to(() => const SportsGroundsPage()),
+          ),
+          _buildNewManagementCard(
+            'Bookings',
+            Icons.calendar_month,
+            Colors.green,
+            () => Get.to(() => const OwnerBookingsView()),
+          ),
+          _buildNewManagementCard(
+            'Reports',
+            Icons.analytics,
+            Colors.deepOrange,
+            () => Get.to(() => const OwnerReportsPage()),
+          ),
+          _buildNewManagementCard(
+            'Deals',
+            Icons.local_offer,
+            Colors.amber,
+            () => Get.to(() => const OwnerDealsPage()),
+          ),
+          _buildNewManagementCard(
+            'Reviews',
+            Icons.rate_review,
+            Colors.purple,
+            () => Get.to(() => const ReviewModerationPage()),
+            badge: controller.pendingReviewsCount.value > 0
+                ? controller.pendingReviewsCount.value.toString()
+                : null,
+          ),
+          _buildNewManagementCard(
+            'Wallet',
+            Icons.account_balance_wallet,
+            Colors.teal,
+            () => Get.to(() => const WalletPage()),
+          ),
+          _buildNewManagementCard(
+            'Support',
+            Icons.contact_support,
+            Colors.blueGrey,
+            () {},
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNewManagementCard(
+    String label,
+    IconData icon,
+    Color color,
+    VoidCallback onTap, {
+    String? badge,
+  }) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                height: 60,
+                width: 60,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: color.withValues(alpha: 0.2)),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              if (badge != null)
+                Positioned(
+                  top: -4,
+                  right: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      badge,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          children: [
+            Icon(icon, size: 48, color: AppColors.textMuted.withValues(alpha: 0.3)),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textMuted),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -381,7 +511,7 @@ class OwnerDashboardView extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: AppColors.primary.withOpacity(0.2),
+                color: AppColors.primary.withValues(alpha: 0.2),
                 width: 2,
               ),
             ),
@@ -391,130 +521,6 @@ class OwnerDashboardView extends StatelessWidget {
               child: const Icon(Icons.person, color: AppColors.primary),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.m),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 20),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                value,
-                style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.w900),
-              ),
-              Text(
-                title,
-                style: AppTextStyles.label.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildManagementCard(
-    String label,
-    IconData icon,
-    Color color,
-    VoidCallback onTap, {
-    String? badge,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.m),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.2)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(icon, color: color, size: 22),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        label,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          if (badge != null)
-            Positioned(
-              top: -5,
-              right: -5,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Text(
-                  badge,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -540,7 +546,7 @@ class OwnerDashboardView extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withOpacity(0.5)),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
         ),
         child: Row(
           children: [
@@ -581,7 +587,7 @@ class OwnerDashboardView extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
+                            color: Colors.green.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: const Text(
@@ -654,43 +660,101 @@ class OwnerDashboardView extends StatelessWidget {
       onTap: () =>
           Get.toNamed('/booking-detail', arguments: {'booking': booking}),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
+        margin: const EdgeInsets.only(bottom: AppSpacing.m),
+        padding: const EdgeInsets.all(AppSpacing.m),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withOpacity(0.5)),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.4)),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              height: 52,
+              width: 52,
               decoration: BoxDecoration(
-                color: paymentStatus == 'paid'
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.orange.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
+                color: AppColors.primaryLight.withValues(alpha: 0.5),
+                border: Border.all(
+                  color: (paymentStatus == 'paid' ? Colors.green : Colors.orange)
+                      .withValues(alpha: 0.3),
+                  width: 1.5,
+                ),
               ),
-              child: Icon(
-                Icons.sports_cricket,
-                color: paymentStatus == 'paid' ? Colors.green : Colors.orange,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(26),
+                child: (booking['user'] != null &&
+                        booking['user']['avatar'] != null)
+                    ? CachedNetworkImage(
+                        imageUrl: UrlHelper.sanitizeUrl(
+                          booking['user']['avatar'].toString(),
+                        ),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const Center(
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Center(
+                          child: Text(
+                            userName.isNotEmpty
+                                ? userName.substring(0, 1).toUpperCase()
+                                : '?',
+                            style: TextStyle(
+                              color: paymentStatus == 'paid'
+                                  ? Colors.green
+                                  : Colors.orange,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Text(
+                          userName.isNotEmpty
+                              ? userName.substring(0, 1).toUpperCase()
+                              : '?',
+                          style: TextStyle(
+                            color: paymentStatus == 'paid'
+                                ? Colors.green
+                                : Colors.orange,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: AppSpacing.m),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        userName,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: Text(
+                          userName,
+                          style: AppTextStyles.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const Spacer(),
                       Text(
-                        '${AppConstants.currencySymbol} $totalAmount',
-                        style: TextStyle(
+                        '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(double.tryParse(totalAmount.toString()) ?? 0)}',
+                        style: AppTextStyles.bodyMedium.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w900,
                         ),
@@ -700,19 +764,38 @@ class OwnerDashboardView extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
+                      Icon(Icons.sports_cricket_outlined,
+                          size: 12, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
                       Text(
                         groundName,
-                        style: const TextStyle(
-                          fontSize: 12,
+                        style: AppTextStyles.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                         ),
                       ),
                       const Spacer(),
-                      Text(
-                        startTime.toString().split(' ').last.substring(0, 5),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: (paymentStatus == 'paid'
+                                  ? Colors.green
+                                  : Colors.orange)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          paymentStatus.toUpperCase(),
+                          style: TextStyle(
+                            color: paymentStatus == 'paid'
+                                ? Colors.green
+                                : Colors.orange,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                          ),
                         ),
                       ),
                     ],
@@ -720,9 +803,10 @@ class OwnerDashboardView extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             const Icon(
               Icons.arrow_forward_ios,
-              size: 12,
+              size: 10,
               color: AppColors.textMuted,
             ),
           ],

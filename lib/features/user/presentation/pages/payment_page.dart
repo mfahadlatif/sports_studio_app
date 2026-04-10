@@ -12,6 +12,7 @@ import 'package:sports_studio/core/utils/app_utils.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/core/services/safepay_service.dart';
 import 'package:sports_studio/widgets/safepay_payment_widget.dart';
+import 'package:sports_studio/core/models/models.dart';
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -40,10 +41,14 @@ class _PaymentPageState extends State<PaymentPage> {
     if (args != null && args is Map) {
       if (args['deal'] != null) {
         _appliedPromo = args['deal'];
-        _discountPercentage =
-            double.tryParse(_appliedPromo['discount_percentage'].toString()) ??
-            0;
-        _promoCtrl.text = _appliedPromo['code'] ?? '';
+        if (_appliedPromo is Deal) {
+          _discountPercentage = _appliedPromo.discountPercentage;
+          _promoCtrl.text = _appliedPromo.code ?? '';
+        } else if (_appliedPromo is Map) {
+          _discountPercentage =
+              double.tryParse(_appliedPromo['discount_percentage'].toString()) ?? 0;
+          _promoCtrl.text = _appliedPromo['code'] ?? '';
+        }
       }
     }
 
@@ -112,12 +117,12 @@ class _PaymentPageState extends State<PaymentPage> {
         );
 
         if (deal != null) {
+          final dealObj = Deal.fromJson(deal);
           setState(() {
-            _appliedPromo = deal;
-            _discountPercentage =
-                double.tryParse(deal['discount_percentage'].toString()) ?? 0;
+            _appliedPromo = dealObj;
+            _discountPercentage = dealObj.discountPercentage;
           });
-          AppUtils.showSuccess(message: 'Promo code applied: ${deal['title']}');
+          AppUtils.showSuccess(message: 'Promo code applied: ${dealObj.title}');
         } else {
           AppUtils.showError(message: 'Invalid promo code');
         }
@@ -162,6 +167,15 @@ class _PaymentPageState extends State<PaymentPage> {
     double subtotal = 0.0;
     double discountAmount = 0.0;
 
+    // ── Extract IDs NOW (while PaymentPage is active and Get.arguments is valid)
+    final String? paymentType = (args != null && args is Map) ? args['type']?.toString() : null;
+    final int? bookingId = (args != null && args is Map)
+        ? (args['bookingId'] is int ? args['bookingId'] : int.tryParse(args['bookingId']?.toString() ?? ''))
+        : null;
+    final int? participantId = (args != null && args is Map)
+        ? (args['participantId'] is int ? args['participantId'] : int.tryParse(args['participantId']?.toString() ?? ''))
+        : null;
+
     if (args != null && args is Map) {
       subtotal =
           double.tryParse(
@@ -177,17 +191,13 @@ class _PaymentPageState extends State<PaymentPage> {
     final amount = subtotal - discountAmount;
 
     if (_selectedMethod == 'cod') {
-      final String? type = (args != null && args is Map)
-          ? args['type']?.toString()
-          : null;
-      if (type == 'event_participant') {
-        final int? participantId = (args is Map) ? args['participantId'] as int? : null;
+      if (paymentType == 'event_participant') {
         await _confirmEventParticipantCash(participantId);
       } else {
         _confirmBooking(
           paymentMethod: 'cash',
           paymentStatus: 'unpaid',
-          totalPaid: amount, // Pass the calculated total amount
+          totalPaid: amount,
         );
       }
       return;
@@ -202,8 +212,20 @@ class _PaymentPageState extends State<PaymentPage> {
     AppLoadingOverlay.show(context, message: 'Redirecting to Safepay...');
     try {
       final safepayService = Get.find<SafepayService>();
+      
+      // Determine the reference for the backend webhook to identify the entity
+      String? reference;
+      if (paymentType == 'event_participant' && participantId != null) {
+        reference = 'event_participant:$participantId';
+      } else if (bookingId != null) {
+        reference = 'booking:$bookingId';
+      }
+
+      print('🌐 [PaymentPage] Initiating Safepay with reference: $reference');
+
       final response = await safepayService.initiateCheckout(
         amount: amount,
+        reference: reference,
       );
 
       final tracker = response?['tracker'];
@@ -213,30 +235,23 @@ class _PaymentPageState extends State<PaymentPage> {
 
       if (tracker != null) {
         if (mounted) {
-          final result = await Get.to(
+          await Get.to(
             () => SafepayPaymentWidget(
               amount: amount,
               tracker: tracker,
               token: token,
+              onSuccess: () async {
+                // Poll for status update (webhook may take a second)
+                await _pollForPaymentSuccess(
+                  type: paymentType ?? 'booking',
+                  id: (paymentType == 'event_participant' ? participantId : bookingId) ?? 0,
+                );
+              },
+              onFailed: () {
+                AppUtils.showError(message: 'Payment verification failed.');
+              },
             ),
           );
-          if (result == true) {
-            final String? type = (args != null && args is Map)
-                ? args['type']?.toString()
-                : null;
-            if (type == 'event_participant') {
-              final int? participantId =
-                  (args is Map) ? args['participantId'] as int? : null;
-              await _finalizeEventParticipantAfterOnlinePayment(participantId);
-            } else {
-              await _finalizeAfterOnlinePayment();
-            }
-          } else {
-            AppUtils.showInfo(
-              title: 'Payment Cancelled',
-              message: 'You cancelled the checkout process.',
-            );
-          }
         }
       }
     } catch (e) {
@@ -308,49 +323,51 @@ class _PaymentPageState extends State<PaymentPage> {
     }
   }
 
-  Future<void> _finalizeEventParticipantAfterOnlinePayment(
-    int? participantId,
-  ) async {
-    if (participantId == null) {
-      AppUtils.showError(message: 'Invalid Participant ID');
+  Future<void> _pollForPaymentSuccess({required String type, required int id}) async {
+    if (id == 0) {
+      Get.offAllNamed('/');
+      AppUtils.showSuccess(message: 'Payment completed!');
       return;
     }
-    AppLoadingOverlay.show(context, message: 'Finalizing payment...');
-    try {
-      await ApiClient().dio.put(
-        '/event-participants/$participantId',
-        data: {
-          'payment_status': 'paid',
-          'payment_method': 'safepay',
-        },
-      );
-      AppLoadingOverlay.hide(context);
-      Get.offAllNamed('/');
-      AppUtils.showSuccess(message: 'Payment successful! Registration confirmed.');
-    } catch (e) {
-      AppLoadingOverlay.hide(context);
-      AppUtils.showError(message: 'Failed to finalize payment: $e');
+
+    AppLoadingOverlay.show(context, message: 'Verifying payment status...');
+    
+    int attempts = 0;
+    const maxAttempts = 5;
+    
+    while (attempts < maxAttempts) {
+      try {
+        final endpoint = type == 'event_participant' ? '/event-participants/$id' : '/bookings/$id';
+        final res = await ApiClient().dio.get(endpoint);
+        
+        if (res.statusCode == 200) {
+          final data = res.data;
+          final paymentStatus = (data['payment_status'] ?? '').toString().toLowerCase();
+          
+          if (paymentStatus == 'paid') {
+            AppLoadingOverlay.hide(context);
+            Get.offAllNamed('/');
+            AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
+            return;
+          }
+        }
+      } catch (e) {
+        print('⚠️ [PaymentPage] Polling error: $e');
+      }
+      
+      attempts++;
+      if (attempts < maxAttempts) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
     }
-  }
-
-  Future<void> _finalizeAfterOnlinePayment() async {
-    AppLoadingOverlay.show(context, message: 'Finalizing payment...');
-    try {
-      final args = Get.arguments;
-      final int? bookingId = (args != null && args is Map)
-          ? args['bookingId'] as int?
-          : null;
-      if (bookingId == null) throw 'Invalid Booking ID';
-
-      await ApiClient().dio.post('/bookings/$bookingId/finalize-payment');
-
-      AppLoadingOverlay.hide(context);
-      Get.offAllNamed('/');
-      AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
-    } catch (e) {
-      AppLoadingOverlay.hide(context);
-      AppUtils.showError(message: 'Failed to finalize payment: $e');
-    }
+    
+    AppLoadingOverlay.hide(context);
+    // Final fallback if polling doesn't see "paid" yet (webhook might be slow)
+    Get.offAllNamed('/');
+    AppUtils.showInfo(
+      title: 'Payment Processing',
+      message: 'Your payment is being processed. Your status will update shortly.',
+    );
   }
 
   Future<void> _confirmBooking({
@@ -394,61 +411,114 @@ class _PaymentPageState extends State<PaymentPage> {
         (args != null && args is Map) ? args['type']?.toString() : null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Complete Payment'), centerTitle: true),
+      backgroundColor: Colors.grey[50],
+      appBar: AppBar(
+        title: const Text('Checkout'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
       body: SafeArea(
-        child: Align(
-          alignment: Alignment.topCenter,
+        child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.l),
-              child: Column(
-                children: [
-                  _buildTimerSection(isExpiringSoon),
-                  const SizedBox(height: AppSpacing.l),
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: AppSpacing.m),
+                        _buildTimerSection(isExpiringSoon),
+                        const SizedBox(height: AppSpacing.xl),
 
-                  // Promo Code Section
-                  _buildPromoSection(),
+                        Text('Booking Summary', style: AppTextStyles.h3),
+                        const SizedBox(height: AppSpacing.m),
+                        _buildPriceSummary(),
 
-                  const SizedBox(height: AppSpacing.l),
-                  _buildPriceSummary(),
+                        const SizedBox(height: AppSpacing.xl),
+                        Text('Promo Code', style: AppTextStyles.h3),
+                        const SizedBox(height: AppSpacing.m),
+                        _buildPromoSection(),
 
-                  const SizedBox(height: AppSpacing.l),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('Payment Method', style: AppTextStyles.h2),
-                  ),
-                  const SizedBox(height: AppSpacing.m),
-                  _buildOption(
-                    'card',
-                    Icons.credit_card,
-                    'Safepay Checkout',
-                    'Pay securely via Card',
-                  ),
-                  const SizedBox(height: AppSpacing.m),
-                  if (type == 'event_participant') ...[
-                    _buildOption(
-                      'wallet',
-                      Icons.account_balance_wallet,
-                      'Wallet Balance',
-                      'Pay instantly using your wallet',
+                        const SizedBox(height: AppSpacing.xl),
+                        Text('Payment Method', style: AppTextStyles.h3),
+                        const SizedBox(height: AppSpacing.m),
+                        _buildOption(
+                          'card',
+                          Icons.credit_card_rounded,
+                          'Safepay Checkout',
+                          'Credit / Debit Card secure payment',
+                          Colors.indigo,
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+                        if (type == 'event_participant') ...[
+                          _buildOption(
+                            'wallet',
+                            Icons.account_balance_wallet_rounded,
+                            'Wallet Balance',
+                            'Pay using your remaining balance',
+                            Colors.teal,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                        ],
+                        _buildOption(
+                          'cod',
+                          Icons.payments_rounded,
+                          'Cash at Venue',
+                          'Pay directly at the sports complex',
+                          Colors.orange,
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                      ],
                     ),
-                    const SizedBox(height: AppSpacing.m),
-                  ],
-                  _buildOption(
-                    'cod',
-                    Icons.money,
-                    'Cash at Venue',
-                    'Pay directly when you arrive',
                   ),
-                  const SizedBox(height: AppSpacing.xl),
-                  _buildPayButton(),
-                  const SizedBox(height: AppSpacing.l),
-                ],
-              ),
+                ),
+                _buildBottomActions(),
+              ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildBottomActions() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.l),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: AppButton(
+              label: _selectedMethod == 'card' 
+                  ? 'Proceed to Safepay' 
+                  : _selectedMethod == 'wallet' 
+                    ? 'Pay with Wallet' 
+                    : 'Confirm Booking',
+              onPressed: _handlePayment,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Securing your booking globally',
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+          ),
+        ],
       ),
     );
   }
@@ -508,23 +578,42 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Widget _buildOption(String id, IconData icon, String title, String sub) {
+  Widget _buildOption(String id, IconData icon, String title, String sub, Color color) {
     final isSelected = _selectedMethod == id;
     return GestureDetector(
       onTap: () => setState(() => _selectedMethod = id),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.m),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? color.withOpacity(0.02) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected ? color : AppColors.border,
             width: isSelected ? 2 : 1,
           ),
+          boxShadow: isSelected ? [
+            BoxShadow(
+              color: color.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
         ),
         child: Row(
           children: [
-            Icon(icon, color: isSelected ? AppColors.primary : Colors.grey),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: isSelected ? color : Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon, 
+                color: isSelected ? Colors.white : Colors.grey[600],
+                size: 20,
+              ),
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -534,14 +623,20 @@ class _PaymentPageState extends State<PaymentPage> {
                     title,
                     style: AppTextStyles.bodyLarge.copyWith(
                       fontWeight: FontWeight.bold,
+                      color: isSelected ? color : AppColors.textPrimary,
                     ),
                   ),
-                  Text(sub, style: AppTextStyles.bodySmall),
+                  Text(
+                    sub, 
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: isSelected ? color.withOpacity(0.7) : AppColors.textMuted,
+                    ),
+                  ),
                 ],
               ),
             ),
             if (isSelected)
-              const Icon(Icons.check_circle, color: AppColors.primary),
+               Icon(Icons.check_circle_rounded, color: color),
           ],
         ),
       ),

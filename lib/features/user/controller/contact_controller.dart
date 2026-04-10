@@ -8,6 +8,7 @@ class ContactController extends GetxController {
   Future<bool> submitContactForm({
     required String name,
     required String email,
+    required String subject,
     required String message,
   }) async {
     if (name.trim().isEmpty) {
@@ -17,6 +18,11 @@ class ContactController extends GetxController {
 
     if (email.trim().isEmpty) {
       Get.snackbar('Error', 'Please enter your email address');
+      return false;
+    }
+
+    if (subject.trim().isEmpty) {
+      Get.snackbar('Error', 'Please enter a subject');
       return false;
     }
 
@@ -37,7 +43,12 @@ class ContactController extends GetxController {
     try {
       final response = await ApiClient().dio.post(
         '/contact',
-        data: {'name': name, 'email': email, 'message': message},
+        data: {
+          'name': name,
+          'email': email,
+          'subject': subject,
+          'message': message,
+        },
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {

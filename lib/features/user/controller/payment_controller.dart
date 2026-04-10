@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/network/api_services.dart';
 import 'package:sports_studio/core/models/models.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
@@ -60,7 +61,9 @@ class PaymentController extends GetxController {
       final token = response['token'];
 
       if (tracker == null) {
-        AppUtils.showError(message: 'Failed to initialize payment with Safepay');
+        AppUtils.showError(
+          message: 'Failed to initialize payment with Safepay',
+        );
         return;
       }
 
@@ -76,10 +79,8 @@ class PaymentController extends GetxController {
       );
 
       if (result == true) {
-        // Payment completed — finalize booking
-        await _bookingApiService.finalizePayment(bookingId);
-        AppUtils.showSuccess(message: 'Payment successful! Booking confirmed.');
-        Get.offAllNamed('/');
+        // Payment completed — poll for status update
+        await _pollForPaymentSuccess(bookingId);
       } else {
         AppUtils.showInfo(
           title: 'Cancelled',
@@ -93,21 +94,52 @@ class PaymentController extends GetxController {
     }
   }
 
+  Future<void> _pollForPaymentSuccess(int bookingId) async {
+    isVerifyingPayment.value = true;
+    try {
+      int attempts = 0;
+      const maxAttempts = 5;
+
+      while (attempts < maxAttempts) {
+        final res = await ApiClient().dio.get('/bookings/$bookingId');
+        if (res.statusCode == 200) {
+          final paymentStatus = (res.data['payment_status'] ?? '')
+              .toString()
+              .toLowerCase();
+          if (paymentStatus == 'paid') {
+            AppUtils.showSuccess(
+              message: 'Payment verified! Booking confirmed.',
+            );
+            Get.offAllNamed('/');
+            return;
+          }
+        }
+        attempts++;
+        if (attempts < maxAttempts)
+          await Future.delayed(const Duration(seconds: 2));
+      }
+
+      AppUtils.showInfo(
+        title: 'Processing',
+        message: 'Your payment is being processed. Status will update shortly.',
+      );
+      Get.offAllNamed('/');
+    } catch (e) {
+      AppUtils.showError(message: 'Status check failed: $e');
+      Get.offAllNamed('/');
+    } finally {
+      isVerifyingPayment.value = false;
+    }
+  }
+
   Future<void> verifySafepayPayment(String token) async {
     isVerifyingPayment.value = true;
     try {
       final isValid = await _safepayService.verifyPayment(token);
-
-      if (isValid) {
-        AppUtils.showSuccess(message: 'Payment verified successfully!');
-        if (currentBooking.value != null) {
-          await _bookingApiService.finalizePayment(currentBooking.value!.id);
-        }
-        Get.offAllNamed('/user-bookings');
+      if (isValid && currentBooking.value != null) {
+        await _pollForPaymentSuccess(currentBooking.value!.id);
       } else {
-        AppUtils.showError(
-          message: 'Payment could not be verified. Please contact support.',
-        );
+        AppUtils.showError(message: 'Payment could not be verified.');
       }
     } catch (e) {
       AppUtils.showError(message: e);
@@ -204,5 +236,4 @@ class PaymentController extends GetxController {
   void refreshTransactions() {
     fetchTransactions();
   }
-
 }

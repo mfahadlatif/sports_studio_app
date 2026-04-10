@@ -53,4 +53,10 @@ class SystemSettingsController extends GetxController {
     final val = settings['service_fee']?.toString() ?? '2.0';
     return double.tryParse(val) ?? 2.0;
   }
+
+  double get minWithdrawalAmount {
+    // Default to 10 if not set
+    final val = settings['minimum_withdrawal']?.toString() ?? '10';
+    return double.tryParse(val) ?? 10.0;
+  }
 }

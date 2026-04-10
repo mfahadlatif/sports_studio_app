@@ -23,7 +23,7 @@ class SafepayService extends GetxService {
       final response = await _paymentApiService.initiateSafepayPayment({
         'amount': amount,
         'currency': currency,
-        'reference': ?reference,
+        'reference': reference,
       });
       return response;
     } catch (e) {

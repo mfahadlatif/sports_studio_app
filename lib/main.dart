@@ -54,14 +54,20 @@ void main() async {
   await dotenv.load(fileName: ".env");
 
   const storage = FlutterSecureStorage();
-  final String? hasSeenOnboarding = await storage.read(
-    key: 'has_seen_onboarding',
-  );
+  final String? hasSeenOnboarding = await storage.read(key: 'has_seen_onboarding');
   final String? authToken = await storage.read(key: 'auth_token');
 
   String initialRoute = '/onboarding';
-  if (hasSeenOnboarding == 'true') {
-    initialRoute = authToken != null ? '/' : '/auth';
+
+  // If token exists, we definitely don't need onboarding or re-auth
+  if (authToken != null && authToken.trim().isNotEmpty) {
+    initialRoute = '/';
+    // Repair state: if they have a token but flagged as not seen onboarding, fix it
+    if (hasSeenOnboarding != 'true') {
+      await storage.write(key: 'has_seen_onboarding', value: 'true');
+    }
+  } else if (hasSeenOnboarding == 'true') {
+    initialRoute = '/auth';
   }
 
   // Register Controllers permanently so all child widgets can Get.find() them

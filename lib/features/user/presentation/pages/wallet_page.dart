@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sports_studio/core/controllers/system_settings_controller.dart';
 import 'package:sports_studio/core/network/api_client.dart';
 import 'package:sports_studio/core/theme/app_colors.dart';
 import 'package:sports_studio/core/theme/app_text_styles.dart';
@@ -44,16 +45,19 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
       final withdrawalsBody = res[1].data;
       final bankBody = res[2].data;
 
-      final wallet =
-          walletBody is Map ? Map<String, dynamic>.from(walletBody) : <String, dynamic>{};
-      final walletObj =
-          wallet['wallet'] is Map ? Map<String, dynamic>.from(wallet['wallet']) : <String, dynamic>{};
+      final wallet = walletBody is Map
+          ? Map<String, dynamic>.from(walletBody)
+          : <String, dynamic>{};
+      final walletObj = wallet['wallet'] is Map
+          ? Map<String, dynamic>.from(wallet['wallet'])
+          : <String, dynamic>{};
       final txBody = wallet['transactions'];
       final tx = (txBody is Map && txBody['data'] is List)
           ? txBody['data'] as List
           : (txBody is List ? txBody : const []);
 
-      final withdrawals = (withdrawalsBody is Map && withdrawalsBody['data'] is List)
+      final withdrawals =
+          (withdrawalsBody is Map && withdrawalsBody['data'] is List)
           ? withdrawalsBody['data'] as List
           : (withdrawalsBody is List ? withdrawalsBody : const []);
 
@@ -67,7 +71,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
         _withdrawals = withdrawals;
         _bankAccounts = banks;
         _selectedBankAccountId ??= _bankAccounts.isNotEmpty
-            ? int.tryParse((_bankAccounts.first as Map?)?['id']?.toString() ?? '')
+            ? int.tryParse(
+                (_bankAccounts.first as Map?)?['id']?.toString() ?? '',
+              )
             : null;
       });
     } catch (e) {
@@ -78,9 +84,14 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   }
 
   Future<void> _requestWithdrawal() async {
+    final settingsController = Get.find<SystemSettingsController>();
+    final minAmount = settingsController.minWithdrawalAmount;
     final amount = double.tryParse(_withdrawAmountCtrl.text.trim());
-    if (amount == null || amount <= 0) {
-      AppUtils.showError(message: 'Enter a valid amount');
+
+    if (amount == null || amount < minAmount) {
+      AppUtils.showError(
+        message: 'Amount must be at least ${minAmount.toStringAsFixed(0)}',
+      );
       return;
     }
     if (_selectedBankAccountId == null) {
@@ -88,7 +99,10 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
       return;
     }
 
-    AppUtils.showInfo(title: 'Processing', message: 'Submitting withdrawal request...');
+    AppUtils.showInfo(
+      title: 'Processing',
+      message: 'Submitting withdrawal request...',
+    );
     try {
       await ApiClient().dio.post(
         '/withdrawals',
@@ -154,7 +168,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                         'bank_name': bankNameCtrl.text.trim(),
                         'account_title': titleCtrl.text.trim(),
                         'account_number': numberCtrl.text.trim(),
-                        'iban': ibanCtrl.text.trim().isEmpty ? null : ibanCtrl.text.trim(),
+                        'iban': ibanCtrl.text.trim().isEmpty
+                            ? null
+                            : ibanCtrl.text.trim(),
                         'is_primary': true,
                       },
                     );
@@ -162,7 +178,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                     await _fetchAll();
                     AppUtils.showSuccess(message: 'Bank account added');
                   } catch (e) {
-                    AppUtils.showError(message: 'Failed to add bank account: $e');
+                    AppUtils.showError(
+                      message: 'Failed to add bank account: $e',
+                    );
                   }
                 },
               ),
@@ -202,30 +220,67 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
         appBar: AppBar(
           title: const Text('Wallet'),
           centerTitle: true,
-          bottom: const TabBar(
-            tabs: [
-              Tab(text: 'Overview'),
-              Tab(text: 'Withdraw'),
-              Tab(text: 'History'),
-            ],
+          elevation: 0,
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.textPrimary,
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(50),
+            child: Container(
+              height: 42,
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                padding: const EdgeInsets.all(0),
+                indicatorSize: TabBarIndicatorSize.tab,
+                isScrollable: false,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                labelColor: AppColors.surface,
+                unselectedLabelColor: AppColors.textMuted,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                indicatorPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                tabs: const [
+                  Tab(text: 'Overview'),
+                  Tab(text: 'Withdraw'),
+                  Tab(text: 'History'),
+                ],
+              ),
+            ),
           ),
         ),
         body: _loading
             ? const Center(child: AppProgressIndicator())
-            : TabBarView(
-                children: [
-                  _overview(),
-                  _withdraw(),
-                  _history(),
-                ],
-              ),
+            : TabBarView(children: [_overview(), _withdraw(), _history()]),
       ),
     );
   }
 
   Widget _overview() {
     final balance = double.tryParse(_wallet['balance']?.toString() ?? '') ?? 0;
-    final held = double.tryParse(_wallet['held_balance']?.toString() ?? '') ?? 0;
+    final held =
+        double.tryParse(_wallet['held_balance']?.toString() ?? '') ?? 0;
 
     return RefreshIndicator(
       onRefresh: _fetchAll,
@@ -243,12 +298,22 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Available Balance', style: AppTextStyles.label.copyWith(color: Colors.white70)),
+                Text(
+                  'Available Balance',
+                  style: AppTextStyles.label.copyWith(color: Colors.white70),
+                ),
                 const SizedBox(height: 6),
-                Text('${AppConstants.currencySymbol} ${balance.toStringAsFixed(0)}', style: AppTextStyles.h2.copyWith(color: Colors.white)),
+                Text(
+                  '${AppConstants.currencySymbol} ${balance.toStringAsFixed(0)}',
+                  style: AppTextStyles.h2.copyWith(color: Colors.white),
+                ),
                 const SizedBox(height: 10),
-                Text('Held (pending withdrawals): ${AppConstants.currencySymbol} ${held.toStringAsFixed(0)}',
-                    style: AppTextStyles.bodySmall.copyWith(color: Colors.white70)),
+                Text(
+                  'Held (pending withdrawals): ${AppConstants.currencySymbol} ${held.toStringAsFixed(0)}',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: Colors.white70,
+                  ),
+                ),
               ],
             ),
           ),
@@ -256,7 +321,10 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           Row(
             children: [
               Expanded(
-                child: AppButton(label: 'Add Bank Account', onPressed: _addBankAccount),
+                child: AppButton(
+                  label: 'Add Bank Account',
+                  onPressed: _addBankAccount,
+                ),
               ),
               const SizedBox(width: AppSpacing.s),
               IconButton(onPressed: _fetchAll, icon: const Icon(Icons.refresh)),
@@ -266,7 +334,12 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           Text('Bank Accounts', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.s),
           if (_bankAccounts.isEmpty)
-            Text('No bank accounts yet.', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted))
+            Text(
+              'No bank accounts yet.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textMuted,
+              ),
+            )
           else
             ..._bankAccounts.map((b) {
               final m = b as Map? ?? {};
@@ -324,6 +397,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   }
 
   Widget _withdraw() {
+    final settingsController = Get.find<SystemSettingsController>();
+    final minAmount = settingsController.minWithdrawalAmount.toStringAsFixed(0);
+
     return RefreshIndicator(
       onRefresh: _fetchAll,
       child: ListView(
@@ -334,8 +410,8 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           TextField(
             controller: _withdrawAmountCtrl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Amount (min 10)',
+            decoration: InputDecoration(
+              labelText: 'Amount (min $minAmount)',
               prefixText: '${AppConstants.currencySymbol} ',
             ),
           ),
@@ -350,7 +426,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                   if (id == null) return null;
                   return DropdownMenuItem(
                     value: id,
-                    child: Text('${m['bank_name'] ?? 'Bank'} • ${m['account_number'] ?? ''}'),
+                    child: Text(
+                      '${m['bank_name'] ?? 'Bank'} • ${m['account_number'] ?? ''}',
+                    ),
                   );
                 })
                 .whereType<DropdownMenuItem<int>>()
@@ -363,14 +441,20 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
           Text('My Withdrawal Requests', style: AppTextStyles.h3),
           const SizedBox(height: AppSpacing.s),
           if (_withdrawals.isEmpty)
-            Text('No withdrawals yet.', style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted))
+            Text(
+              'No withdrawals yet.',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textMuted,
+              ),
+            )
           else
             ..._withdrawals.map((w) {
               final m = w as Map? ?? {};
               final status = m['status']?.toString() ?? 'pending';
-              final amount = double.tryParse(m['amount']?.toString() ?? '0') ?? 0;
+              final amount =
+                  double.tryParse(m['amount']?.toString() ?? '0') ?? 0;
               final notes = m['admin_notes']?.toString() ?? '';
-              
+
               Color color = Colors.orange;
               if (status == 'completed') color = Colors.green;
               if (status == 'rejected') color = Colors.red;
@@ -391,16 +475,26 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('${AppConstants.currencySymbol} ${amount.toStringAsFixed(0)}', style: AppTextStyles.h3),
+                          Text(
+                            '${AppConstants.currencySymbol} ${amount.toStringAsFixed(0)}',
+                            style: AppTextStyles.h3,
+                          ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: color.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               status.toUpperCase(),
-                              style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                color: color,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
@@ -409,7 +503,10 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                         const SizedBox(height: 8),
                         Text(
                           'Note: $notes',
-                          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary, fontStyle: FontStyle.italic),
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
                         ),
                       ],
                       const SizedBox(height: 4),
@@ -444,12 +541,18 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.history_toggle_off, size: 64, color: AppColors.textMuted.withOpacity(0.5)),
+                    Icon(
+                      Icons.history_toggle_off,
+                      size: 64,
+                      color: AppColors.textMuted.withOpacity(0.5),
+                    ),
                     const SizedBox(height: 16),
                     Text(
                       'No transaction history yet.',
                       textAlign: TextAlign.center,
-                      style: AppTextStyles.bodyLarge.copyWith(color: AppColors.textMuted),
+                      style: AppTextStyles.bodyLarge.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -469,11 +572,19 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
         itemBuilder: (context, i) {
           final tx = _walletTx[i] as Map? ?? {};
           final amount = double.tryParse(tx['amount']?.toString() ?? '0') ?? 0;
-          final category = tx['category']?.toString().replaceAll('_', ' ').toUpperCase() ?? 'TRANSACTION';
+          final category =
+              tx['category']?.toString().replaceAll('_', ' ').toUpperCase() ??
+              'TRANSACTION';
           final description = tx['description']?.toString() ?? '';
           final createdAt = tx['created_at']?.toString() ?? '';
-          
-          final isCredit = ['credit', 'earnings', 'refund', 'topup', 'commission'].contains(tx['category']?.toString().toLowerCase());
+
+          final isCredit = [
+            'credit',
+            'earnings',
+            'refund',
+            'topup',
+            'commission',
+          ].contains(tx['category']?.toString().toLowerCase());
 
           return ListTile(
             leading: Container(
@@ -489,7 +600,10 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                 size: 20,
               ),
             ),
-            title: Text(category, style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold)),
+            title: Text(
+              category,
+              style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -517,4 +631,3 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     );
   }
 }
-

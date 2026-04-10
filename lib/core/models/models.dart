@@ -100,6 +100,7 @@ class Ground {
   final double? longitude;
   final double? avgRating;
   final int? reviewsCount;
+  final int? maxParticipants;
 
   String? get complexName => complex?.name;
 
@@ -124,6 +125,7 @@ class Ground {
     this.longitude,
     this.avgRating,
     this.reviewsCount,
+    this.maxParticipants,
   });
 
   factory Ground.fromJson(Map<String, dynamic> json) {
@@ -154,6 +156,9 @@ class Ground {
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
       avgRating: double.tryParse(json['avg_rating']?.toString() ?? ''),
       reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? ''),
+      maxParticipants: int.tryParse(
+          (json['max_participants'] ?? json['max_players'] ?? json['capacity'] ?? '')
+              .toString()),
     );
   }
 
@@ -179,6 +184,7 @@ class Ground {
       'longitude': longitude,
       'avg_rating': avgRating,
       'reviews_count': reviewsCount,
+      'max_participants': maxParticipants,
     };
   }
 }

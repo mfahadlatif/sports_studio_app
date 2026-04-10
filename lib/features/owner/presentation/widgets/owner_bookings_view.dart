@@ -12,6 +12,9 @@ import 'package:sports_studio/features/owner/controller/grounds_controller.dart'
 import 'package:sports_studio/widgets/app_button.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
+import 'package:sports_studio/features/user/presentation/pages/user_booking_detail_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:sports_studio/core/utils/url_helper.dart';
 
 class OwnerBookingsView extends StatefulWidget {
   const OwnerBookingsView({super.key});
@@ -28,7 +31,8 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
   Widget build(BuildContext context) {
     final landingController = Get.put(LandingController(), permanent: true);
     final currentRole = landingController.currentRole.value;
-    final isOwnerOrAdmin = currentRole == UserRole.owner || currentRole == UserRole.admin;
+    final isOwnerOrAdmin =
+        currentRole == UserRole.owner || currentRole == UserRole.admin;
     final controller = Get.put(BookingsController());
 
     return DefaultTabController(
@@ -69,19 +73,59 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                   icon: const Icon(Icons.add, color: AppColors.primary),
                   label: Text(
                     'Manual Entry',
-                    style:
-                        AppTextStyles.label.copyWith(color: AppColors.primary),
+                    style: AppTextStyles.label.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
             ],
           ],
-          bottom: const TabBar(
-            isScrollable: false,
-            tabs: [
-              Tab(text: 'Upcoming'),
-              Tab(text: 'Past'),
-              Tab(text: 'Cancelled'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(50),
+            child: Container(
+              height: 42,
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                padding: const EdgeInsets.all(0),
+                indicatorSize: TabBarIndicatorSize.tab,
+                isScrollable: false,
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: AppColors.primary,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                labelColor: AppColors.surface,
+                unselectedLabelColor: AppColors.textMuted,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 12,
+                ),
+                indicatorPadding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                dividerColor: Colors.transparent,
+                tabs: const [
+                  Tab(text: 'Upcoming'),
+                  Tab(text: 'Past'),
+                  Tab(text: 'Cancelled'),
+                ],
+              ),
+            ),
           ),
         ),
         body: TabBarView(
@@ -161,33 +205,64 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
     BookingsController controller,
     bool isOwnerOrAdmin,
   ) {
-    final userName =
-        booking['user']?['name'] ??
-        booking['customer_name'] ??
-        'Walk-in Customer';
-    final groundName = booking['ground']?['name'] ?? 'Ground';
-    final date = booking['date'] ?? '';
-    final String rawStart = booking['start_time'] ?? '';
-    final String rawEnd = booking['end_time'] ?? '';
+    final ground = booking['ground'] is Map ? booking['ground'] as Map : null;
+    final complex = (ground != null && ground['complex'] is Map)
+        ? ground['complex'] as Map
+        : null;
+
+    final displayTitle = isOwnerOrAdmin
+        ? (booking['user']?['name'] ??
+              booking['customer_name'] ??
+              'Walk-in Customer')
+        : (ground?['name'] ?? 'Ground');
+
+    final displaySubtitle = isOwnerOrAdmin
+        ? (ground?['name'] ?? 'Ground')
+        : (complex?['name'] ?? 'Sports Complex');
+
+    final displayPhone = isOwnerOrAdmin
+        ? (booking['user']?['phone'] ?? booking['customer_phone'] ?? 'N/A')
+        : (complex?['phone'] ?? ground?['owner_phone'] ?? 'N/A');
+
+    final String dateStr = (booking['date'] ?? '').toString();
+    final String rawStart = (booking['start_time'] ?? '').toString();
+    final String rawEnd = (booking['end_time'] ?? '').toString();
+    
+    // Extract date correctly
+    String displayDate = dateStr;
+    if (displayDate.isEmpty && rawStart.isNotEmpty) {
+      displayDate = rawStart.contains(' ') ? rawStart.split(' ')[0] : (rawStart.contains('T') ? rawStart.split('T')[0] : rawStart);
+    }
+    final formattedDate = AppUtils.formatDate(displayDate);
+
     String startTime = rawStart;
     String endTime = rawEnd;
 
     try {
       if (rawStart.isNotEmpty) {
-        final startDt = DateTime.parse(rawStart.contains(' ') ? rawStart.replaceFirst(' ', 'T') : rawStart);
+        final startDt = DateTime.parse(
+          rawStart.contains(' ') ? rawStart.replaceFirst(' ', 'T') : rawStart,
+        );
         startTime = DateFormat('hh:mm a').format(startDt);
       }
       if (rawEnd.isNotEmpty) {
-        final endDt = DateTime.parse(rawEnd.contains(' ') ? rawEnd.replaceFirst(' ', 'T') : rawEnd);
+        final endDt = DateTime.parse(
+          rawEnd.contains(' ') ? rawEnd.replaceFirst(' ', 'T') : rawEnd,
+        );
         endTime = DateFormat('hh:mm a').format(endDt);
       }
     } catch (e) {
       // Fallback to raw if parsing fails
     }
 
-    final totalAmount = double.tryParse((booking['total_amount'] ?? booking['total_price'] ?? 0).toString()) ?? 0.0;
+    final totalAmount =
+        double.tryParse(
+          (booking['total_amount'] ?? booking['total_price'] ?? 0).toString(),
+        ) ??
+        0.0;
     final String status = (booking['status'] ?? 'pending').toString();
-    final String paymentStatus = (booking['payment_status'] ?? 'unpaid').toString();
+    final String paymentStatus = (booking['payment_status'] ?? 'unpaid')
+        .toString();
 
     Color statusColor;
     switch (status) {
@@ -203,258 +278,588 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
       default:
         statusColor = Colors.orange;
     }
-
     return GestureDetector(
-      onTap: isOwnerOrAdmin
-          ? () =>
-                Get.to(() => const BookingDetailPage(), arguments: {'booking': booking})
-          : null,
+      onTap: () {
+        if (isOwnerOrAdmin) {
+          Get.to(
+            () => const BookingDetailPage(),
+            arguments: {'booking': booking},
+          );
+        } else {
+          Get.to(
+            () => const UserBookingDetailPage(),
+            arguments: {'booking': booking},
+          );
+        }
+      },
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.m),
+        margin: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s,
+          vertical: AppSpacing.s,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: statusColor.withValues(alpha: 0.15),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
           ],
+          border: Border.all(color: Colors.grey.shade200),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header Row
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.m),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundColor: AppColors.primaryLight,
-                    child: Text(
-                      userName.toString().isNotEmpty
-                          ? userName.toString().substring(0, 1).toUpperCase()
-                          : '?',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.m),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          userName.toString(),
-                          style: AppTextStyles.bodyLarge,
-                        ),
-                        Row(
-                          children: [
-                            Text(
-                              groundName.toString(),
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textMuted,
-                              ),
-                            ),
-                            if (booking['event'] != null) ...[
-                              const SizedBox(width: 8),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Main Content
+              Padding(
+                padding: const EdgeInsets.only(left: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Card Details Header & Info
+                    Padding(
+                      padding: const EdgeInsets.all(AppSpacing.m),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Profile & Main Info Row
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
+                                height: 60,
+                                width: 60,
                                 decoration: BoxDecoration(
-                                  color: Colors.blue.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
+                                  shape: BoxShape.circle,
+                                  color: AppColors.primaryLight.withValues(
+                                    alpha: 0.5,
+                                  ),
+                                  border: Border.all(
+                                    color: statusColor.withValues(alpha: 0.3),
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                                child: const Text(
-                                  'EVENT',
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(30),
+                                  child:
+                                      (booking['user'] != null &&
+                                          booking['user']['avatar'] != null)
+                                      ? CachedNetworkImage(
+                                          imageUrl: UrlHelper.sanitizeUrl(
+                                            booking['user']['avatar']
+                                                .toString(),
+                                          ),
+                                          fit: BoxFit.cover,
+                                          placeholder: (context, url) =>
+                                              const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child: Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                      ),
+                                                ),
+                                              ),
+                                          errorWidget: (context, url, error) =>
+                                              _buildFallbackAvatar(
+                                                displayTitle.toString(),
+                                              ),
+                                        )
+                                      : _buildFallbackAvatar(
+                                          displayTitle.toString(),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.m),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            displayTitle.toString(),
+                                            style: AppTextStyles.h2.copyWith(
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: -0.5,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: statusColor.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            status.toUpperCase(),
+                                            style: TextStyle(
+                                              color: statusColor,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 10,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.location_on_rounded,
+                                          size: 14,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            displaySubtitle.toString(),
+                                            style: AppTextStyles.bodyMedium
+                                                .copyWith(
+                                                  color: Colors.grey.shade700,
+                                                ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.phone_rounded,
+                                          size: 14,
+                                          color: Colors.grey.shade600,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          displayPhone.toString(),
+                                          style: AppTextStyles.bodyMedium
+                                              .copyWith(
+                                                color: Colors.grey.shade700,
+                                              ),
+                                        ),
+                                        if (booking['event'] != null) ...[
+                                          const Spacer(),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                  Colors.blueAccent,
+                                                  Colors.lightBlue,
+                                                ],
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: const Text(
+                                              'EVENT',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          // Ticket Style Divider
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 16,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.horizontal(
+                                    right: Radius.circular(8),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    return Flex(
+                                      direction: Axis.horizontal,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: List.generate(
+                                        (constraints.constrainWidth() / 8)
+                                            .floor(),
+                                        (index) => SizedBox(
+                                          width: 4,
+                                          height: 1.5,
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade300,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                              Container(
+                                width: 8,
+                                height: 16,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.horizontal(
+                                    left: Radius.circular(8),
                                   ),
                                 ),
                               ),
                             ],
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Status Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      status.capitalizeFirst ?? status,
-                      style: AppTextStyles.label.copyWith(color: statusColor),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Divider(height: 1),
-
-            // Details Row
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.m),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _infoChip(Icons.calendar_month_outlined, date),
-                  ),
-                  Expanded(
-                    child: _infoChip(
-                      Icons.access_time_outlined,
-                      '$startTime – $endTime',
-                    ),
-                  ),
-                  Expanded(
-                    child: _infoChip(
-                      Icons.payment_outlined,
-                      paymentStatus == 'paid' ? 'Paid' : 'Unpaid',
-                      color: paymentStatus == 'paid'
-                          ? Colors.green
-                          : Colors.red,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Amount
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-              child: Text(
-                '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(totalAmount)}',
-                style: AppTextStyles.h3.copyWith(color: AppColors.primary),
-              ),
-            ),
-
-            // Action Buttons — Owner Only
-            if (isOwnerOrAdmin &&
-                (status == 'pending' ||
-                    paymentStatus == 'unpaid' ||
-                    paymentStatus == 'pending')) ...[
-                // NEW: Only show manual actions for cash payments. 
-                // Online payments (Safepay) are handled automatically by the system.
-                if (booking['payment_method']?.toString().toLowerCase() != 'safepay' &&
-                    booking['payment_method']?.toString().toLowerCase() != 'online') ...[
-              const SizedBox(height: AppSpacing.m),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.m,
-                  0,
-                  AppSpacing.m,
-                  AppSpacing.m,
-                ),
-                child: Obx(
-                  () => Row(
-                    children: [
-                      if (status == 'pending') ...[
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: controller.isActioning.value
-                                ? null
-                                : () => _confirmAction(context, 'Accept', () {
-                                    controller.updateBookingStatus(
-                                      booking,
-                                      'confirmed',
-                                    );
-                                  }),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: const Icon(
-                              Icons.check_circle_outline,
-                              size: 16,
-                            ),
-                            label: const Text('Accept'),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.s),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: controller.isActioning.value
-                                ? null
-                                : () => _showDeclineDialog(
-                                    context,
-                                    booking,
-                                    controller,
-                                  ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
+                          const SizedBox(height: AppSpacing.s),
+
+                          // Time, Date & Price Information
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF9FAFB),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.grey.shade100),
                             ),
-                            icon: const Icon(Icons.cancel_outlined, size: 16),
-                            label: const Text('Decline'),
-                          ),
-                        ),
-                      ],
-                      if ((paymentStatus == 'unpaid' ||
-                              paymentStatus == 'pending') &&
-                          status != 'cancelled') ...[
-                        if (status == 'pending')
-                          const SizedBox(width: AppSpacing.s),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: controller.isActioning.value
-                                ? null
-                                : () => _confirmAction(
-                                    context,
-                                    'Mark as Paid',
-                                    () {
-                                      controller.markAsPaid(booking);
-                                    },
-                                  ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.primary),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Text(
-                                AppConstants.currencySymbol,
-                                style: TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.calendar_today_rounded,
+                                            size: 14,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          formattedDate,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.schedule_rounded,
+                                            size: 14,
+                                            color: Colors.orange,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          '$startTime – $endTime',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${AppConstants.currencySymbol} ${NumberFormat('#,###').format(totalAmount)}',
+                                      style: AppTextStyles.h2.copyWith(
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: paymentStatus == 'paid'
+                                            ? Colors.green.withValues(
+                                                alpha: 0.1,
+                                              )
+                                            : Colors.red.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: paymentStatus == 'paid'
+                                              ? Colors.green.withValues(
+                                                  alpha: 0.2,
+                                                )
+                                              : Colors.red.withValues(
+                                                  alpha: 0.2,
+                                                ),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            paymentStatus == 'paid'
+                                                ? Icons.check_circle_rounded
+                                                : Icons.cancel_rounded,
+                                            size: 12,
+                                            color: paymentStatus == 'paid'
+                                                ? Colors.green
+                                                : Colors.red,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            paymentStatus == 'paid'
+                                                ? 'PAID'
+                                                : 'UNPAID',
+                                            style: TextStyle(
+                                              color: paymentStatus == 'paid'
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 10,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            label: const Text(
-                              'Mark Paid',
-                              style: TextStyle(color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Action Buttons — Owner Only
+                    if (isOwnerOrAdmin &&
+                        status != 'cancelled' &&
+                        (status == 'pending' ||
+                            paymentStatus == 'unpaid' ||
+                            paymentStatus == 'pending')) ...[
+                      if (booking['payment_method']?.toString().toLowerCase() !=
+                              'safepay' &&
+                          booking['payment_method']?.toString().toLowerCase() !=
+                              'online' &&
+                          booking['payment_method']?.toString().toLowerCase() !=
+                              'wallet') ...[
+                        const SizedBox(height: AppSpacing.m),
+                        Obx(
+                          () => Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.l,
+                            ),
+                            child: Row(
+                              children: [
+                                if (status == 'pending') ...[
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: controller.isActioning.value
+                                          ? null
+                                          : () => _confirmAction(
+                                              context,
+                                              'Accept',
+                                              () {
+                                                controller.updateBookingStatus(
+                                                  booking,
+                                                  'confirmed',
+                                                );
+                                              },
+                                            ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.check_circle_outline,
+                                        size: 16,
+                                      ),
+                                      label: const Text('Accept'),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSpacing.s),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: controller.isActioning.value
+                                          ? null
+                                          : () => _showDeclineDialog(
+                                              context,
+                                              booking,
+                                              controller,
+                                            ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: const Icon(
+                                        Icons.cancel_outlined,
+                                        size: 16,
+                                      ),
+                                      label: const Text('Decline'),
+                                    ),
+                                  ),
+                                ],
+                                if ((paymentStatus == 'unpaid' ||
+                                        paymentStatus == 'pending') &&
+                                    status != 'cancelled') ...[
+                                  if (status == 'pending')
+                                    const SizedBox(width: AppSpacing.s),
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: controller.isActioning.value
+                                          ? null
+                                          : () => _confirmAction(
+                                              context,
+                                              'Mark as Paid',
+                                              () {
+                                                controller.markAsPaid(booking);
+                                              },
+                                            ),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                          color: AppColors.primary,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      icon: Padding(
+                                        padding: const EdgeInsets.all(8.0),
+                                        child: Text(
+                                          AppConstants.currencySymbol,
+                                          style: const TextStyle(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                      label: const Text(
+                                        'Mark Paid',
+                                        style: TextStyle(
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ),
                       ],
                     ],
+                    const SizedBox(height: AppSpacing.m),
+                  ],
+                ),
+              ),
+              // Left Accent Strip
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: 6,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    gradient: LinearGradient(
+                      colors: [statusColor.withValues(alpha: 0.8), statusColor],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
                 ),
               ),
-                ], // End cash-only check
-            ] else
-              const SizedBox(height: AppSpacing.m),
-          ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFallbackAvatar(String name) {
+    return Center(
+      child: Text(
+        name.isNotEmpty ? name.substring(0, 1).toUpperCase() : '?',
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
         ),
       ),
     );
@@ -482,17 +887,13 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
     String label,
     VoidCallback onConfirm,
   ) {
-    Get.defaultDialog(
-      title: label,
-      middleText: 'Are you sure you want to $label this booking?',
-      textConfirm: label,
-      textCancel: 'Cancel',
-      confirmTextColor: Colors.white,
-      buttonColor: AppColors.primary,
-      onConfirm: () {
-        Get.back();
-        onConfirm();
-      },
+    AppUtils.showConfirmDialog(
+      title: 'Confirm $label',
+      message: 'Are you sure you want to $label this booking?',
+      onConfirm: onConfirm,
+      confirmText: label,
+      cancelText: 'Cancel',
+      icon: Icons.help_outline_rounded,
     );
   }
 
@@ -720,41 +1121,29 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     ),
                     const SizedBox(height: AppSpacing.m),
 
-                    // Phone & Email
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Phone (optional)', style: AppTextStyles.label),
-                              const SizedBox(height: AppSpacing.s),
-                              _field(
-                                _phoneCtrl,
-                                '03XXXXXXXX',
-                                icon: Icons.phone_outlined,
-                                type: TextInputType.phone,
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.m),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Email (optional)', style: AppTextStyles.label),
-                              const SizedBox(height: AppSpacing.s),
-                              _field(
-                                _emailCtrl,
-                                'customer@email.com',
-                                icon: Icons.mail_outline,
-                                type: TextInputType.emailAddress,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
+                    // Phone & Email (Column layout)
+                    Text(
+                      'Phone (optional)',
+                      style: AppTextStyles.label,
+                    ),
+                    const SizedBox(height: AppSpacing.s),
+                    _field(
+                      _phoneCtrl,
+                      '03XXXXXXXX',
+                      icon: Icons.phone_outlined,
+                      type: TextInputType.phone,
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    Text(
+                      'Email (optional)',
+                      style: AppTextStyles.label,
+                    ),
+                    const SizedBox(height: AppSpacing.s),
+                    _field(
+                      _emailCtrl,
+                      'customer@email.com',
+                      icon: Icons.mail_outline,
+                      type: TextInputType.emailAddress,
                     ),
                     const SizedBox(height: AppSpacing.m),
 
@@ -766,11 +1155,17 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                         final picked = await showDatePicker(
                           context: context,
                           initialDate: DateTime.now(),
-                          firstDate: DateTime.now().subtract(const Duration(days: 30)),
-                          lastDate: DateTime.now().add(const Duration(days: 90)),
+                          firstDate: DateTime.now().subtract(
+                            const Duration(days: 30),
+                          ),
+                          lastDate: DateTime.now().add(
+                            const Duration(days: 90),
+                          ),
                         );
                         if (picked != null) {
-                          _dateCtrl.text = DateFormat('yyyy-MM-dd').format(picked);
+                          _dateCtrl.text = DateFormat(
+                            'yyyy-MM-dd',
+                          ).format(picked);
                           _selectedSlots.clear();
                           _fetchAvailability();
                           _updatePrice();
@@ -815,7 +1210,10 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Total Amount (${AppConstants.currencySymbol})', style: AppTextStyles.label),
+                              Text(
+                                'Total Amount (${AppConstants.currencySymbol})',
+                                style: AppTextStyles.label,
+                              ),
                               const SizedBox(height: AppSpacing.s),
                               _field(
                                 _amountCtrl,
@@ -882,8 +1280,10 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
         final endTimeStr = '${(hour + 1).toString().padLeft(2, '0')}:00';
 
         final bool isWithinOperatingHours = () {
-          final ohStart = int.tryParse(ground?.openingTime?.split(':')[0] ?? '06') ?? 6;
-          final ohEnd = int.tryParse(ground?.closingTime?.split(':')[0] ?? '23') ?? 23;
+          final ohStart =
+              int.tryParse(ground?.openingTime?.split(':')[0] ?? '06') ?? 6;
+          final ohEnd =
+              int.tryParse(ground?.closingTime?.split(':')[0] ?? '23') ?? 23;
           if (ohStart <= ohEnd) {
             return hour >= ohStart && hour < (ohEnd == 0 ? 24 : ohEnd);
           } else {
@@ -891,11 +1291,29 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
           }
         }();
 
+        // New: Check if slot is in the past
+        final bool isPastSlot = () {
+          final now = DateTime.now();
+          final today = DateFormat('yyyy-MM-dd').format(now);
+          if (_dateCtrl.text == today) {
+            return hour < now.hour;
+          }
+          return false;
+        }();
+
         // Check if booked
         final isBooked = _existingBookings.any((b) {
-          String sStart = b['start_time'].toString().replaceAll(' ', 'T').split('.')[0].replaceFirst('Z', '');
-          String sEnd = b['end_time'].toString().replaceAll(' ', 'T').split('.')[0].replaceFirst('Z', '');
-          
+          String sStart = b['start_time']
+              .toString()
+              .replaceAll(' ', 'T')
+              .split('.')[0]
+              .replaceFirst('Z', '');
+          String sEnd = b['end_time']
+              .toString()
+              .replaceAll(' ', 'T')
+              .split('.')[0]
+              .replaceFirst('Z', '');
+
           final bStart = DateTime.parse(sStart);
           final bEnd = DateTime.parse(sEnd);
           final slotStart = DateTime.parse('${_dateCtrl.text}T$startTimeStr');
@@ -906,7 +1324,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
         final isSelected = _selectedSlots.contains(hour);
 
         return InkWell(
-          onTap: isBooked
+          onTap: (isBooked || !isWithinOperatingHours || isPastSlot)
               ? null
               : () {
                   setState(() {
@@ -922,13 +1340,13 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
             width: 80,
             padding: const EdgeInsets.symmetric(vertical: 8),
             decoration: BoxDecoration(
-              color: !isWithinOperatingHours
-                  ? Colors.grey.withOpacity(0.1)
+              color: (!isWithinOperatingHours || isPastSlot)
+                  ? Colors.grey.withValues(alpha: 0.1)
                   : isBooked
-                      ? Colors.red.withOpacity(0.1)
-                      : isSelected
-                          ? AppColors.primary
-                          : AppColors.background,
+                  ? Colors.red.withValues(alpha: 0.1)
+                  : isSelected
+                  ? AppColors.primary
+                  : AppColors.background,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected ? AppColors.primary : Colors.transparent,
@@ -939,27 +1357,31 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                 Text(
                   AppUtils.formatTime(startTimeStr),
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: !isWithinOperatingHours
+                    color: (!isWithinOperatingHours || isPastSlot)
                         ? Colors.grey
                         : isBooked
-                            ? Colors.red
-                            : isSelected
-                                ? Colors.white
-                                : AppColors.textPrimary,
-                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        ? Colors.red
+                        : isSelected
+                        ? Colors.white
+                        : AppColors.textPrimary,
+                    fontWeight: isSelected
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
                 Text(
-                  !isWithinOperatingHours ? 'Closed' : (isBooked ? 'Booked' : 'Available'),
+                  (!isWithinOperatingHours || isPastSlot)
+                      ? 'Closed'
+                      : (isBooked ? 'Booked' : 'Available'),
                   style: TextStyle(
                     fontSize: 8,
-                    color: !isWithinOperatingHours
+                    color: (!isWithinOperatingHours || isPastSlot)
                         ? Colors.grey
                         : isBooked
-                            ? Colors.red
-                            : isSelected
-                                ? Colors.white70
-                                : AppColors.textMuted,
+                        ? Colors.red
+                        : isSelected
+                        ? Colors.white70
+                        : AppColors.textMuted,
                   ),
                 ),
               ],
@@ -983,7 +1405,8 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
         hintText: hint,
         filled: true,
         fillColor: AppColors.background,
-        prefixIcon: icon == Icons.attach_money || icon == Icons.payments_outlined
+        prefixIcon:
+            icon == Icons.attach_money || icon == Icons.payments_outlined
             ? Container(
                 width: 40,
                 alignment: Alignment.center,

@@ -1220,19 +1220,6 @@ class UserApiService {
     }
   }
 
-  Future<void> deleteAccount() async {
-    try {
-      print('🌐 [UserAPI] Deleting account...');
-      final response = await _client.dio.delete('/user');
-      if (response.statusCode != 200 && response.statusCode != 204) {
-        throw Exception('Failed to delete account');
-      }
-      print('✅ [UserAPI] Account deleted');
-    } catch (e) {
-      print('❌ [UserAPI] deleteAccount error: $e');
-      throw Exception('Failed to delete account: $e');
-    }
-  }
 
   Future<void> requestPhoneVerification(String phone) async {
     try {

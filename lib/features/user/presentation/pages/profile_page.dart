@@ -30,6 +30,8 @@ import 'package:sports_studio/features/owner/presentation/pages/sports_complexes
 import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
 import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
 import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sports_studio/features/owner/presentation/pages/sports_grounds_page.dart';
+import 'package:sports_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
 import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
 
 class ProfilePage extends StatelessWidget {
@@ -77,42 +79,74 @@ class ProfilePage extends StatelessWidget {
                         if (isOwner) ...[
                           _buildSectionTitle('BUSINESS MANAGEMENT'),
                           _buildOption(
-                            icon: Icons.analytics_outlined,
-                            title: 'Reports & Analytics',
-                            subtitle: 'Revenue, bookings and performance',
-                            onTap: () => Get.to(() => const OwnerReportsPage()),
+                            icon: Icons.dashboard_outlined,
+                            title: 'Dashboard',
+                            subtitle: 'Overview and analytics',
+                            onTap: () => landingController.changeNavIndex(0),
                             color: Colors.blue,
                           ),
                           _buildOption(
                             icon: Icons.corporate_fare_outlined,
                             title: 'Sports Complexes',
-                            subtitle: 'Manage your complexes & facilities',
-                            onTap: () => Get.to(() => const SportsComplexesPage()),
+                            subtitle: 'Manage all complexes',
+                            onTap: () =>
+                                Get.to(() => const SportsComplexesPage()),
                             color: Colors.indigo,
                           ),
                           _buildOption(
+                            icon: Icons.layers_outlined,
+                            title: 'My Grounds',
+                            subtitle: 'Manage all arenas',
+                            onTap: () => landingController.changeNavIndex(1),
+                            color: Colors.teal,
+                          ),
+                          _buildOption(
+                            icon: Icons.calendar_month_outlined,
+                            title: 'Bookings',
+                            subtitle: 'View all bookings',
+                            onTap: () => landingController.changeNavIndex(2),
+                            color: Colors.green,
+                          ),
+                          _buildOption(
+                            icon: Icons.analytics_outlined,
+                            title: 'Reports',
+                            subtitle: 'Analytics and revenue',
+                            onTap: () => Get.to(() => const OwnerReportsPage()),
+                            color: Colors.blueGrey,
+                          ),
+                          _buildOption(
+                            icon: Icons.settings_outlined,
+                            title: 'Settings',
+                            subtitle: 'Profile & preferences',
+                            onTap: () => Get.to(() => const EditProfilePage()),
+                            color: Colors.grey,
+                          ),
+                          _buildOption(
                             icon: Icons.local_offer_outlined,
-                            title: 'Manage Deals',
-                            subtitle: 'Create & edit discount offers',
+                            title: 'Hot Deals',
+                            subtitle: 'Manage offers',
                             onTap: () => Get.to(() => const OwnerDealsPage()),
                             color: Colors.orange,
                           ),
                           _buildOption(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'All Bookings',
-                            subtitle: 'View and manage all facility bookings',
-                            onTap: () => Get.to(() => const OwnerBookingsView()),
-                            color: Colors.green,
-                          ),
-                          _buildOption(
                             icon: Icons.rate_review_outlined,
-                            title: 'Review Moderation',
-                            subtitle: 'Manage player feedback & ratings',
-                            onTap: () => Get.to(() => const ReviewModerationPage()),
+                            title: 'Reviews',
+                            subtitle: 'Moderate feedback',
+                            onTap: () =>
+                                Get.to(() => const ReviewModerationPage()),
                             color: Colors.purple,
                           ),
+                          _buildOption(
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'My Wallet',
+                            subtitle: 'Track earnings & payouts',
+                            onTap: () => Get.to(() => const WalletPage()),
+                            color: Colors.green,
+                          ),
                           const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.l,
+                            ),
                             child: Divider(height: 32),
                           ),
                         ],
@@ -140,26 +174,28 @@ class ProfilePage extends StatelessWidget {
                         ),
 
                         const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.l,
+                          ),
                           child: Divider(height: 32),
                         ),
 
-                        _buildSectionTitle(isOwner ? 'PERSONAL ACTIVITY' : 'ACTIVITY'),
-                        _buildOption(
-                          icon: Icons.calendar_today_outlined,
-                          title: 'My Match Bookings',
-                          subtitle: 'Upcoming and past arena games',
-                          onTap: () => Get.to(() => const UserBookingsPage()),
-                          color: Colors.blue,
-                        ),
-                        _buildOption(
-                          icon: Icons.account_balance_wallet_outlined,
-                          title: isOwner ? 'Earnings & Wallet' : 'Wallet & Withdrawals',
-                          subtitle: 'Balance and cash-out requests',
-                          onTap: () => Get.to(() => const WalletPage()),
-                          color: Colors.green,
-                        ),
                         if (!isOwner) ...[
+                          _buildSectionTitle('ACTIVITY'),
+                          _buildOption(
+                            icon: Icons.calendar_today_outlined,
+                            title: 'My Match Bookings',
+                            subtitle: 'Upcoming and past arena games',
+                            onTap: () => Get.to(() => const UserBookingsPage()),
+                            color: Colors.blue,
+                          ),
+                          _buildOption(
+                            icon: Icons.account_balance_wallet_outlined,
+                            title: 'Wallet & Withdrawals',
+                            subtitle: 'Balance and cash-out requests',
+                            onTap: () => Get.to(() => const WalletPage()),
+                            color: Colors.green,
+                          ),
                           _buildOption(
                             icon: Icons.favorite_border,
                             title: 'Saved Grounds',
@@ -174,15 +210,14 @@ class ProfilePage extends StatelessWidget {
                             onTap: () => Get.to(() => const JoinedEventsPage()),
                             color: Colors.cyan,
                           ),
-                        ],
-                        _buildOption(
-                          icon: Icons.event_note_outlined,
-                          title: 'My Managed Events',
-                          subtitle: 'Events you organize for the community',
-                          onTap: () => Get.to(() => const ManagedEventsPage()),
-                          color: Colors.pink,
-                        ),
-                        if (!isOwner)
+                          _buildOption(
+                            icon: Icons.event_note_outlined,
+                            title: 'My Managed Events',
+                            subtitle: 'Events you organize for the community',
+                            onTap: () =>
+                                Get.to(() => const ManagedEventsPage()),
+                            color: Colors.pink,
+                          ),
                           _buildOption(
                             icon: Icons.local_offer_outlined,
                             title: 'Active Promo Codes',
@@ -190,11 +225,14 @@ class ProfilePage extends StatelessWidget {
                             onTap: () => Get.to(() => const DealsPage()),
                             color: Colors.orange,
                           ),
-
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
-                          child: Divider(height: 32),
-                        ),
+                        ],
+                        if (!isOwner)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.l,
+                            ),
+                            child: Divider(height: 32),
+                          ),
 
                         _buildSectionTitle('SETTINGS'),
                         _buildOption(
@@ -204,54 +242,21 @@ class ProfilePage extends StatelessWidget {
                           onTap: () => Get.to(() => const NotificationsPage()),
                           color: Colors.amber,
                         ),
-                        _buildOption(
-                          icon: Icons.policy_outlined,
-                          title: 'Privacy Policy',
-                          subtitle: 'How we handle your data',
-                          onTap: () => Get.to(() => const PrivacyPolicyPage()),
-                          color: Colors.blueGrey,
-                        ),
-                        _buildOption(
-                          icon: Icons.gavel_outlined,
-                          title: 'Terms & Conditions',
-                          subtitle: 'Legal terms for using the platform',
-                          onTap: () => Get.to(() => const TermsPage()),
-                          color: Colors.indigo,
-                        ),
-                        _buildOption(
-                          icon: Icons.rule_outlined,
-                          title: 'Booking Policy',
-                          subtitle: 'Reservations and time windows',
-                          onTap: () => Get.to(() => const BookingPolicyPage()),
-                          color: Colors.deepOrange,
-                        ),
-                        _buildOption(
-                          icon: Icons.policy,
-                          title: 'Cancellation & Refund Policy',
-                          subtitle: 'Cancellation rules and refunds',
-                          onTap: () => Get.to(() => const CancellationPolicyPage()),
-                          color: Colors.brown,
-                        ),
 
                         const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.l,
+                          ),
                           child: Divider(height: 32),
                         ),
 
                         _buildSectionTitle('SUPPORT'),
                         _buildOption(
                           icon: Icons.help_outline,
-                          title: 'Help & FAQ',
-                          subtitle: 'Find answers and contact support',
+                          title: 'Help & Support',
+                          subtitle: 'Questions? Reach out to our team',
                           onTap: () => Get.to(() => const ContactPage()),
                           color: Colors.deepPurple,
-                        ),
-                        _buildOption(
-                          icon: Icons.mark_email_read_outlined,
-                          title: 'Newsletter',
-                          subtitle: 'Subscribe for updates and deals',
-                          onTap: () => Get.to(() => const NewsletterSubscribePage()),
-                          color: Colors.teal,
                         ),
 
                         const SizedBox(height: AppSpacing.l),
@@ -311,28 +316,58 @@ class ProfilePage extends StatelessWidget {
 
         return Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-              ),
-              child: CircleAvatar(
-                radius: 54,
-                backgroundColor: AppColors.primaryLight,
-                backgroundImage: user['avatar'] != null
-                    ? NetworkImage(
-                        UrlHelper.sanitizeUrl(user['avatar'].toString()),
-                      )
-                    : null,
-                child: user['avatar'] == null
-                    ? const Icon(
-                        Icons.person,
-                        size: 60,
+            Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: CircleAvatar(
+                    radius: 54,
+                    backgroundColor: AppColors.primaryLight,
+                    backgroundImage: user['avatar'] != null
+                        ? NetworkImage(
+                            UrlHelper.sanitizeUrl(user['avatar'].toString()),
+                          )
+                        : null,
+                    child: user['avatar'] == null
+                        ? const Icon(
+                            Icons.person,
+                            size: 60,
+                            color: AppColors.primary,
+                          )
+                        : null,
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onTap: () => Get.to(() => const EditProfilePage()),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.edit,
+                        size: 20,
                         color: AppColors.primary,
-                      )
-                    : null,
-              ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: AppSpacing.m),
             Text(name, style: AppTextStyles.h2.copyWith(color: Colors.white)),
@@ -478,7 +513,8 @@ class ProfilePage extends StatelessWidget {
                     icon: Icons.logout_rounded,
                     color: AppColors.primary,
                     title: 'Sign Out',
-                    message: 'Are you sure you want to sign out from your account?',
+                    message:
+                        'Are you sure you want to sign out from your account?',
                     confirmText: 'Sign Out',
                     onConfirm: () => controller.logout(),
                   ),
@@ -498,46 +534,6 @@ class ProfilePage extends StatelessWidget {
                   SizedBox(width: 8),
                   Text(
                     'Sign Out',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.m),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: OutlinedButton(
-              onPressed: () {
-                Get.dialog(
-                  _buildCustomDialog(
-                    icon: Icons.delete_forever_rounded,
-                    color: Colors.red,
-                    title: 'Delete Account',
-                    message: 'Are you sure you want to permanently delete your account? This action cannot be undone.',
-                    confirmText: 'Delete',
-                    onConfirm: () {
-                      final profileController = Get.find<ProfileController>();
-                      profileController.deleteAccount();
-                    },
-                  ),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.grey.shade700,
-                side: BorderSide(color: Colors.grey.shade300),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.delete_forever, size: 20),
-                  SizedBox(width: 8),
-                  Text(
-                    'Delete Account',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
                 ],
@@ -613,7 +609,10 @@ class ProfilePage extends StatelessWidget {
                         ),
                         side: BorderSide(color: Colors.grey.shade300),
                       ),
-                      child: Text('Cancel', style: TextStyle(color: Colors.grey.shade600)),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
                     ),
                   ),
                   const SizedBox(width: AppSpacing.m),
@@ -632,7 +631,10 @@ class ProfilePage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(18),
                         ),
                       ),
-                      child: Text(confirmText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      child: Text(
+                        confirmText,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],

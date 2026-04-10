@@ -17,6 +17,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:sports_studio/core/utils/url_helper.dart';
 import 'package:sports_studio/widgets/app_progress_indicator.dart';
 import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
 
 class CreateMatchPage extends StatefulWidget {
   const CreateMatchPage({super.key});
@@ -28,41 +29,38 @@ class CreateMatchPage extends StatefulWidget {
 class _CreateMatchPageState extends State<CreateMatchPage> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
-  final _feeCtrl = TextEditingController();
-  final _limitCtrl = TextEditingController(text: '22');
+  final _feeCtrl = TextEditingController(text: '0');
+  final _limitCtrl = TextEditingController();
 
   DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   TimeOfDay _selectedTime = const TimeOfDay(hour: 18, minute: 0);
   TimeOfDay _selectedEndTime = const TimeOfDay(hour: 20, minute: 0);
-  String _selectedSport = 'Cricket';
   String _eventType = 'public';
   final _rulesCtrl = TextEditingController();
   final _safetyCtrl = TextEditingController();
 
-  // Basic schedule support
   final List<Map<String, TextEditingController>> _scheduleControllers = [];
   bool _isSubmitting = false;
 
   final List<XFile> _pickedImages = [];
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> _sportTypes = [
-    'Cricket',
-    'Football',
-    'Tennis',
-    'Badminton',
-    'Basketball',
-    'Volleyball',
-  ];
-
   List<dynamic> _grounds = [];
   dynamic _selectedGround;
   bool _isLoadingGrounds = true;
+
+  // Track validation errors (matching website)
+  final Map<String, bool> _errors = {};
+
+  // Booking linkage (matching website's selectedBooking state)
+  dynamic _selectedBooking;
+  final BookingsController _bookingsController = Get.put(BookingsController());
 
   @override
   void initState() {
     super.initState();
     _fetchGrounds();
+    _bookingsController.fetchBookings();
   }
 
   @override
@@ -110,7 +108,10 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   Future<void> _pickImages() async {
     final List<XFile> images = await _picker.pickMultiImage();
     if (images.isNotEmpty) {
-      setState(() => _pickedImages.addAll(images));
+      setState(() {
+        _pickedImages.addAll(images);
+        _errors.remove('images');
+      });
     }
   }
 
@@ -130,28 +131,128 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         } else {
           _selectedEndTime = picked;
         }
+        _errors.remove('time');
+        _errors.remove('endTime');
       });
     }
   }
 
+  // Validate exactly like the website's handleSubmit
+  bool _validate() {
+    bool isValid = true;
+    final newErrors = <String, bool>{};
+
+    if (_titleCtrl.text.trim().isEmpty) {
+      newErrors['name'] = true;
+      AppUtils.showError(
+        message: 'Event name is required. Please enter a catchy title.',
+      );
+      isValid = false;
+    }
+
+    if (isValid && _pickedImages.isEmpty) {
+      newErrors['images'] = true;
+      AppUtils.showError(
+        message: 'Event image is required. Please upload at least one image.',
+      );
+      isValid = false;
+    }
+
+    if (isValid && _selectedGround == null) {
+      newErrors['ground'] = true;
+      AppUtils.showError(
+        message:
+            'Venue selection required. Please select a ground via a booking.',
+      );
+      isValid = false;
+    }
+
+    // Time validation (only when no booking locked)
+    if (_selectedBooking == null) {
+      final startMinutes = _selectedTime.hour * 60 + _selectedTime.minute;
+      final endMinutes = _selectedEndTime.hour * 60 + _selectedEndTime.minute;
+
+      if (isValid && endMinutes <= startMinutes) {
+        newErrors['endTime'] = true;
+        AppUtils.showError(message: 'End time must be after the start time.');
+        isValid = false;
+      }
+    }
+
+    // registration fee
+    final fee = double.tryParse(_feeCtrl.text);
+    if (isValid && (fee == null || fee < 0)) {
+      newErrors['registrationFee'] = true;
+      AppUtils.showError(
+        message:
+            'Invalid registration fee. Please set a valid fee (0 for free).',
+      );
+      isValid = false;
+    }
+
+    // max participants
+    final maxP = int.tryParse(_limitCtrl.text);
+    if (isValid && (maxP == null || maxP <= 0)) {
+      newErrors['maxParticipants'] = true;
+      AppUtils.showError(
+        message: 'Invalid participant count. Please set a valid maximum.',
+      );
+      isValid = false;
+    } else if (isValid && _selectedGround != null) {
+      final groundCap = _selectedGround['max_participants'];
+      if (groundCap != null && maxP != null && maxP > (groundCap as num)) {
+        newErrors['maxParticipants'] = true;
+        AppUtils.showError(
+          message:
+              'Capacity exceeded. The maximum capacity for ${_selectedGround['name']} is $groundCap people.',
+        );
+        isValid = false;
+      }
+    }
+
+    setState(() {
+      _errors.clear();
+      _errors.addAll(newErrors);
+    });
+
+    return isValid;
+  }
+
+  void _handleSubmit() {
+    if (!_validate()) return;
+
+    // Show confirm dialog (matching website's ConfirmDialog)
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Create Event?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: const Text(
+          'Are you sure you want to create this event? It will be published according to your privacy settings.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              _submit();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Create', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submit() async {
-    if (_titleCtrl.text.isEmpty) {
-      AppUtils.showError(message: 'Please enter a match title.');
-      return;
-    }
-
-    if (_selectedGround == null) {
-      AppUtils.showError(message: 'Please select a ground/venue for your match.');
-      return;
-    }
-
-    // Image validation: Must upload at least one image
-    if (_pickedImages.isEmpty) {
-      AppUtils.showError(message: 'An event image is mandatory. Please upload at least one photo.');
-      return;
-    }
-
-    // Check Phone Verification using the robust getter
     final profileController = Get.find<ProfileController>();
     if (!profileController.isPhoneVerified) {
       Get.dialog(
@@ -167,7 +268,6 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     }
 
     setState(() => _isSubmitting = true);
-    print('Starting match submission...');
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
       final timeStr =
@@ -190,67 +290,52 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         'description': _descCtrl.text.trim(),
         'start_time': '$dateStr $timeStr',
         'end_time': '$dateStr $endTimeStr',
-        'game_id': 1, // Default game ID
-        'ground_id': _selectedGround['id'],
+        'ground_id': _selectedGround?['id'],
+        'booking_id': _selectedBooking?['id'],
         'registration_fee': double.tryParse(_feeCtrl.text) ?? 0,
-        'max_participants': int.tryParse(_limitCtrl.text) ?? 22,
+        'max_participants': int.tryParse(_limitCtrl.text) ?? 40,
         'rules': _rulesCtrl.text.trim(),
         'safety_policy': _safetyCtrl.text.trim(),
         'schedule': scheduleData.isEmpty ? '[]' : jsonEncode(scheduleData),
-        // Backend expects event lifecycle statuses like 'upcoming'.
         'status': 'upcoming',
         'event_type': _eventType,
+        'sport_category': _selectedGround?['type'] ?? null,
       };
 
-      print('Payload: $dataMap');
       dio_form.FormData formData = dio_form.FormData.fromMap(dataMap);
-
-      if (_pickedImages.isNotEmpty) {
-        for (var i = 0; i < _pickedImages.length; i++) {
-          formData.files.add(
-            MapEntry(
-              'images[]',
-              await dio_form.MultipartFile.fromFile(
-                _pickedImages[i].path,
-                filename: _pickedImages[i].name,
-              ),
+      for (var i = 0; i < _pickedImages.length; i++) {
+        formData.files.add(
+          MapEntry(
+            'images[]',
+            await dio_form.MultipartFile.fromFile(
+              _pickedImages[i].path,
+              filename: _pickedImages[i].name,
             ),
-          );
-        }
+          ),
+        );
       }
 
-      print('Sending POST request to /events...');
       final res = await ApiClient().dio.post('/events', data: formData);
-      print('Response: ${res.statusCode} - ${res.data}');
-
       if (res.statusCode == 200 || res.statusCode == 201) {
         Get.back(result: true);
-        AppUtils.showSuccess(message: 'Match organized successfully!');
+        AppUtils.showSuccess(message: 'Event created successfully!');
       }
     } catch (e) {
-      print('Submit error: $e');
       String msg = 'Something went wrong';
       if (e is dio_form.DioException) {
         final errorData = e.response?.data;
         if (errorData is Map) {
-          if (errorData['errors'] != null && errorData['errors'] is Map) {
-            // Extract first validation error
-            final errors = errorData['errors'] as Map;
-            if (errors.isNotEmpty) {
-              msg = errors.values.first[0].toString();
-            }
+          if (errorData['errors'] is Map &&
+              (errorData['errors'] as Map).isNotEmpty) {
+            msg = (errorData['errors'] as Map).values.first[0].toString();
           } else {
             msg = errorData['message'] ?? e.message ?? msg;
           }
-        } else {
-          msg = e.message ?? msg;
         }
-      } else {
-        msg = e.toString();
       }
       Get.snackbar(
         'Error',
-        'Failed to create event: $msg',
+        msg,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
         snackPosition: SnackPosition.TOP,
@@ -261,289 +346,727 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     }
   }
 
+  // ──────────────────────────────────────────────────────────────
+  // BUILD
+  // ──────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(title: const Text('Organize Match'), centerTitle: true),
+      backgroundColor: const Color(0xFFF1F5F9),
+      appBar: AppBar(
+        title: const Text('Create New Event'),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0.5,
+      ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 700),
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.m),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeader(),
-                const SizedBox(height: AppSpacing.xl),
-
-                _sectionHeader('Event Details', Icons.event_outlined),
-                const SizedBox(height: AppSpacing.m),
-
-                _lbl('Event Title *'),
-                _textField(
-                  _titleCtrl,
-                  'e.g. Sunday Morning Friendly',
-                  Icons.title,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Description'),
-                TextField(
-                  controller: _descCtrl,
-                  maxLines: 4,
-                  decoration: InputDecoration(
-                    hintText:
-                        'Add match description and what players can expect...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
+                // Header
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Create New Event',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Set up your tournament or event',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader(
-                  'Select Sport',
-                  Icons.sports_basketball_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _sportDropdown(),
-
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Event Privacy', Icons.security_outlined),
-                const SizedBox(height: AppSpacing.s),
-                Row(
-                  children: [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text(
-                          'Public',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        subtitle: const Text(
-                          'Visible to everyone',
-                          style: TextStyle(fontSize: 10),
-                        ),
-                        value: 'public',
-                        groupValue: _eventType,
-                        onChanged: (v) => setState(() => _eventType = v!),
-                        contentPadding: EdgeInsets.zero,
-                        activeColor: AppColors.primary,
+                // ── SECTION 1: Event Details ──────────────────────────
+                _card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle(
+                        'Event Details',
+                        Icons.emoji_events_outlined,
                       ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: const Text(
-                          'Private',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        subtitle: const Text(
-                          'Hidden, invite only',
-                          style: TextStyle(fontSize: 10),
-                        ),
-                        value: 'private',
-                        groupValue: _eventType,
-                        onChanged: (v) => setState(() => _eventType = v!),
-                        contentPadding: EdgeInsets.zero,
-                        activeColor: AppColors.primary,
+                      const SizedBox(height: 20),
+                      _lbl('Event Name *'),
+                      _textField(
+                        _titleCtrl,
+                        'e.g., Weekend Football League',
+                        Icons.title,
+                        hasError: _errors['name'] == true,
                       ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Event Images & Gallery *', Icons.image_outlined),
-                const SizedBox(height: AppSpacing.m),
-                _buildImagePicker(),
-
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Select Ground *', Icons.map_outlined),
-                const SizedBox(height: AppSpacing.m),
-                _buildGroundSelector(),
-
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader('Date & Time', Icons.calendar_today_outlined),
-                const SizedBox(height: AppSpacing.m),
-
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _pickerTile(
-                      'Match Date',
-                      DateFormat('EEEE, MMM dd, yyyy').format(_selectedDate),
-                      Icons.calendar_month,
-                      _selectDate,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _pickerTile(
-                            'Start Time',
-                            _selectedTime.format(context),
-                            Icons.access_time,
-                            () => _selectTime(true),
+                      const SizedBox(height: 16),
+                      _lbl('Description'),
+                      TextField(
+                        controller: _descCtrl,
+                        maxLines: 4,
+                        decoration: InputDecoration(
+                          hintText:
+                              'Describe your event, rules, and what participants can expect...',
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE2E8F0),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.m),
-                        Expanded(
-                          child: _pickerTile(
-                            'End Time',
-                            _selectedEndTime.format(context),
-                            Icons.access_time_filled,
-                            () => _selectTime(false),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader(
-                  'Registration Settings',
-                  Icons.settings_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _lbl('Player Limit'),
-                          _textField(
-                            _limitCtrl,
-                            '22',
-                            Icons.groups_outlined,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.m),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _lbl('Registration Fee'),
-                          _textField(
-                            _feeCtrl,
-                            '0.00',
-                            Icons.payments_outlined,
-                            keyboardType: TextInputType.number,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.m),
-                Obx(() {
-                  final fee = Get.find<SystemSettingsController>().commissionRate;
-                  return Container(
-                    padding: const EdgeInsets.all(AppSpacing.m),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.primary.withOpacity(0.3),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.info_outline,
-                          color: AppColors.primary,
-                          size: 24,
-                        ),
-                        const SizedBox(width: AppSpacing.s),
-                        Expanded(
-                          child: Text(
-                            'Earnings Notice: A ${fee.toStringAsFixed(0)}% platform fee will be deducted for any paid events.',
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textPrimary,
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFFE2E8F0),
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  );
-                }),
-
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader(
-                  'Rules & Safety',
-                  Icons.health_and_safety_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Event Rules'),
-                TextField(
-                  controller: _rulesCtrl,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText:
-                        'e.g. No metal spikes allowed. Bring your own kit...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.m),
-                _lbl('Safety Policy'),
-                TextField(
-                  controller: _safetyCtrl,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: 'e.g. First aid available on site...',
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
+                      ),
+                    ],
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.l),
-                _sectionHeader(
-                  'Event Agenda (Optional)',
-                  Icons.view_timeline_outlined,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                ...List.generate(
-                  _scheduleControllers.length,
-                  (idx) => _buildScheduleRow(idx),
-                ),
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _scheduleControllers.add({
-                        'time': TextEditingController(),
-                        'title': TextEditingController(),
-                        'desc': TextEditingController(),
-                      });
-                    });
-                  },
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('Add Agenda Item'),
+                // ── SECTION 2: Select Your Secured Booking ────────────
+                _card(
+                  hasError: _errors['ground'] == true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle(
+                        'Select Your Secured Booking *',
+                        Icons.calendar_today_outlined,
+                        hasError: _errors['ground'] == true,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildBookingSelection(),
+                    ],
+                  ),
                 ),
 
-                const SizedBox(height: AppSpacing.xxl),
-
-                AppButton(
-                  label: 'Organize Match',
-                  onPressed: _submit,
-                  isLoading: _isSubmitting,
+                // ── SECTION 3: Event Access & Privacy ────────────────
+                _card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle(
+                        'Event Access & Privacy',
+                        Icons.people_outline,
+                      ),
+                      const SizedBox(height: 20),
+                      Column(
+                        children: [
+                          _privacyCard(
+                            'public',
+                            'Public Event',
+                            'Visible to all users in exploration tools.',
+                          ),
+                          const SizedBox(height: 10),
+                          _privacyCard(
+                            'private',
+                            'Private Event',
+                            'Hidden from exploration. Share link to invite.',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: AppSpacing.xxl),
+
+                // ── SECTION 4: Images ─────────────────────────────────
+                _card(
+                  hasError: _errors['images'] == true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle(
+                        'Event Images & Gallery *',
+                        Icons.perm_media_outlined,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildImagePicker(),
+                    ],
+                  ),
+                ),
+
+                // ── SECTION 5: Venue Details ──────────────────────────
+                _card(
+                  tinted: _selectedBooking != null,
+                  hasError: _errors['ground'] == true,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_on_outlined,
+                            size: 18,
+                            color: _errors['ground'] == true
+                                ? Colors.red
+                                : AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Venue Details *',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: _errors['ground'] == true
+                                    ? Colors.red
+                                    : AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          if (_selectedBooking != null)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 3,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE2E8F0),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Text(
+                                'Locked to Booking',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      if (_selectedGround != null)
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withOpacity(0.2),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(10),
+                                child: CachedNetworkImage(
+                                  imageUrl: UrlHelper.sanitizeUrl(
+                                    (_selectedGround['images'] as List?)?.first,
+                                  ),
+                                  width: 56,
+                                  height: 56,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Container(
+                                    width: 56,
+                                    height: 56,
+                                    color: const Color(0xFFE2E8F0),
+                                    child: const Icon(
+                                      Icons.image_outlined,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _selectedGround['name'] ?? 'Ground',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      _selectedGround['complex']?['address'] ??
+                                          _selectedGround['location'] ??
+                                          'Location TBD',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: AppColors.textMuted,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      else
+                        Text(
+                          'Select your booking above to lock the venue.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textMuted,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+
+                // ── SECTION 6: Event Timing ───────────────────────────
+                Opacity(
+                  opacity: _selectedBooking != null ? 0.7 : 1.0,
+                  child: IgnorePointer(
+                    ignoring: _selectedBooking != null,
+                    child: _card(
+                      tinted: _selectedBooking != null,
+                      hasError:
+                          _errors['time'] == true ||
+                          _errors['endTime'] == true ||
+                          _errors['date'] == true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                size: 18,
+                                color:
+                                    (_errors['time'] == true ||
+                                        _errors['endTime'] == true)
+                                    ? Colors.red
+                                    : AppColors.primary,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Event Timing *',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        (_errors['time'] == true ||
+                                            _errors['endTime'] == true)
+                                        ? Colors.red
+                                        : AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              if (_selectedBooking != null)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF64748B),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Text(
+                                    'Locked to Booking',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // DATE — full width (date string is long)
+                          _timingBox(
+                            'DATE',
+                            DateFormat('MMM dd, yyyy').format(_selectedDate),
+                            Icons.calendar_today,
+                            _selectDate,
+                            hasError: _errors['date'] == true,
+                            fullWidth: true,
+                          ),
+                          const SizedBox(height: 8),
+                          // START and END — share a row (time values are short)
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _timingBox(
+                                  'START TIME',
+                                  _formatTimeOfDay(_selectedTime),
+                                  Icons.access_time,
+                                  () => _selectTime(true),
+                                  hasError: _errors['time'] == true,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: _timingBox(
+                                  'END TIME',
+                                  _formatTimeOfDay(_selectedEndTime),
+                                  Icons.access_time_filled,
+                                  () => _selectTime(false),
+                                  hasError: _errors['endTime'] == true,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ── SECTION 7: Registration Settings ─────────────────
+                _card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle(
+                        'Registration Settings *',
+                        Icons.group_outlined,
+                      ),
+                      const SizedBox(height: 20),
+                      // Registration Fee (full width)
+                      _lbl('Registration Fee (${AppConstants.currencySymbol})'),
+                      _textField(
+                        _feeCtrl,
+                        '50',
+                        Icons.payments_outlined,
+                        keyboardType: TextInputType.number,
+                        hasError: _errors['registrationFee'] == true,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Max Participants (full width)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Max Participants',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          if (_selectedGround?['max_participants'] != null)
+                            Text(
+                              'Ground Capacity: ${_selectedGround['max_participants']}',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      _textField(
+                        _limitCtrl,
+                        _selectedGround?['max_participants']?.toString() ??
+                            '40',
+                        Icons.groups_outlined,
+                        keyboardType: TextInputType.number,
+                        hasError: _errors['maxParticipants'] == true,
+                      ),
+                      if (_selectedGround?['max_participants'] != null) ...{
+                        Builder(
+                          builder: (_) {
+                            final maxP = int.tryParse(_limitCtrl.text) ?? 0;
+                            final cap =
+                                (_selectedGround['max_participants'] as num)
+                                    .toInt();
+                            if (maxP > cap) {
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'Exceeds ground capacity of $cap',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
+                      },
+                      const SizedBox(height: 20),
+
+                      // Net Earning card (matching website's slate-50 bg card)
+                      Obx(() {
+                        final commissionRate =
+                            Get.find<SystemSettingsController>().commissionRate;
+                        final regFee = double.tryParse(_feeCtrl.text) ?? 0.0;
+                        final platformFee = (regFee * commissionRate) / 100;
+                        final netEarning = regFee - platformFee;
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Platform Commission',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: Color(0xFF64748B),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withOpacity(
+                                        0.05,
+                                      ),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: AppColors.primary.withOpacity(
+                                          0.2,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${commissionRate.toStringAsFixed(0)}%',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 10),
+                                child: Divider(
+                                  color: Color(0xFFE2E8F0),
+                                  height: 1,
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Your Net Earning',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Per Participant',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${AppConstants.currencySymbol} ${netEarning.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF059669),
+                                        ),
+                                      ),
+                                      Text(
+                                        'Fee: ${AppConstants.currencySymbol} ${platformFee.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: Color(0xFF94A3B8),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 12),
+
+                      // Payout Notice (matching website's orange box)
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF7ED),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFFEDD5)),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.info_outline,
+                              color: Color(0xFFF97316),
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Text.rich(
+                                TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Payout Notice: ',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF9A3412),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text:
+                                          'Registration funds are credited to your wallet 24 hours after the event ends. You can then withdraw them to your linked bank account.',
+                                      style: TextStyle(
+                                        color: Color(0xFF9A3412),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── SECTION 8: Rules & Safety ─────────────────────────
+                _card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle('Rules & Safety', Icons.info_outline),
+                      const SizedBox(height: 20),
+                      _lbl('Event Rules'),
+                      TextField(
+                        controller: _rulesCtrl,
+                        maxLines: 4,
+                        decoration: _textAreaDecoration(
+                          'List tournament rules, equipment requirements, etc.',
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _lbl('Safety Policy'),
+                      TextField(
+                        controller: _safetyCtrl,
+                        maxLines: 3,
+                        decoration: _textAreaDecoration(
+                          'Emergency protocols, first aid info...',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── SECTION 9: Event Schedule ─────────────────────────
+                _card(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _sectionTitle(
+                        'Event Schedule',
+                        Icons.access_time_outlined,
+                      ),
+                      const SizedBox(height: 20),
+                      ...List.generate(
+                        _scheduleControllers.length,
+                        (idx) => _buildScheduleRow(idx),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _scheduleControllers.add({
+                              'time': TextEditingController(),
+                              'title': TextEditingController(),
+                              'desc': TextEditingController(),
+                            });
+                          });
+                        },
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Schedule Item'),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 44),
+                          side: const BorderSide(
+                            color: Color(0xFFCBD5E1),
+                            style: BorderStyle.solid,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Actions ───────────────────────────────────────────
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Get.back(),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: AppButton(
+                        label: 'Create Event',
+                        onPressed: _handleSubmit,
+                        isLoading: _isSubmitting,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -552,72 +1075,352 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Host a Match',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: AppColors.textPrimary,
-          ),
+  // ──────────────────────────────────────────────────────────────
+  // HELPERS & WIDGETS
+  // ──────────────────────────────────────────────────────────────
+
+  /// Card wrapper matching website's `rounded-2xl bg-card border p-6 shadow-sm`
+  Widget _card({
+    required Widget child,
+    bool tinted = false,
+    bool hasError = false,
+  }) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: tinted ? const Color(0xFFF8FAFC) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: hasError
+              ? Colors.red.withOpacity(0.5)
+              : const Color(0xFFE2E8F0),
+          width: hasError ? 1.5 : 1,
         ),
-        const SizedBox(height: 4),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget _sectionTitle(String title, IconData icon, {bool hasError = false}) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: hasError ? Colors.red : AppColors.primary),
+        const SizedBox(width: 8),
         Text(
-          'Invite other players to join your game at your favorite ground.',
-          style: AppTextStyles.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: hasError ? Colors.red : AppColors.textPrimary,
           ),
         ),
       ],
     );
   }
 
+  Widget _lbl(String t) => Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Text(
+      t,
+      style: const TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+      ),
+    ),
+  );
+
+  Widget _textField(
+    TextEditingController ctrl,
+    String hint,
+    IconData icon, {
+    TextInputType? keyboardType,
+    bool hasError = false,
+    ValueChanged<String>? onChanged,
+  }) => TextField(
+    controller: ctrl,
+    keyboardType: keyboardType,
+    onChanged: onChanged,
+    decoration: InputDecoration(
+      hintText: hint,
+      prefixIcon: Icon(icon, size: 18),
+      filled: true,
+      fillColor: const Color(0xFFF8FAFC),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: hasError ? Colors.red : const Color(0xFFE2E8F0),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: hasError ? Colors.red : const Color(0xFFE2E8F0),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(
+          color: hasError ? Colors.red : AppColors.primary,
+          width: 1.5,
+        ),
+      ),
+    ),
+  );
+
+  InputDecoration _textAreaDecoration(String hint) => InputDecoration(
+    hintText: hint,
+    filled: true,
+    fillColor: const Color(0xFFF8FAFC),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+    ),
+  );
+
+  Widget _privacyCard(String value, String title, String subtitle) {
+    final isSelected = _eventType == value;
+    return GestureDetector(
+      onTap: () => setState(() => _eventType = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withOpacity(0.05)
+              : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : const Color(0xFFE2E8F0),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 18,
+              height: 18,
+              margin: const EdgeInsets.only(top: 1, right: 10),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : const Color(0xFFCBD5E1),
+                  width: 2,
+                ),
+                color: isSelected ? AppColors.primary : Colors.white,
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 10, color: Colors.white)
+                  : null,
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _timingBox(
+    String label,
+    String value,
+    IconData icon,
+    VoidCallback onTap, {
+    bool hasError = false,
+    bool fullWidth = false,
+  }) {
+    final bgColor = hasError
+        ? Colors.red.withOpacity(0.05)
+        : const Color(0xFFF1F5F9);
+    final labelColor = hasError ? Colors.red : const Color(0xFF94A3B8);
+    final iconColor = hasError ? Colors.red : AppColors.primary;
+    final valueColor = hasError ? Colors.red : AppColors.textPrimary;
+    final borderColor = hasError
+        ? Colors.red.withOpacity(0.5)
+        : const Color(0xFFE2E8F0);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: fullWidth ? double.infinity : null,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: borderColor),
+        ),
+        child: fullWidth
+            ? Row(
+                children: [
+                  Icon(icon, size: 16, color: iconColor),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                          color: labelColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        value,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: valueColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    size: 18,
+                    color: labelColor,
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
+                      color: labelColor,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(icon, size: 13, color: iconColor),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          value,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: valueColor,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  String _formatTimeOfDay(TimeOfDay t) {
+    final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+    final minute = t.minute.toString().padLeft(2, '0');
+    final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
+  }
+
   Widget _buildImagePicker() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         GestureDetector(
           onTap: _pickImages,
           child: Container(
-            width: double.infinity,
+            width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: _errors['images'] == true
+                    ? Colors.red.withOpacity(0.5)
+                    : const Color(0xFFCBD5E1),
+                style: BorderStyle.solid,
+              ),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
-                  Icons.add_photo_alternate_outlined,
-                  size: 40,
-                  color: AppColors.primary.withOpacity(0.5),
+                  Icons.add,
+                  size: 28,
+                  color: _errors['images'] == true
+                      ? Colors.red
+                      : const Color(0xFF94A3B8),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
-                  'Click to upload event images',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textMuted,
-                  ),
-                ),
-                Text(
-                  'Upload multiple photos of the ground or event',
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textMuted,
-                    fontSize: 10,
+                  'Add Media',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: _errors['images'] == true
+                        ? Colors.red
+                        : const Color(0xFF64748B),
                   ),
                 ),
               ],
             ),
           ),
         ),
+        const SizedBox(height: 8),
+        const Text(
+          'SUPPORTED: JPG, PNG, MP4, WEBM (MAX 50MB) • FIRST FILE WILL BE FEATURED',
+          style: TextStyle(
+            fontSize: 8,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF94A3B8),
+            letterSpacing: 0.5,
+          ),
+        ),
         if (_pickedImages.isNotEmpty) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           SizedBox(
-            height: 100,
+            height: 80,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
               itemCount: _pickedImages.length,
@@ -625,11 +1428,11 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                 return Stack(
                   children: [
                     Container(
-                      margin: const EdgeInsets.only(right: 12),
-                      width: 100,
-                      height: 100,
+                      margin: const EdgeInsets.only(right: 10),
+                      width: 80,
+                      height: 80,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         image: DecorationImage(
                           image: FileImage(File(_pickedImages[index].path)),
                           fit: BoxFit.cover,
@@ -637,19 +1440,19 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       ),
                     ),
                     Positioned(
-                      top: 4,
-                      right: 16,
+                      top: 2,
+                      right: 12,
                       child: GestureDetector(
                         onTap: () => _removeImage(index),
                         child: Container(
-                          padding: const EdgeInsets.all(4),
+                          padding: const EdgeInsets.all(3),
                           decoration: const BoxDecoration(
                             color: Colors.red,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.close,
-                            size: 14,
+                            size: 10,
                             color: Colors.white,
                           ),
                         ),
@@ -665,289 +1468,392 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     );
   }
 
-  Widget _buildGroundSelector() {
-    if (_isLoadingGrounds) {
-      return const AppProgressIndicator();
-    }
+  /// Mirrors the website's booking selection list exactly
+  Widget _buildBookingSelection() {
+    return Obx(() {
+      if (_bookingsController.isLoading.value) {
+        return const Center(child: AppProgressIndicator());
+      }
 
-    if (_grounds.isEmpty) {
-      return const Text('No grounds available');
-    }
+      // Match website filter: (confirmed OR pending) AND no event AND in the future
+      final now = DateTime.now();
+      final availableBookings = _bookingsController.allData.where((b) {
+        if (b['type'] != 'ground') return false;
+        final status = b['status']?.toString() ?? '';
+        if (status != 'confirmed' && status != 'pending') return false;
+        if (b['event'] != null) return false;
+        final endTime = DateTime.tryParse(b['end']?.toString() ?? '');
+        if (endTime == null || endTime.isBefore(now)) return false;
+        return true;
+      }).toList();
 
-    // Filter grounds by sport type if applicable
-    final filtered = _grounds.where((g) {
-      final type = g['type']?.toString().toLowerCase() ?? '';
-      return type == 'all' || type == _selectedSport.toLowerCase();
-    }).toList();
-
-    if (filtered.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Text(
-          'No $_selectedSport grounds found.',
-          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 140, // Increased height for category tag
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: filtered.length,
-        itemBuilder: (context, index) {
-          final ground = filtered[index];
-          final isSelected =
-              _selectedGround != null && _selectedGround['id'] == ground['id'];
-
-          final images = ground['images'] as List?;
-          final imageUrl = UrlHelper.sanitizeUrl(
-            images != null && images.isNotEmpty ? images[0] : null,
-          );
-          final gType = ground['type']?.toString().capitalizeFirst ?? 'General';
-
-          return GestureDetector(
-            onTap: () => setState(() => _selectedGround = ground),
-            child: Container(
-              width: 160,
-              margin: const EdgeInsets.only(right: 12),
+      if (availableBookings.isEmpty) {
+        return Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
                 border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.border,
-                  width: isSelected ? 2 : 1,
+                  color: const Color(0xFFE2E8F0),
+                  style: BorderStyle.solid,
                 ),
-                color: isSelected
-                    ? AppColors.primary.withOpacity(0.05)
-                    : Colors.white,
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.primary.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ]
-                    : null,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(14),
-                    ),
-                    child: CachedNetworkImage(
-                      imageUrl: imageUrl,
-                      height: 65,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey[100],
-                        child: const Center(
-                          child: AppProgressIndicator(size: 20, strokeWidth: 2),
-                        ),
-                      ),
-                      errorWidget: (_, __, ___) => Container(
-                        color: Colors.grey[200],
-                        child: const Icon(Icons.image_outlined, size: 20),
-                      ),
-                    ),
+                  const Text(
+                    "You don't have any confirmed ground bookings to host an event on.",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ground['name'] ?? 'Ground',
-                          style: AppTextStyles.label.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryLight.withOpacity(0.5),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            gType,
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.primary,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '${AppConstants.currencySymbol} ${ground['price_per_hour']}/hr',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                    onPressed: () => Get.toNamed('/explore-grounds'),
+                    icon: const Icon(Icons.search, size: 16),
+                    label: const Text('Book a Ground first'),
+                    style: OutlinedButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+        );
+      }
+
+      return Column(
+        children: availableBookings.map((b) {
+          final isSelected =
+              _selectedBooking != null && _selectedBooking['id'] == b['id'];
+          final startTime =
+              DateTime.tryParse(b['start']?.toString() ?? '') ?? DateTime.now();
+          final endTime =
+              DateTime.tryParse(b['end']?.toString() ?? '') ?? DateTime.now();
+          final isPaid = b['payment_status']?.toString() == 'paid';
+
+          final dateStr = DateFormat('M/d/yyyy').format(startTime);
+          final startStr = DateFormat('hh:mm a').format(startTime);
+          final endStr = DateFormat('hh:mm a').format(endTime);
+
+          return Column(
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (isSelected) {
+                      _selectedBooking = null;
+                      _selectedGround = null;
+                    } else {
+                      _selectedBooking = b;
+                      _selectedGround = b['ground'];
+                      _selectedDate = startTime;
+                      _selectedTime = TimeOfDay.fromDateTime(startTime);
+                      _selectedEndTime = TimeOfDay.fromDateTime(endTime);
+                      // Auto-fill max participants from ground capacity
+                      if (b['ground']?['max_participants'] != null &&
+                          _limitCtrl.text.isEmpty) {
+                        _limitCtrl.text = b['ground']['max_participants']
+                            .toString();
+                      }
+                      _errors.remove('ground');
+                    }
+                  });
+                  if (_selectedBooking != null) {
+                    AppUtils.showSuccess(
+                      message: 'Venue and time locked to booking #${b['id']}',
+                    );
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.primary.withOpacity(0.05)
+                        : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.primary
+                          : const Color(0xFFE2E8F0),
+                      width: isSelected ? 2 : 1,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.primary.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Text(
+                                  b['ground']?['name'] ??
+                                      b['display_name'] ??
+                                      'Ground',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: const Color(0xFFE2E8F0),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '${AppConstants.currencySymbol} ${(b['price'] ?? 0).toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.access_time,
+                                  size: 12,
+                                  color: AppColors.textMuted,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$dateStr @ $startStr - $endStr',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textMuted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Payment status badge (matching website exactly)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isPaid
+                              ? const Color(0xFFDCFCE7)
+                              : const Color(0xFFFEE2E2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isPaid
+                                ? const Color(0xFF86EFAC)
+                                : const Color(0xFFFCA5A5),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              isPaid
+                                  ? Icons.check_circle_outline
+                                  : Icons.cancel_outlined,
+                              size: 12,
+                              color: isPaid
+                                  ? const Color(0xFF16A34A)
+                                  : const Color(0xFFDC2626),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              isPaid ? 'Paid' : 'Unpaid',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isPaid
+                                    ? const Color(0xFF16A34A)
+                                    : const Color(0xFFDC2626),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Unpaid warning with "Complete Payment" (matching website exactly)
+              if (isSelected && !isPaid)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.withOpacity(0.15)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.info_outline,
+                        size: 14,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Ground fee of ${AppConstants.currencySymbol} ${(b['price'] ?? 0).toStringAsFixed(0)} is unpaid.',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.red,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          final id = b['id'];
+                          final price = (b['price'] ?? b['total_price'] ?? 0);
+                          Get.toNamed(
+                            '/payment',
+                            arguments: {
+                              'bookingId': id is int
+                                  ? id
+                                  : int.tryParse(id.toString()),
+                              'subtotal': price is double
+                                  ? price
+                                  : double.tryParse(price.toString()) ?? 0.0,
+                              'totalPrice': price is double
+                                  ? price
+                                  : double.tryParse(price.toString()) ?? 0.0,
+                            },
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.credit_card,
+                                size: 12,
+                                color: Colors.white,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Complete Payment',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              const SizedBox(height: 10),
+            ],
           );
-        },
-      ),
-    );
-  }
-
-  Widget _sectionHeader(String title, IconData icon) => Row(
-    children: [
-      Icon(icon, size: 18, color: AppColors.primary),
-      const SizedBox(width: 8),
-      Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
-      const SizedBox(width: 8),
-      Expanded(child: Divider(color: AppColors.primary.withOpacity(0.2))),
-    ],
-  );
-
-  Widget _lbl(String t) => Padding(
-    padding: const EdgeInsets.only(bottom: 6),
-    child: Text(
-      t,
-      style: AppTextStyles.label.copyWith(fontWeight: FontWeight.bold),
-    ),
-  );
-
-  Widget _textField(
-    TextEditingController ctrl,
-    String hint,
-    IconData icon, {
-    TextInputType? keyboardType,
-  }) => TextField(
-    controller: ctrl,
-    keyboardType: keyboardType,
-    decoration: InputDecoration(
-      hintText: hint,
-      prefixIcon: Icon(icon),
-      filled: true,
-      fillColor: Colors.white,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-    ),
-  );
-
-  Widget _sportDropdown() => Container(
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-    ),
-    child: DropdownButtonFormField<String>(
-      initialValue: _selectedSport,
-      decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.sports_outlined),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        filled: true,
-        fillColor: Colors.white,
-      ),
-      items: _sportTypes
-          .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-          .toList(),
-      onChanged: (v) {
-        if (v != null) {
-          setState(() {
-            _selectedSport = v;
-            _selectedGround = null; // Reset ground selection when sport changes
-          });
-        }
-      },
-    ),
-  );
-
-  Widget _pickerTile(
-    String label,
-    String value,
-    IconData icon,
-    VoidCallback onTap,
-  ) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _lbl(label),
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.m),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Row(
-              children: [
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: 12),
-                Text(value, style: AppTextStyles.bodyMedium),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+        }).toList(),
+      );
+    });
   }
 
   Widget _buildScheduleRow(int index) {
     final s = _scheduleControllers[index];
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.m),
-      padding: const EdgeInsets.all(AppSpacing.m),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Item ${index + 1}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
+          Align(
+            alignment: Alignment.centerRight,
+            child: GestureDetector(
+              onTap: () => setState(() => _scheduleControllers.removeAt(index)),
+              child: const Icon(
+                Icons.close,
+                size: 18,
+                color: Color(0xFF94A3B8),
               ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.red, size: 20),
-                onPressed: () {
-                  setState(() {
-                    _scheduleControllers.removeAt(index);
-                  });
-                },
-              ),
-            ],
+            ),
           ),
-          Row(
-            children: [
-              Expanded(
-                flex: 1,
-                child: _textField(s['time']!, 'Time', Icons.access_time),
-              ),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                flex: 2,
-                child: _textField(s['title']!, 'Title', Icons.title),
-              ),
-            ],
+          // Time field (full width)
+          const Text(
+            'Time',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
           ),
-          const SizedBox(height: AppSpacing.m),
-          _textField(s['desc']!, 'Description', Icons.description_outlined),
+          const SizedBox(height: 6),
+          _textField(s['time']!, 'e.g., 2:30 PM', Icons.access_time),
+          const SizedBox(height: 10),
+
+          // Title field (full width)
+          const Text(
+            'Title',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 6),
+          _textField(s['title']!, 'e.g., Match 1', Icons.title),
+          const SizedBox(height: 10),
+          const Text(
+            'Description',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 6),
+          _textField(
+            s['desc']!,
+            'Short description...',
+            Icons.description_outlined,
+          ),
         ],
       ),
     );

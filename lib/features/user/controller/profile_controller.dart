@@ -36,8 +36,8 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    fetchProfile();
-    fetchNotifications();
+    // fetchProfile() and fetchNotifications() are now called by AppInitializationService
+    // to ensure they only happen when a valid session token exists.
   }
 
   Future<void> fetchProfile() async {
@@ -54,7 +54,21 @@ class ProfileController extends GetxController {
       // Populate form controllers
       nameController.text = user.name;
       emailController.text = user.email;
-      phoneController.text = user.phone ?? '';
+      
+      String rawPhone = user.phone ?? '';
+      fullPhone.value = rawPhone;
+
+      // Robust stripping: handle both "+92" and "92" (or other dial codes)
+      String dCode = dialCode.value; // e.g. "+92"
+      String dCodeNoPlus = dCode.replaceAll('+', ''); // e.g. "92"
+
+      if (rawPhone.startsWith(dCode)) {
+        phoneController.text = rawPhone.replaceFirst(dCode, '');
+      } else if (rawPhone.startsWith(dCodeNoPlus)) {
+        phoneController.text = rawPhone.replaceFirst(dCodeNoPlus, '');
+      } else {
+        phoneController.text = rawPhone;
+      }
     } catch (e) {
       AppUtils.showError(message: e);
     } finally {
@@ -301,20 +315,6 @@ class ProfileController extends GetxController {
     }
   }
 
-  Future<void> deleteAccount() async {
-    try {
-      await _userApiService.deleteAccount();
-      AppUtils.showSuccess(message: 'Account deleted successfully');
-      if (Get.isRegistered<LandingController>()) {
-        Get.find<LandingController>().logout();
-      } else {
-        final landingController = Get.put(LandingController(), permanent: true);
-        landingController.logout();
-      }
-    } catch (e) {
-      AppUtils.showError(message: 'Failed to delete account. Please test with proper backend.');
-    }
-  }
 
   void clearPasswordFields() {
     currentPasswordController.clear();
@@ -326,8 +326,22 @@ class ProfileController extends GetxController {
     final user = userProfile;
     nameController.text = user['name']?.toString() ?? '';
     emailController.text = user['email']?.toString() ?? '';
-    phoneController.text = user['phone']?.toString() ?? '';
-    fullPhone.value = user['phone']?.toString() ?? '';
+    
+    String rawPhone = user['phone']?.toString() ?? '';
+    fullPhone.value = rawPhone;
+    
+    // Robust stripping: handle both "+92" and "92"
+    String dCode = dialCode.value;
+    String dCodeNoPlus = dCode.replaceAll('+', '');
+
+    if (rawPhone.startsWith(dCode)) {
+      phoneController.text = rawPhone.replaceFirst(dCode, '');
+    } else if (rawPhone.startsWith(dCodeNoPlus)) {
+      phoneController.text = rawPhone.replaceFirst(dCodeNoPlus, '');
+    } else {
+      phoneController.text = rawPhone;
+    }
+    
     businessNameController.text = user['business_name']?.toString() ?? '';
     pickedAvatarPath.value = ''; // Reset on populate
     clearPasswordFields(); // Ensure security fields are empty
