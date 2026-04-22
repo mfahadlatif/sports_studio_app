@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/widgets/full_screen_image_viewer.dart';
 
 class OwnerGroundDetailPage extends StatefulWidget {
   const OwnerGroundDetailPage({super.key});
@@ -47,22 +48,49 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       final groundRes = await ApiClient().dio.get('/grounds/$id');
       if (groundRes.statusCode == 200) {
         _ground = groundRes.data['data'] ?? groundRes.data;
+
+        // Seed stats from ground detail first
+        _stats['bookings_count'] =
+            int.tryParse(_ground['bookings_count']?.toString() ?? '0') ?? 0;
+        _stats['avg_rating'] =
+            double.tryParse(_ground['avg_rating']?.toString() ?? '0.0') ?? 0.0;
+
+        // Check if revenue is already in ground object (some APIs return it here)
+        if (_ground['total_revenue'] != null) {
+          _stats['total_revenue'] = _ground['total_revenue'];
+        } else if (_ground['revenue'] != null) {
+          _stats['total_revenue'] = _ground['revenue'];
+        }
       }
 
-      // 2. Fetch stats for this ground (use zeros if endpoint missing)
+      // 2. Fetch specialized stats for this ground (merge if successful)
       try {
         final statsRes = await ApiClient().dio.get('/owner/grounds/$id/stats');
-        if (statsRes.statusCode == 200) {
-          _stats = statsRes.data is Map
-              ? Map<String, dynamic>.from(statsRes.data)
-              : _stats;
+        if (statsRes.statusCode == 200 && statsRes.data is Map) {
+          final sData = statsRes.data;
+          // Revenue mapping
+          if (sData['total_revenue'] != null) {
+            _stats['total_revenue'] = sData['total_revenue'];
+          } else if (sData['revenue'] != null) {
+            _stats['total_revenue'] = sData['revenue'];
+          }
+
+          // Bookings mapping
+          if (sData['bookings_count'] != null) {
+            _stats['bookings_count'] = sData['bookings_count'];
+          } else if (sData['total_bookings'] != null) {
+            _stats['bookings_count'] = sData['total_bookings'];
+          }
+
+          // Rating mapping
+          if (sData['avg_rating'] != null) {
+            _stats['avg_rating'] = sData['avg_rating'];
+          } else if (sData['rating'] != null) {
+            _stats['avg_rating'] = sData['rating'];
+          }
         }
-      } catch (_) {
-        _stats = {
-          'total_revenue': 0,
-          'bookings_count': 0,
-          'avg_rating': 0.0,
-        };
+      } catch (e) {
+        print('Could not fetch extra stats: $e');
       }
 
       // 3. Fetch recent bookings for this ground
@@ -228,7 +256,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       child: Icon(
         Icons.sports_cricket,
         size: 64,
-        color: AppColors.primary.withOpacity(0.3),
+        color: AppColors.primary.withValues(alpha: 0.3),
       ),
     );
   }
@@ -257,23 +285,20 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: _ground['status'] == 'active'
-                    ? Colors.green.withOpacity(0.1)
-                    : Colors.grey.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                _ground['status'].toString().toUpperCase(),
+                (_ground['status'] ?? 'Active').toString().toUpperCase(),
                 style: AppTextStyles.label.copyWith(
-                  color: _ground['status'] == 'active'
-                      ? Colors.green
-                      : Colors.grey,
+                  color: Colors.green,
                   fontSize: 10,
                 ),
               ),
             ),
           ],
         ),
+
         const SizedBox(height: AppSpacing.s),
         Text(_ground['name'] ?? 'Ground Name', style: AppTextStyles.h1),
         const SizedBox(height: 4),
@@ -285,10 +310,12 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
               color: AppColors.textMuted,
             ),
             const SizedBox(width: 4),
-            Text(
-              _ground['location'] ?? 'No location set',
-              style: AppTextStyles.bodyMedium.copyWith(
-                color: AppColors.textMuted,
+            Expanded(
+              child: Text(
+                _ground['location'] ?? 'No location set',
+                style: AppTextStyles.bodyMedium.copyWith(
+                  color: AppColors.textMuted,
+                ),
               ),
             ),
           ],
@@ -298,11 +325,16 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
   }
 
   Widget _buildStatsRow() {
+    final double revenue =
+        double.tryParse(_stats['total_revenue']?.toString() ?? '0') ?? 0.0;
+    final double rating =
+        double.tryParse(_stats['avg_rating']?.toString() ?? '0') ?? 0.0;
+
     return Row(
       children: [
         _statItem(
           'Revenue',
-          '${AppConstants.currencySymbol} ${_stats['total_revenue']}',
+          '${AppConstants.currencySymbol} ${revenue.toStringAsFixed(revenue == 0 ? 0 : 2)}',
           Icons.payments_outlined,
           Colors.green,
         ),
@@ -316,7 +348,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
         const SizedBox(width: AppSpacing.s),
         _statItem(
           'Rating',
-          '${_stats['avg_rating']}',
+          rating.toStringAsFixed(1),
           Icons.star_outline,
           Colors.orange,
         ),
@@ -356,7 +388,10 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () => Get.toNamed('/user-bookings'),
+            onPressed: () => Get.toNamed('/owner-bookings', arguments: {
+              'groundId': _ground['id'],
+              'groundName': _ground['name']
+            }),
             icon: const Icon(Icons.history_outlined),
             label: const Text('View All Bookings'),
             style: ElevatedButton.styleFrom(
@@ -407,7 +442,10 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow('Price per Hour', '${AppConstants.currencySymbol} ${_ground['price_per_hour']}'),
+          _infoRow(
+            'Price per Hour',
+            '${AppConstants.currencySymbol} ${(double.tryParse(_ground['price_per_hour']?.toString() ?? '0') ?? 0.0).toStringAsFixed(2)}',
+          ),
           const Divider(height: AppSpacing.l),
           _infoRow('Dimensions', _ground['dimensions']?.toString() ?? 'N/A'),
           const Divider(height: AppSpacing.l),
@@ -418,7 +456,10 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
           const Divider(height: AppSpacing.l),
           _infoRow(
             'Lighting',
-            (_ground['has_lighting'] == 1 || _ground['has_lighting'] == true)
+            (_ground['has_lighting'] == 1 ||
+                    _ground['has_lighting'] == true ||
+                    _ground['lighting'] == 1 ||
+                    _ground['lighting'] == true)
                 ? 'Available'
                 : 'Not Available',
           ),
@@ -466,7 +507,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
           children: [
             Icon(
               Icons.calendar_month_outlined,
-              color: AppColors.textMuted.withOpacity(0.4),
+              color: AppColors.textMuted.withValues(alpha: 0.4),
               size: 48,
             ),
             const SizedBox(height: AppSpacing.m),
@@ -497,21 +538,23 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       child: ListTile(
         onTap: () => Get.toNamed('/booking-detail', arguments: {'booking': b}),
         leading: CircleAvatar(
-          backgroundColor: AppColors.primaryLight,
+          backgroundColor: AppColors.primary,
           child: Text(
-            (b['user']?['name'] ?? 'P')[0].toUpperCase(),
+            '#${b['id'] ?? b['booking_id'] ?? '??'}',
             style: const TextStyle(
-              color: AppColors.primary,
+              color: Colors.white,
+              fontSize: 10,
               fontWeight: FontWeight.bold,
             ),
           ),
         ),
         title: Text(
-          b['user']?['name'] ?? 'Player',
+          b['user']?['name'] ?? b['customer_name'] ?? 'Player',
           style: AppTextStyles.bodyLarge,
         ),
         subtitle: Text(
-          '${b['date']} | ${b['start_time']} - ${b['end_time']}',
+          '${AppUtils.formatDate(b['date'] ?? b['start_time'] ?? b['start'])} | '
+          '${AppUtils.formatTimeRange(b['start_time'] ?? b['start'], b['end_time'] ?? b['end'])}',
           style: AppTextStyles.bodySmall,
         ),
         trailing: const Icon(Icons.chevron_right, size: 20),

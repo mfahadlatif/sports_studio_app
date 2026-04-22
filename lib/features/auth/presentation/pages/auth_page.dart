@@ -1,16 +1,15 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
-import 'package:sports_studio/features/auth/controller/auth_controller.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/widgets/phone_input_field.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/features/auth/controller/auth_controller.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/widgets/phone_input_field.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class AuthPage extends StatelessWidget {
   const AuthPage({super.key});
@@ -44,7 +43,7 @@ class AuthPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 10,
                         ),
                       ],
@@ -118,7 +117,7 @@ class AuthPage extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             controller.isLogin.value
-                ? 'Access your Sports Studio account'
+                ? 'Access your Sport Studio account'
                 : 'Join the community today',
             style: AppTextStyles.bodyMedium.copyWith(
               color: AppColors.textMuted,
@@ -201,6 +200,7 @@ class AuthPage extends StatelessWidget {
           if (!controller.isLogin.value) ...[
             TextField(
               controller: controller.nameController,
+              textCapitalization: TextCapitalization.sentences,
               decoration: const InputDecoration(
                 hintText: 'Full Name',
                 prefixIcon: Icon(Icons.person_outline),
@@ -226,6 +226,7 @@ class AuthPage extends StatelessWidget {
           TextField(
             controller: controller.emailController,
             keyboardType: TextInputType.emailAddress,
+            textCapitalization: TextCapitalization.none, // Emails should not be capitalized
             decoration: const InputDecoration(
               hintText: 'Email Address',
               prefixIcon: Icon(Icons.email_outlined),
@@ -241,6 +242,7 @@ class AuthPage extends StatelessWidget {
           TextField(
             controller: controller.passwordController,
             obscureText: controller.obscurePassword.value,
+            textCapitalization: TextCapitalization.none, // Passwords should not be capitalized
             decoration: InputDecoration(
               hintText: 'Password',
               prefixIcon: const Icon(Icons.lock_outline),
@@ -265,6 +267,7 @@ class AuthPage extends StatelessWidget {
             TextField(
               controller: controller.confirmPasswordController,
               obscureText: controller.obscureConfirmPassword.value,
+              textCapitalization: TextCapitalization.none, // Passwords should not be capitalized
               decoration: InputDecoration(
                 hintText: 'Confirm Password',
                 prefixIcon: const Icon(Icons.lock_reset_outlined),
@@ -299,7 +302,6 @@ class AuthPage extends StatelessWidget {
   }
 
   Widget _buildSocialAuth(AuthController controller) {
-    final bool isIOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
     return Column(
       children: [
         Row(

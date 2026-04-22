@@ -1,6 +1,6 @@
-# Sports Studio: Master API Reference Guide 🏟️
+# Sport Studio: Master API Reference Guide 🏟️
 
-This document is the definitive technical authority for interacting with the Sports Studio Backend. It specifies **Data Types**, **Validation Rules**, and **Exact Response Shapes**.
+This document is the definitive technical authority for interacting with the Sport Studio Backend. It specifies **Data Types**, **Validation Rules**, and **Exact Response Shapes**.
 
 ---
 

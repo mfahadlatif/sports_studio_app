@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 
 class AppUtils {
@@ -96,7 +96,7 @@ class AppUtils {
       duration: duration ?? const Duration(seconds: 3),
       boxShadows: [
         BoxShadow(
-          color: AppColors.primary.withOpacity(0.3),
+          color: AppColors.primary.withValues(alpha: 0.3),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -124,7 +124,7 @@ class AppUtils {
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
+                color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -137,7 +137,7 @@ class AppUtils {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: (confirmColor ?? AppColors.primary).withOpacity(0.1),
+                    color: (confirmColor ?? AppColors.primary).withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -217,7 +217,7 @@ class AppUtils {
           ),
         ),
       ),
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       transitionCurve: Curves.easeOutBack,
     );
   }
@@ -245,7 +245,7 @@ class AppUtils {
       duration: duration ?? const Duration(seconds: 4),
       boxShadows: [
         BoxShadow(
-          color: AppColors.error.withOpacity(0.3),
+          color: AppColors.error.withValues(alpha: 0.3),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -335,7 +335,7 @@ class AppUtils {
       duration: duration ?? const Duration(seconds: 3),
       boxShadows: [
         BoxShadow(
-          color: AppColors.secondary.withOpacity(0.3),
+          color: AppColors.secondary.withValues(alpha: 0.3),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -362,7 +362,7 @@ class AppUtils {
       duration: duration ?? const Duration(seconds: 4),
       boxShadows: [
         BoxShadow(
-          color: AppColors.accent.withOpacity(0.3),
+          color: AppColors.accent.withValues(alpha: 0.3),
           blurRadius: 10,
           offset: const Offset(0, 4),
         ),
@@ -442,7 +442,7 @@ class AppUtils {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -525,7 +525,7 @@ class AppUtils {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.1),
+                  color: AppColors.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -636,7 +636,7 @@ class AppUtils {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
+                  color: iconColor.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: iconColor, size: 44),

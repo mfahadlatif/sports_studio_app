@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
 
 class SectionHeader extends StatelessWidget {
   final String title;

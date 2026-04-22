@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class JoinedEventsPage extends StatelessWidget {
   const JoinedEventsPage({super.key});
@@ -44,7 +44,7 @@ class JoinedEventsPage extends StatelessWidget {
                   color: AppColors.primary,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -165,7 +165,7 @@ class _EventsList extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Text(
@@ -231,7 +231,7 @@ class _EventsList extends StatelessWidget {
                         Container(
                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                            decoration: BoxDecoration(
-                             color: (eventData['payment_status'] == 'paid') ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                             color: (eventData['payment_status'] == 'paid') ? Colors.green.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
                              borderRadius: BorderRadius.circular(20),
                            ),
                            child: Text(
@@ -270,7 +270,7 @@ class _EventsList extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

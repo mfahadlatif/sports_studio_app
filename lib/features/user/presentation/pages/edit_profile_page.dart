@@ -1,15 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
-import 'package:sports_studio/widgets/phone_input_field.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sport_studio/widgets/phone_input_field.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -92,12 +92,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             border: Border.all(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               width: 4,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -110,26 +110,26 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     fit: BoxFit.cover,
                   )
                 : (avatarUrl != null
-                    ? Image.network(
-                        displayUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+                      ? Image.network(
+                          displayUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.person,
+                            size: 70,
+                            color: AppColors.border,
+                          ),
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            );
+                          },
+                        )
+                      : const Icon(
                           Icons.person,
                           size: 70,
                           color: AppColors.border,
-                        ),
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          );
-                        },
-                      )
-                    : const Icon(
-                        Icons.person,
-                        size: 70,
-                        color: AppColors.border,
-                      )),
+                        )),
           ),
         ),
         GestureDetector(
@@ -183,12 +183,15 @@ class _EditProfilePageState extends State<EditProfilePage> {
           label: 'Phone Number',
           isRequired: true,
           onPhoneChanged: (v) => controller.fullPhone.value = v,
-          readOnly: controller.isPhoneVerified,
+          readOnly: true,
         ),
         if (!controller.isPhoneVerified) ...[
           const SizedBox(height: AppSpacing.s),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m, vertical: 12),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.m,
+              vertical: 12,
+            ),
             decoration: BoxDecoration(
               color: Colors.amber.shade50,
               borderRadius: BorderRadius.circular(12),
@@ -196,7 +199,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 24),
+                const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.amber,
+                  size: 24,
+                ),
                 const SizedBox(width: AppSpacing.s),
                 Expanded(
                   child: Text(
@@ -221,7 +228,9 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   style: TextButton.styleFrom(
                     backgroundColor: Colors.amber,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                   ),
                   child: const Text('Verify'),
@@ -255,6 +264,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
         TextField(
           controller: controller,
           keyboardType: keyboardType,
+          textCapitalization: (keyboardType == TextInputType.emailAddress ||
+                  keyboardType == TextInputType.number ||
+                  keyboardType == TextInputType.phone)
+              ? TextCapitalization.none
+              : TextCapitalization.sentences,
           readOnly: readOnly,
           style: AppTextStyles.bodyLarge.copyWith(
             color: readOnly ? AppColors.textMuted : AppColors.textPrimary,

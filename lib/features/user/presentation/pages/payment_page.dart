@@ -2,17 +2,17 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/widgets/app_loading_overlay.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/services/safepay_service.dart';
-import 'package:sports_studio/widgets/safepay_payment_widget.dart';
-import 'package:sports_studio/core/models/models.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/widgets/app_loading_overlay.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/services/safepay_service.dart';
+import 'package:sport_studio/widgets/safepay_payment_widget.dart';
+import 'package:sport_studio/core/models/models.dart';
 
 class PaymentPage extends StatefulWidget {
   const PaymentPage({super.key});
@@ -493,7 +493,7 @@ class _PaymentPageState extends State<PaymentPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),
@@ -532,13 +532,13 @@ class _PaymentPageState extends State<PaymentPage> {
           padding: const EdgeInsets.all(AppSpacing.l),
           decoration: BoxDecoration(
             color: isExpiringSoon
-                ? Colors.red.withOpacity(0.1)
-                : AppColors.primary.withOpacity(0.05),
+                ? Colors.red.withValues(alpha: 0.1)
+                : AppColors.primary.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
               color: isExpiringSoon
-                  ? Colors.red.withOpacity(0.5)
-                  : AppColors.primary.withOpacity(0.2),
+                  ? Colors.red.withValues(alpha: 0.5)
+                  : AppColors.primary.withValues(alpha: 0.2),
             ),
           ),
           child: Column(
@@ -586,7 +586,7 @@ class _PaymentPageState extends State<PaymentPage> {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.m),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.02) : Colors.white,
+          color: isSelected ? color.withValues(alpha: 0.02) : Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: isSelected ? color : AppColors.border,
@@ -594,7 +594,7 @@ class _PaymentPageState extends State<PaymentPage> {
           ),
           boxShadow: isSelected ? [
             BoxShadow(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -629,7 +629,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   Text(
                     sub, 
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: isSelected ? color.withOpacity(0.7) : AppColors.textMuted,
+                      color: isSelected ? color.withValues(alpha: 0.7) : AppColors.textMuted,
                     ),
                   ),
                 ],
@@ -680,6 +680,7 @@ class _PaymentPageState extends State<PaymentPage> {
                 )
               : TextField(
                   controller: _promoCtrl,
+                  textCapitalization: TextCapitalization.none,
                   decoration: const InputDecoration(
                     hintText: 'Enter Promo Code',
                     border: InputBorder.none,
@@ -755,7 +756,7 @@ class _PaymentPageState extends State<PaymentPage> {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

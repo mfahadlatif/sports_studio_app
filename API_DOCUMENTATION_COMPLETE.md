@@ -1,8 +1,8 @@
-# Sports Studio App - Complete API Documentation
+# Sport Studio App - Complete API Documentation
 
 ## 📋 Overview
 
-This document provides comprehensive API documentation for the Sports Studio mobile app, including all endpoints, request/response formats, parameters, and implementation details.
+This document provides comprehensive API documentation for the Sport Studio mobile app, including all endpoints, request/response formats, parameters, and implementation details.
 
 ---
 
@@ -1236,4 +1236,4 @@ The app implements the following API service classes:
 
 ---
 
-*This documentation covers all available API endpoints for the Sports Studio mobile app. For any additional features or modifications, refer to the latest API updates.*
+*This documentation covers all available API endpoints for the Sport Studio mobile app. For any additional features or modifications, refer to the latest API updates.*

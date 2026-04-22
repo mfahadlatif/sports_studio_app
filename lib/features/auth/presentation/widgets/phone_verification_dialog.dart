@@ -1,13 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/auth/controller/phone_verification_controller.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/widgets/phone_input_field.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/auth/controller/phone_verification_controller.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/widgets/phone_input_field.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class PhoneVerificationDialog extends StatefulWidget {
@@ -39,7 +39,26 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
   @override
   void initState() {
     super.initState();
-    phoneController = TextEditingController(text: widget.initialPhone);
+    
+    // Robust stripping of dial code from initial phone to avoid double prefix (e.g. +92+92...)
+    String initial = widget.initialPhone;
+    String dCode = controller.dialCode.value; // e.g. "+92"
+    String dCodeNoPlus = dCode.replaceAll('+', ''); // e.g. "92"
+    
+    // Remove all non-digits for comparison
+    String cleaned = initial.replaceAll(RegExp(r'\D'), '');
+    
+    if (cleaned.startsWith(dCodeNoPlus)) {
+      initial = cleaned.substring(dCodeNoPlus.length);
+    } else if (cleaned.startsWith('0')) {
+      // If it starts with a leading zero, strip it as well since dial code handles it
+      initial = cleaned.substring(1);
+    } else {
+      initial = cleaned;
+    }
+
+    phoneController = TextEditingController(text: initial);
+    
     // Add listener to update UI when phone changes (enables button)
     phoneController.addListener(() {
       if (mounted) setState(() {});
@@ -89,17 +108,17 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
           child: Container(
             constraints: const BoxConstraints(maxWidth: 415),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.98),
+              color: Colors.white.withValues(alpha: 0.98),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFF0D4F5C).withOpacity(0.09)),
+              border: Border.all(color: const Color(0xFF0D4F5C).withValues(alpha: 0.09)),
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF0A1628).withOpacity(0.1),
+                  color: const Color(0xFF0A1628).withValues(alpha: 0.1),
                   blurRadius: 60,
                   offset: const Offset(0, 20),
                 ),
                 BoxShadow(
-                  color: const Color(0xFF0D4F5C).withOpacity(0.06),
+                  color: const Color(0xFF0D4F5C).withValues(alpha: 0.06),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -365,7 +384,7 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0D4F5C).withOpacity(0.35),
+            color: const Color(0xFF0D4F5C).withValues(alpha: 0.35),
             blurRadius: 28,
             offset: const Offset(0, 8),
           ),
@@ -383,6 +402,7 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
         controller: otpControllers[index],
         focusNode: otpFocusNodes[index],
         keyboardType: TextInputType.number,
+        textCapitalization: TextCapitalization.none,
         textAlign: TextAlign.center,
         maxLength: 1,
         onChanged: (val) {
@@ -436,7 +456,7 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
         color: enabled ? null : const Color(0xFFE8EEF2),
         boxShadow: enabled ? [
           BoxShadow(
-            color: const Color(0xFF0D4F5C).withOpacity(0.3),
+            color: const Color(0xFF0D4F5C).withValues(alpha: 0.3),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -475,7 +495,7 @@ class _PhoneVerificationDialogState extends State<PhoneVerificationDialog> {
             gradient: const LinearGradient(colors: [Color(0xFF0D7A5C), Color(0xFF1AAB82)]),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0D7A5C).withOpacity(0.32),
+                color: const Color(0xFF0D7A5C).withValues(alpha: 0.32),
                 blurRadius: 36,
                 offset: const Offset(0, 12),
               ),

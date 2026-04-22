@@ -1,10 +1,10 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/network/api_services.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/services/safepay_service.dart';
-import 'package:sports_studio/widgets/safepay_payment_widget.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/services/safepay_service.dart';
+import 'package:sport_studio/widgets/safepay_payment_widget.dart';
 
 class PaymentController extends GetxController {
   final RxBool isProcessingPayment = false.obs;

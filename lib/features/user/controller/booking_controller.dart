@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/network/api_services.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/services/data_fetch_service.dart';
-import 'package:sports_studio/core/services/safepay_service.dart';
-import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/widgets/safepay_payment_widget.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/services/data_fetch_service.dart';
+import 'package:sport_studio/core/services/safepay_service.dart';
+import 'package:sport_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/widgets/safepay_payment_widget.dart';
 
 class BookingController extends GetxController {
   final Rx<DateTime> selectedDate = DateTime.now().obs;
@@ -73,13 +73,47 @@ class BookingController extends GetxController {
   Future<void> fetchAvailability(int groundId) async {
     isLoadingSlots.value = true;
     try {
-      // Use fallback slots (06:00 AM to 10:00 PM) for now as requested
-      allSlots.value = [
-        '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM',
-        '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM',
-        '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM',
-        '09:00 PM', '10:00 PM',
-      ];
+      final ground = Get.arguments;
+      final groundObj = ground != null ? Ground.fromJson(ground) : null;
+      
+      // Dynamically calculate operating hours based on ground data
+      // Web: const startHour = ground?.opening_time ? parseInt(ground.opening_time.split(':')[0]) : 8;
+      // Web: let endHour = ground?.closing_time ? parseInt(ground.closing_time.split(':')[0]) : 22;
+      
+      int startHour = 8;
+      int endHour = 22;
+
+      if (groundObj != null) {
+        if (groundObj.openingTime != null && groundObj.openingTime!.isNotEmpty) {
+          startHour = int.tryParse(groundObj.openingTime!.split(':').first) ?? 8;
+        }
+        if (groundObj.closingTime != null && groundObj.closingTime!.isNotEmpty) {
+          endHour = int.tryParse(groundObj.closingTime!.split(':').first) ?? 22;
+          if (endHour == 0) endHour = 24; // Handle midnight
+        }
+      }
+
+      // Generate allSlots based on operating hours
+      final List<String> generatedSlots = [];
+      for (int i = startHour; i < endHour; i++) {
+        // Handle overflow for 24-hour cycle if closing > opening
+        final hour = i % 24;
+        final period = hour >= 12 ? 'PM' : 'AM';
+        final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+        generatedSlots.add('${displayHour.toString().padLeft(2, '0')}:00 $period');
+      }
+      
+      // If we couldn't generate any slots (invalid range), fallback
+      if (generatedSlots.isEmpty) {
+        generatedSlots.addAll([
+          '06:00 AM', '07:00 AM', '08:00 AM', '09:00 AM', '10:00 AM',
+          '11:00 AM', '12:00 PM', '01:00 PM', '02:00 PM', '03:00 PM',
+          '04:00 PM', '05:00 PM', '06:00 PM', '07:00 PM', '08:00 PM',
+          '09:00 PM', '10:00 PM',
+        ]);
+      }
+      
+      allSlots.value = generatedSlots;
 
       final dateStr = DateFormat('yyyy-MM-dd').format(selectedDate.value);
       final bookings = await _dataFetchService.fetchGroundBookings(
@@ -91,13 +125,22 @@ class BookingController extends GetxController {
 
       for (var b in bookings) {
         try {
-          final start = DateTime.parse(b['start_time']);
-          final end = DateTime.parse(b['end_time']);
+          // NORMALIZE: Align with web's normalization to ignore Z (UTC) and treat as local ground time
+          // Web: const normalizeTime = (timeStr: string) => timeStr.split('.')[0].replace('Z', '').replace(' ', 'T');
+          String startStr = b['start_time']?.toString() ?? '';
+          String endStr = b['end_time']?.toString() ?? '';
+          
+          if (startStr.isEmpty || endStr.isEmpty) continue;
 
-          // Identify which of our 1-hour slots overlap with this booking
+          String normalize(String s) => s.split('.').first.replaceAll('Z', '').replaceAll(' ', 'T');
+          
+          final start = DateTime.parse(normalize(startStr));
+          final end = DateTime.parse(normalize(endStr));
+
+          // Identify which of our generated slots overlap with this booking
           for (var slotStr in allSlots) {
             final slotTime = _parseSlotTime(slotStr);
-            // Construct a DateTime for slot on selected date
+            // Construct a DateTime for slot on selected date (local context)
             final slotStart = DateTime(
               selectedDate.value.year,
               selectedDate.value.month,

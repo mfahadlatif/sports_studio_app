@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 
 /// Service to handle data fetching with proper error handling and retry logic
 class DataFetchService extends GetxService {
@@ -49,7 +49,8 @@ class DataFetchService extends GetxService {
           );
 
           if (response.statusCode == 200) {
-            return response.data as List? ?? [];
+            final data = response.data is Map ? (response.data['data'] ?? response.data) : response.data;
+            return data is List ? data : [];
           }
           throw Exception(
             'Failed to fetch bookings: Status ${response.statusCode}',

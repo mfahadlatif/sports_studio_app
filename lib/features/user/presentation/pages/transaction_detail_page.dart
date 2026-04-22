@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
 
 class TransactionDetailPage extends StatelessWidget {
   const TransactionDetailPage({super.key});
@@ -65,10 +65,10 @@ class TransactionDetailPage extends StatelessWidget {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: statusColor.withOpacity(0.1),
+                              color: statusColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(999),
                               border: Border.all(
-                                color: statusColor.withOpacity(0.25),
+                                color: statusColor.withValues(alpha: 0.25),
                               ),
                             ),
                             child: Text(

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/network/api_services.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class EventsController extends GetxController {
   final RxBool isLoadingEvents = false.obs;
@@ -130,6 +130,7 @@ class EventsController extends GetxController {
       clearEventForm();
       Get.back();
       AppUtils.showSuccess(message: 'Event created successfully!');
+      Get.find<ProfileController>().hasOrganizedEvents.value = true;
       Get.to(() => const EventDetailPage(), arguments: event);
     } catch (e) {
       AppUtils.showError(message: 'Failed to create event: $e');
@@ -170,6 +171,14 @@ class EventsController extends GetxController {
 
       final event = await _eventApiService.updateEvent(slug, eventData);
       selectedEvent.value = event;
+      
+      // Update the event in the lists
+      int index = userEvents.indexWhere((e) => e.id == id);
+      if (index != -1) {
+        userEvents[index] = event;
+        userEvents.refresh();
+      }
+      
       Get.back();
       AppUtils.showSuccess(message: 'Event updated successfully!');
     } catch (e) {

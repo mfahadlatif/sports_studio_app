@@ -4,15 +4,15 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_shimmer.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
-import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_shimmer.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/owner/presentation/pages/add_complex_page.dart';
+import 'package:sport_studio/widgets/full_screen_image_viewer.dart';
 
 class ComplexDetailPage extends StatefulWidget {
   const ComplexDetailPage({super.key});
@@ -29,12 +29,30 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   final RxInt _currentPage = 0.obs;
   final PageController _pageController = PageController();
   Timer? _carouselTimer;
+  String? _complexId;
 
   @override
   void initState() {
     super.initState();
+    _extractComplexId();
     _fetch();
     _startAutoScroll();
+  }
+  
+  void _extractComplexId() {
+    final args = Get.arguments;
+    if (args == null) return;
+
+    dynamic rawId;
+    if (args is Map) {
+      rawId = args['id'] ?? (args['complex'] is Map ? args['complex']['id'] : null);
+    } else {
+      rawId = args;
+    }
+
+    if (rawId != null) {
+      _complexId = rawId.toString();
+    }
   }
 
   void _startAutoScroll() {
@@ -77,34 +95,19 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   }
 
   Future<void> _fetch() async {
-    final args = Get.arguments;
-    if (args == null) {
+    if (_complexId == null) {
+      if (!mounted) return;
       AppUtils.showError(message: 'Invalid arguments: No complex ID found');
       setState(() => _isLoading = false);
       return;
     }
 
-    dynamic rawId;
-    if (args is Map) {
-      rawId =
-          args['id'] ?? (args['complex'] is Map ? args['complex']['id'] : null);
-    } else {
-      rawId = args;
-    }
-
-    if (rawId == null) {
-      AppUtils.showError(message: 'Complex ID is missing');
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    final String complexId = rawId.toString();
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      debugPrint('🌐 [ComplexDetail] Fetching complex: $complexId');
+      debugPrint('🌐 [ComplexDetail] Fetching complex: $_complexId');
       final res = await ApiClient().dio.get(
-        '/complexes/$complexId',
+        '/complexes/$_complexId',
         options: Options(
           receiveTimeout: const Duration(seconds: 15),
           sendTimeout: const Duration(seconds: 15),
@@ -181,12 +184,10 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   }
 
   String _formatOperatingHours(dynamic open, dynamic close) {
-    final o = open?.toString().trim();
-    final c = close?.toString().trim();
-    if (o != null && o.isNotEmpty && c != null && c.isNotEmpty) {
-      return '${o.length > 5 ? o.substring(0, 5) : o} - ${c.length > 5 ? c.substring(0, 5) : c}';
+    if (open == null || close == null || open.toString().isEmpty || close.toString().isEmpty) {
+      return '—';
     }
-    return '—';
+    return AppUtils.formatTimeRange(open, close);
   }
 
   Map<String, String> _getFacilityInfo(String id) {
@@ -370,8 +371,8 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     final name = _complex['name'] ?? 'Complex';
     final address = _complex['address'] ?? '';
     final description = _complex['description'] ?? '';
-    final status = _complex['status'] ?? 'active';
-    final isActive = status == 'active' || status == 1;
+    final status = (_complex['status'] ?? 'active').toString().toLowerCase();
+    final isActive = status == 'active' || status == '1' || status == 'true';
     final groundCount = _grounds.length;
 
     return CustomScrollView(
@@ -432,7 +433,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                             decoration: BoxDecoration(
                               color: _currentPage.value == index
                                   ? Colors.white
-                                  : Colors.white.withOpacity(0.5),
+                                  : Colors.white.withValues(alpha: 0.5),
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
@@ -448,7 +449,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: 0.7),
                         ],
                       ),
                     ),
@@ -476,7 +477,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
@@ -493,30 +494,11 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(name, style: AppTextStyles.h2),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: isActive
-                                                ? Colors.green.withOpacity(0.1)
-                                                : Colors.grey.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            isActive ? 'Active' : 'Inactive',
-                                            style: AppTextStyles.label.copyWith(
-                                              color: isActive
-                                                  ? Colors.green
-                                                  : Colors.grey,
-                                            ),
-                                          ),
+                                        Expanded(
+                                          child: Text(name, style: AppTextStyles.h2),
                                         ),
+                                        const SizedBox(width: 8),
+                                        const SizedBox(width: 8),
                                       ],
                                     ),
                                     if (address.isNotEmpty) ...[
@@ -613,7 +595,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                                             ),
                                             border: Border.all(
                                               color: AppColors.border
-                                                  .withOpacity(0.5),
+                                                  .withValues(alpha: 0.5),
                                             ),
                                           ),
                                           child: Row(
@@ -711,6 +693,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                     // Search bar
                     TextField(
                       onChanged: (v) => setState(() => _searchQuery = v),
+                      textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         hintText: 'Search grounds...',
                         prefixIcon: const Icon(Icons.search),
@@ -778,8 +761,8 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     final name = ground['name'] ?? 'Ground';
     final type = (ground['type'] ?? 'Cricket').toString();
     final price = ground['price_per_hour'] ?? 0;
-    final status = ground['status'] ?? 'active';
-    final isActive = status == 'active' || status == 1 || status == true;
+    final status = (ground['status'] ?? 'active').toString().toLowerCase();
+    final isActive = status == 'active' || status == '1' || status == 'true';
 
     final images = ground['images'] as List?;
     String? rawUrl;
@@ -793,10 +776,10 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 16,
             offset: const Offset(0, 8),
           ),
@@ -834,42 +817,13 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                         end: Alignment.bottomCenter,
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.6),
+                          Colors.black.withValues(alpha: 0.6),
                         ],
                       ),
                     ),
                   ),
                 ),
-                // Status Badge
-                Positioned(
-                  top: 16,
-                  right: 16,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive ? Colors.green : Colors.black54,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      isActive ? 'ACTIVE' : 'INACTIVE',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-                ),
+
                 // Price Tag
                 Positioned(
                   bottom: 16,
@@ -922,7 +876,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
@@ -1024,7 +978,11 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                         if (result == true) _fetch();
                       }),
                       _actionBtn(Icons.calendar_month_outlined, 'Bookings', () {
-                        Get.toNamed('/user-bookings');
+                        Get.toNamed('/owner-bookings',
+                            arguments: {
+                              'groundId': ground['id'],
+                              'groundName': ground['name']
+                            });
                       }),
                       _actionBtn(Icons.delete_outline, 'Delete', () {
                         _deleteGround(ground);
@@ -1094,7 +1052,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
       child: Icon(
         icons[type.toLowerCase()] ?? Icons.sports,
         size: 48,
-        color: AppColors.primary.withOpacity(0.4),
+        color: AppColors.primary.withValues(alpha: 0.4),
       ),
     );
   }
@@ -1107,7 +1065,7 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
           Icon(
             Icons.sports_cricket_outlined,
             size: 64,
-            color: AppColors.textMuted.withOpacity(0.4),
+            color: AppColors.textMuted.withValues(alpha: 0.4),
           ),
           const SizedBox(height: AppSpacing.m),
           Text('No grounds yet', style: AppTextStyles.h3),

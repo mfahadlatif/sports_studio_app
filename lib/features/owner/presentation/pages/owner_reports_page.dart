@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class OwnerReportsPage extends StatefulWidget {
   const OwnerReportsPage({super.key});
@@ -191,7 +191,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10),
         ],
       ),
       child: Column(
@@ -201,7 +201,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 18),
@@ -235,9 +235,9 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
@@ -393,7 +393,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                   child: LinearProgressIndicator(
                     value: pct / 100,
                     minHeight: 5,
-                    backgroundColor: AppColors.primary.withOpacity(0.1),
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                     valueColor: const AlwaysStoppedAnimation(AppColors.primary),
                   ),
                 ),
@@ -446,7 +446,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                         child: LinearProgressIndicator(
                           value: pct / 100,
                           minHeight: 6,
-                          backgroundColor: color.withOpacity(0.1),
+                          backgroundColor: color.withValues(alpha: 0.1),
                           valueColor: AlwaysStoppedAnimation(color),
                         ),
                       ),
@@ -510,7 +510,7 @@ class _OwnerReportsPageState extends State<OwnerReportsPage> {
                 decoration: BoxDecoration(
                   color: isPeak
                       ? AppColors.primary
-                      : AppColors.primary.withOpacity(0.2),
+                      : AppColors.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),

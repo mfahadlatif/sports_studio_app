@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sports_studio/core/network/api_services.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 
 class FavoritesController extends GetxController {
   final RxBool isLoadingFavorites = false.obs;

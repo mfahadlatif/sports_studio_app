@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/core/network/api_client.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/user/controller/favorites_controller.dart';
-import 'package:sports_studio/core/network/api_services.dart';
-import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/user/controller/favorites_controller.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sport_studio/core/services/notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthController extends GetxController {
@@ -92,6 +93,18 @@ class AuthController extends GetxController {
 
       if (response.statusCode == 200) {
         final data = response.data;
+        final roleString =
+            data['user']?['role']?.toString().toLowerCase() ?? 'user';
+
+        if (roleString == 'admin') {
+          AppUtils.showError(
+            title: 'Access Denied',
+            message: 'Admin access is restricted on the mobile app. Please use the web dashboard.',
+          );
+          isLoading.value = false;
+          return;
+        }
+
         final token = data['access_token'];
         if (token != null) {
           const storage = FlutterSecureStorage();
@@ -99,14 +112,7 @@ class AuthController extends GetxController {
           print('Token saved securely.');
         }
 
-        UserRole userRole = UserRole.user;
-        final roleString =
-            data['user']?['role']?.toString().toLowerCase() ?? 'user';
-        if (roleString == 'owner') {
-          userRole = UserRole.owner;
-        } else if (roleString == 'admin') {
-          userRole = UserRole.admin;
-        }
+        UserRole userRole = roleString == 'owner' ? UserRole.owner : UserRole.user;
 
         // Save role to storage
         const storage = FlutterSecureStorage();
@@ -164,6 +170,11 @@ class AuthController extends GetxController {
     final landingController = Get.put(LandingController(), permanent: true);
     landingController.currentRole.value = role;
     landingController.currentNavIndex.value = 0;
+
+    // Register FCM Token with the backend since we are now authenticated
+    if (Get.isRegistered<NotificationService>()) {
+      Get.find<NotificationService>().registerToken();
+    }
 
     // Navigate to home first
     Get.offAllNamed('/');
@@ -256,7 +267,12 @@ class AuthController extends GetxController {
           if (actualRoleString == 'owner') {
             userRole = UserRole.owner;
           } else if (actualRoleString == 'admin') {
-            userRole = UserRole.admin;
+            AppUtils.showError(
+              title: 'Access Denied',
+              message: 'Admin access is restricted on the mobile app.',
+            );
+            isLoading.value = false;
+            return;
           } else {
             userRole = UserRole.user;
           }
@@ -347,7 +363,14 @@ class AuthController extends GetxController {
           if (roleString == 'owner') {
             userRole = UserRole.owner;
           } else if (roleString == 'admin') {
-            userRole = UserRole.admin;
+            AppUtils.showError(
+              title: 'Access Denied',
+              message: 'Admin access is restricted on the mobile app.',
+            );
+            isLoading.value = false;
+            isGoogleLoading.value = false;
+            isAppleLoading.value = false;
+            return;
           }
 
           // Save role to storage
@@ -415,7 +438,14 @@ class AuthController extends GetxController {
           if (roleString == 'owner') {
             userRole = UserRole.owner;
           } else if (roleString == 'admin') {
-            userRole = UserRole.admin;
+            AppUtils.showError(
+              title: 'Access Denied',
+              message: 'Admin access is restricted on the mobile app.',
+            );
+            isLoading.value = false;
+            isGoogleLoading.value = false;
+            isAppleLoading.value = false;
+            return;
           }
 
           // Save role to storage

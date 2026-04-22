@@ -2,9 +2,9 @@ import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/widgets/app_text_field.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/widgets/app_text_field.dart';
 
 /// Premium Phone Input Field with Country Code Picker
 /// Styled based on user sample code
@@ -53,9 +53,12 @@ class PhoneTextfield extends StatelessWidget {
           height: 58,
           width: MediaQuery.sizeOf(context).width,
           decoration: BoxDecoration(
-            color: Colors.transparent,
+            color: readOnly ? Colors.grey[100] : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(width: 1, color: AppColors.border),
+            border: Border.all(
+              width: 1,
+              color: readOnly ? AppColors.border.withValues(alpha: 0.5) : AppColors.border,
+            ),
           ),
           child: Row(
             children: [
@@ -63,9 +66,11 @@ class PhoneTextfield extends StatelessWidget {
                 () => Container(
                   height: 58,
                   width: 90,
-                  decoration: const BoxDecoration(
-                    color: AppColors.secondary,
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: readOnly
+                        ? AppColors.secondary.withValues(alpha: 0.6)
+                        : AppColors.secondary,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(11),
                       bottomLeft: Radius.circular(11),
                     ),

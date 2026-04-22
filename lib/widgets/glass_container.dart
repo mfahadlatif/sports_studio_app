@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
 
 class GlassContainer extends StatelessWidget {
   final Widget child;
@@ -30,7 +30,7 @@ class GlassContainer extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -43,9 +43,9 @@ class GlassContainer extends StatelessWidget {
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: color ?? AppColors.surface.withOpacity(0.8),
+              color: color ?? AppColors.surface.withValues(alpha: 0.8),
               borderRadius: BorderRadius.circular(borderRadius),
-              border: border ?? Border.all(color: AppColors.border.withOpacity(0.5)),
+              border: border ?? Border.all(color: AppColors.border.withValues(alpha: 0.5)),
             ),
             child: child,
           ),

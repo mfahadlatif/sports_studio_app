@@ -74,9 +74,21 @@ class UrlHelper {
   static String _placeholder() =>
       'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=800&auto=format&fit=crop';
 
-  /// Parse any image field (List, JSON string, single string) into raw strings.
+  /// Parse any image field (List, JSON string, single string, or Map) into raw strings.
   static List<String> getParsedImages(dynamic images) {
     if (images == null) return [];
+
+    // Handle single Map (representing one image object)
+    if (images is Map) {
+      final url = (images['url'] ??
+              images['image_url'] ??
+              images['image_path'] ??
+              images['file_path'] ??
+              images['path'] ??
+              images['media'])
+          ?.toString();
+      return (url != null && url.isNotEmpty) ? [url] : [];
+    }
 
     if (images is List) {
       return images
@@ -88,6 +100,7 @@ class UrlHelper {
                       i['image_path'] ??
                       i['file_path'] ??
                       i['path'] ??
+                      i['media'] ??
                       '')
                   .toString();
             }

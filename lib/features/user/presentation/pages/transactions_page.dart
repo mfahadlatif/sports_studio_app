@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/features/user/controller/payment_controller.dart';
-import 'package:sports_studio/features/user/presentation/pages/transaction_detail_page.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/features/user/controller/payment_controller.dart';
+import 'package:sport_studio/features/user/presentation/pages/transaction_detail_page.dart';
 
 class TransactionsPage extends StatelessWidget {
   const TransactionsPage({super.key});
@@ -35,7 +34,7 @@ class TransactionsPage extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 20,
                       ),
                     ],
@@ -43,7 +42,7 @@ class TransactionsPage extends StatelessWidget {
                   child: Icon(
                     Icons.receipt_long_outlined,
                     size: 64,
-                    color: AppColors.textMuted.withOpacity(0.4),
+                    color: AppColors.textMuted.withValues(alpha: 0.4),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.l),
@@ -100,7 +99,7 @@ class TransactionsPage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
+                      color: Colors.black.withValues(alpha: 0.03),
                       blurRadius: 12,
                       offset: const Offset(0, 4),
                     ),
@@ -109,7 +108,7 @@ class TransactionsPage extends StatelessWidget {
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(AppSpacing.m),
                   leading: CircleAvatar(
-                    backgroundColor: statusColor.withOpacity(0.1),
+                    backgroundColor: statusColor.withValues(alpha: 0.1),
                     child: Icon(statusIcon, color: statusColor),
                   ),
                   title: Text(
@@ -147,7 +146,7 @@ class TransactionsPage extends StatelessWidget {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.08),
+                          color: statusColor.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(

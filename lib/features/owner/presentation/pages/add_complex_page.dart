@@ -1,21 +1,20 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
 
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as dio_form;
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/widgets/address_autocomplete_field.dart';
-import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
-import 'package:sports_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/widgets/address_autocomplete_field.dart';
+import 'package:sport_studio/widgets/full_screen_image_viewer.dart';
 
 class AddComplexPage extends StatefulWidget {
   /// Pass an existing complex map to enter edit mode.
@@ -35,7 +34,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
   final _lngCtrl = TextEditingController();
 
   bool _isLoading = false;
-  bool _isActive = true;
 
   final List<XFile> _pickedImages = [];
   final List<String> _existingUrls = [];
@@ -118,16 +116,19 @@ class _AddComplexPageState extends State<AddComplexPage> {
       _descCtrl.text = c['description'] ?? '';
       _latCtrl.text = (c['latitude'] ?? '').toString();
       _lngCtrl.text = (c['longitude'] ?? '').toString();
-      final status = c['status'];
-      _isActive = status == 'active' || status == 1 || status == true;
 
-      // Initialize existing images
-      final list = UrlHelper.getParsedImages(c['images']);
-      if (list.isNotEmpty) {
-        _existingUrls.addAll(list.map(UrlHelper.sanitizeUrl).toList());
-      } else if (c['image_path'] != null &&
-          c['image_path'].toString().isNotEmpty) {
-        _existingUrls.add(UrlHelper.sanitizeUrl(c['image_path'].toString()));
+      // Robust image pre-filling from all possible API keys
+      final Set<String> detectedImages = {};
+      detectedImages.addAll(UrlHelper.getParsedImages(c['images']));
+      detectedImages.addAll(UrlHelper.getParsedImages(c['media']));
+      detectedImages.addAll(UrlHelper.getParsedImages(c['image_path']));
+      detectedImages.addAll(UrlHelper.getParsedImages(c['image']));
+
+      for (var img in detectedImages) {
+        final sanitized = UrlHelper.sanitizeUrl(img);
+        if (sanitized.isNotEmpty && !_existingUrls.contains(sanitized)) {
+          _existingUrls.add(sanitized);
+        }
       }
 
       // Pre-select amenities with robust parsing
@@ -183,7 +184,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
           .map(UrlHelper.getRawPath)
           .toList();
 
-      final mediaApi = MediaApiService();
       for (var file in _pickedImages) {
         try {
           final formData = dio_form.FormData.fromMap({
@@ -209,7 +209,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
         'name': _nameCtrl.text.trim(),
         'address': _addressCtrl.text.trim(),
         'description': _descCtrl.text.trim(),
-        'status': _isActive ? 'active' : 'inactive',
         'latitude': _latCtrl.text.trim(),
         'longitude': _lngCtrl.text.trim(),
       };
@@ -281,7 +280,6 @@ class _AddComplexPageState extends State<AddComplexPage> {
       message: _isEdit
           ? 'Your complex details have been updated successfully.'
           : 'Your complex has been added successfully. Please wait for admin approval. Once approved, your complex will be activated.',
-      onConfirm: () => Get.back(),
     );
   }
 
@@ -352,6 +350,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                   TextField(
                     controller: _descCtrl,
                     maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textPrimary,
                     ),
@@ -370,50 +369,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.m),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.m,
-                      vertical: AppSpacing.s + 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.inputBackground,
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.borderRadius,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Complex Status',
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Active complexes are visible to customers',
-                                style: AppTextStyles.label.copyWith(
-                                  color: AppColors.textMuted,
-                                  fontWeight: FontWeight.normal,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Switch(
-                          value: _isActive,
-                          onChanged: (v) => setState(() => _isActive = v),
-                          activeThumbColor: AppColors.primary,
-                        ),
-                      ],
-                    ),
-                  ),
+                  
                 ],
               ),
             ),
@@ -491,8 +447,8 @@ class _AddComplexPageState extends State<AddComplexPage> {
                       onPressed: _isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        disabledBackgroundColor: AppColors.primary.withOpacity(
-                          0.7,
+                        disabledBackgroundColor: AppColors.primary.withValues(
+                          alpha: 0.7,
                         ),
                         elevation: 2,
                         shape: RoundedRectangleBorder(
@@ -576,7 +532,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               border: Border.all(
-                color: AppColors.primary.withOpacity(0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
                 width: 1.5,
               ),
             ),
@@ -631,7 +587,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                             AppConstants.borderRadius,
                           ),
                           border: Border.all(
-                            color: AppColors.border.withOpacity(0.5),
+                            color: AppColors.border.withValues(alpha: 0.5),
                           ),
                         ),
                         child: ClipRRect(
@@ -725,13 +681,13 @@ class _AddComplexPageState extends State<AddComplexPage> {
               border: Border.all(
                 color: isSelected
                     ? AppColors.primary
-                    : AppColors.border.withOpacity(0.5),
+                    : AppColors.border.withValues(alpha: 0.5),
                 width: 1.5,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -791,6 +747,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
   Widget _textField(TextEditingController ctrl, String hint, IconData icon) =>
       TextField(
         controller: ctrl,
+        textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(
           hintText: hint,
           prefixIcon: Icon(icon, size: 18, color: AppColors.textMuted),
@@ -828,7 +785,7 @@ class _Card extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppConstants.borderRadius + 8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),

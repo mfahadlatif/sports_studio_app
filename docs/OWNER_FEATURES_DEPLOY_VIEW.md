@@ -1,6 +1,6 @@
 # Owner Features – Deploy View (Website & App)
 
-This document describes **each owner feature** on the **Cricket Oasis Bookings website** (`cricket-oasis-bookings`), with **flows** and **detail screens**. Your **Sports Studio app** uses the same backend and mirrors these features.
+This document describes **each owner feature** on the **Cricket Oasis Bookings website** (`cricket-oasis-bookings`), with **flows** and **detail screens**. Your **Sport Studio app** uses the same backend and mirrors these features.
 
 ---
 

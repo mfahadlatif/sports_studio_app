@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:get/get_navigation/src/root/parse_route.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/models/models.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/models/models.dart';
 
 class GroundApiService {
   final ApiClient _client = ApiClient();
@@ -1417,6 +1417,54 @@ class EventParticipantApiService {
     } catch (e) {
       print('❌ [ParticipantAPI] leaveEvent error: $e');
       throw Exception('Failed to leave event: $e');
+    }
+  }
+
+  /// Fetch join requests for an organizer's events (Matches web implementation)
+  Future<List<dynamic>> getOrganizerJoinRequests(int organizerId) async {
+    try {
+      print('🌐 [ParticipantAPI] Fetching join requests for organizer $organizerId...');
+      final response = await _client.dio.get(
+        '/event-participants',
+        queryParameters: {'organizer_id': organizerId},
+      );
+      if (response.statusCode == 200) {
+        final raw = response.data;
+        final List data = raw is List ? raw : (raw['data'] as List? ?? []);
+        print('✅ [ParticipantAPI] Join Requests: ${data.length}');
+        return data;
+      }
+      return [];
+    } catch (e) {
+      print('❌ [ParticipantAPI] getOrganizerJoinRequests error: $e');
+      throw Exception('Failed to fetch join requests: $e');
+    }
+  }
+
+  /// Update participant status (Accept/Reject)
+  Future<dynamic> updateParticipantStatus(
+    int participantId, {
+    required String status,
+    String? rejectionReason,
+  }) async {
+    try {
+      print('🌐 [ParticipantAPI] Updating participant $participantId to $status...');
+      final response = await _client.dio.post(
+          '/event-participants/$participantId',
+          data: {
+            '_method': 'PUT',
+            'status': status,
+            if (rejectionReason != null) 'rejection_reason': rejectionReason,
+          },
+      );
+      if (response.statusCode == 200) {
+        print('✅ [ParticipantAPI] Participant status updated');
+        return response.data;
+      }
+      throw Exception('Failed to update participant status');
+    } catch (e) {
+      print('❌ [ParticipantAPI] updateParticipantStatus error: $e');
+      throw Exception('Failed to update status: $e');
     }
   }
 }

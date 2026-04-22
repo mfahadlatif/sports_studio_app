@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
-import 'package:sports_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/owner_ground_detail_page.dart';
-import 'package:sports_studio/widgets/app_shimmer.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_ground_detail_page.dart';
+import 'package:sport_studio/widgets/app_shimmer.dart';
 
 class SportsGroundsPage extends StatelessWidget {
   const SportsGroundsPage({super.key});
@@ -45,6 +45,7 @@ class SportsGroundsPage extends StatelessWidget {
             padding: const EdgeInsets.all(AppSpacing.m),
             child: TextField(
               onChanged: (v) => searchQuery.value = v,
+              textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: 'Search grounds by name...',
                 prefixIcon: const Icon(Icons.search),
@@ -110,7 +111,7 @@ class SportsGroundsPage extends StatelessWidget {
     return GestureDetector(
       onTap: () => Get.to(
         () => const OwnerGroundDetailPage(),
-        arguments: {'ground': ground},
+        arguments: ground.toJson(),
       ),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
@@ -119,7 +120,7 @@ class SportsGroundsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -127,6 +128,7 @@ class SportsGroundsPage extends StatelessWidget {
         ),
         child: IntrinsicHeight(
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Image Section
               Container(
@@ -144,7 +146,6 @@ class SportsGroundsPage extends StatelessWidget {
                       ? CachedNetworkImage(
                           imageUrl: UrlHelper.sanitizeUrl(firstImage),
                           fit: BoxFit.cover,
-                          height: double.infinity,
                           placeholder: (context, url) => Container(
                             color: Colors.grey[200],
                             child: const Center(
@@ -212,8 +213,8 @@ class SportsGroundsPage extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: ground.status == 'active'
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.orange.withOpacity(0.1),
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.orange.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -263,10 +264,15 @@ class SportsGroundsPage extends StatelessWidget {
                             color: AppColors.primary,
                             onTap: () async {
                               final res = await Get.to(
-                                () => AddEditGroundPage(),
+                                () => const AddEditGroundPage(),
+                                arguments: {
+                                  'isEdit': true,
+                                  'ground': ground.toJson(),
+                                },
                               );
-                              if (res == true)
+                              if (res == true) {
                                 controller.fetchComplexesAndGrounds();
+                              }
                             },
                           ),
                           const SizedBox(width: 8),
@@ -306,7 +312,7 @@ class SportsGroundsPage extends StatelessWidget {
           Icon(
             Icons.layers_outlined,
             size: 72,
-            color: AppColors.textMuted.withOpacity(0.3),
+            color: AppColors.textMuted.withValues(alpha: 0.3),
           ),
           const SizedBox(height: AppSpacing.m),
           Text(
@@ -344,7 +350,7 @@ class _IconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: color.withOpacity(0.1),
+      color: color.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         onTap: onTap,

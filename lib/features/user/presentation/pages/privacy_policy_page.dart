@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/theme/app_spacing.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/theme/app_spacing.dart';
 
 class PrivacyPolicyPage extends StatelessWidget {
   const PrivacyPolicyPage({super.key});
@@ -20,7 +20,7 @@ class PrivacyPolicyPage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child: Text('Sports Studio', style: AppTextStyles.h1.copyWith(color: AppColors.primary))),
+            Center(child: Text('Sport Studio', style: AppTextStyles.h1.copyWith(color: AppColors.primary))),
             const SizedBox(height: 8),
             Center(
               child: Text(
@@ -59,7 +59,7 @@ class PrivacyPolicyPage extends StatelessWidget {
             ),
             _section(
               '5. Contact Us',
-              'If you have any questions about this Privacy Policy, please contact us at privacy@indoorsportsarena.com.',
+              'If you have any questions about this Privacy Policy, please contact us at info@sportstudio.squarenex.com.',
             ),
             const SizedBox(height: 50),
           ],

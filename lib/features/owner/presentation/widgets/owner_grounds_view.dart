@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
 
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
 
 class OwnerGroundsView extends StatelessWidget {
-  const OwnerGroundsView({super.key});
+  final bool isTab;
+  const OwnerGroundsView({super.key, this.isTab = false});
 
   @override
   Widget build(BuildContext context) {
@@ -19,17 +20,28 @@ class OwnerGroundsView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Obx(() {
-        if (controller.isLoading.value) {
-          return const AppProgressIndicator();
-        }
+      body: RefreshIndicator(
+        onRefresh: () => controller.fetchComplexesAndGrounds(),
+        color: AppColors.primary,
+        child: Obx(() {
+          if (controller.isLoading.value) {
+            return const SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: SizedBox(
+                height: 500,
+                child: Center(child: AppProgressIndicator()),
+              ),
+            );
+          }
 
-        return CustomScrollView(
-          slivers: [
+          return CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
             // ─── Header ─────────────────────────────────────────
             SliverAppBar(
               pinned: false,
               floating: true,
+              automaticallyImplyLeading: !isTab,
               backgroundColor: AppColors.background,
               title: const Text('My Grounds'),
               actions: [
@@ -137,7 +149,7 @@ class OwnerGroundsView extends StatelessWidget {
                       Icon(
                         Icons.sports_cricket_outlined,
                         size: 64,
-                        color: AppColors.textMuted.withOpacity(0.4),
+                        color: AppColors.textMuted.withValues(alpha: 0.4),
                       ),
                       const SizedBox(height: AppSpacing.m),
                       Text('No grounds yet', style: AppTextStyles.h3),
@@ -164,8 +176,8 @@ class OwnerGroundsView extends StatelessWidget {
               ),
           ],
         );
-      }),
-    );
+      }
+    )));
   }
 
   Widget _statChip(String value, String label, IconData icon, Color color) {
@@ -173,9 +185,9 @@ class OwnerGroundsView extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.s),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Column(
           children: [
@@ -213,7 +225,7 @@ class OwnerGroundsView extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
         ),
         child: Row(
           children: [
@@ -276,7 +288,7 @@ class OwnerGroundsView extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -333,8 +345,8 @@ class OwnerGroundsView extends StatelessWidget {
                       ),
                       decoration: BoxDecoration(
                         color: isActive
-                            ? Colors.green.withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
+                            ? Colors.green.withValues(alpha: 0.1)
+                            : Colors.grey.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -386,15 +398,7 @@ class OwnerGroundsView extends StatelessWidget {
                       'View',
                       () => Get.toNamed(
                         '/owner-ground-detail',
-                        arguments: {
-                          'id': ground.id,
-                          'name': ground.name,
-                          'price_per_hour': ground.pricePerHour,
-                          'description': ground.description,
-                          'type': ground.type,
-                          'images': ground.images,
-                          'status': ground.status,
-                        },
+                        arguments: ground.toJson(),
                       ),
                     ),
                     _actionBtn(Icons.edit_outlined, 'Edit', () async {
@@ -402,14 +406,7 @@ class OwnerGroundsView extends StatelessWidget {
                         '/add-ground',
                         arguments: {
                           'isEdit': true,
-                          'ground': {
-                            'id': ground.id,
-                            'name': ground.name,
-                            'price_per_hour': ground.pricePerHour,
-                            'description': ground.description,
-                            'type': ground.type,
-                            'status': ground.status,
-                          },
+                          'ground': ground.toJson(),
                         },
                       );
                       if (result == true) {
@@ -466,7 +463,7 @@ class OwnerGroundsView extends StatelessWidget {
       child: Icon(
         icons[type.toLowerCase()] ?? Icons.sports,
         size: 36,
-        color: AppColors.primary.withOpacity(0.4),
+        color: AppColors.primary.withValues(alpha: 0.4),
       ),
     );
   }

@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/features/user/presentation/widgets/home_view.dart';
-import 'package:sports_studio/features/user/presentation/pages/grounds_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/events_page.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_grounds_view.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
-import 'package:sports_studio/features/user/presentation/pages/profile_page.dart';
-import 'package:sports_studio/features/admin/presentation/widgets/admin_dashboard_view.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_reports_page.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/features/user/presentation/widgets/home_view.dart';
+import 'package:sport_studio/features/user/presentation/pages/grounds_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/events_page.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
+import 'package:sport_studio/features/owner/presentation/widgets/owner_grounds_view.dart';
+import 'package:sport_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sport_studio/features/user/presentation/pages/profile_page.dart';
+import 'package:sport_studio/features/admin/presentation/widgets/admin_dashboard_view.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_users_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_reports_page.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -30,23 +30,23 @@ class LandingPage extends StatelessWidget {
 
     final List<Widget> userPages = [
       const HomeView(),
-      const GroundsPage(),
-      const EventsPage(),
+      const GroundsPage(isTab: true),
+      const EventsPage(isTab: true),
       const ProfilePage(),
     ];
 
     final List<Widget> ownerPages = [
       const OwnerDashboardView(),
-      OwnerGroundsView(),
-      const OwnerBookingsView(),
+      const OwnerGroundsView(isTab: true),
+      const OwnerBookingsView(isTab: true),
       const ProfilePage(),
     ];
 
     final List<Widget> adminPages = [
       const AdminDashboardView(),
-      const AdminUsersPage(),
-      const AdminComplexManagementPage(),
-      const AdminReportsPage(),
+      const AdminUsersPage(isTab: true),
+      const AdminComplexManagementPage(isTab: true),
+      const AdminReportsPage(isTab: true),
       const ProfilePage(),
     ];
 
@@ -108,32 +108,6 @@ class LandingPage extends StatelessWidget {
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Obx(() {
-            final role = controller.currentRole.value;
-            if (role == UserRole.user) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Image.asset(
-                    AppConstants.appLogo,
-                    height: 32,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(width: 8),
-                  Text('Sports Studio', style: AppTextStyles.h3),
-                ],
-              );
-            } else if (role == UserRole.owner) {
-              return Text('Owner Dashboard', style: AppTextStyles.h3);
-            } else {
-              return Text('Admin Control Panel', style: AppTextStyles.h3);
-            }
-          }),
-          backgroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-        ),
         body: LayoutBuilder(
           builder: (context, constraints) {
             if (constraints.maxWidth > 800) {
@@ -172,16 +146,13 @@ class LandingPage extends StatelessWidget {
                   ),
                   const VerticalDivider(thickness: 1, width: 1),
                   Expanded(
-                    child: Obx(
-                      () => IndexedStack(
-                        index: controller.currentNavIndex.value,
-                        children: controller.currentRole.value == UserRole.user
-                            ? userPages
-                            : controller.currentRole.value == UserRole.owner
-                            ? ownerPages
-                            : adminPages,
-                      ),
-                    ),
+                    child: Obx(() {
+                      final role = controller.currentRole.value;
+                      final index = controller.currentNavIndex.value;
+                      if (role == UserRole.user) return userPages[index];
+                      if (role == UserRole.owner) return ownerPages[index];
+                      return adminPages[index];
+                    }),
                   ),
                 ],
               );
@@ -191,16 +162,13 @@ class LandingPage extends StatelessWidget {
             return Column(
               children: [
                 Expanded(
-                  child: Obx(
-                    () => IndexedStack(
-                      index: controller.currentNavIndex.value,
-                      children: controller.currentRole.value == UserRole.user
-                          ? userPages
-                          : controller.currentRole.value == UserRole.owner
-                          ? ownerPages
-                          : adminPages,
-                    ),
-                  ),
+                  child: Obx(() {
+                    final role = controller.currentRole.value;
+                    final index = controller.currentNavIndex.value;
+                    if (role == UserRole.user) return userPages[index];
+                    if (role == UserRole.owner) return ownerPages[index];
+                    return adminPages[index];
+                  }),
                 ),
               ],
             );
@@ -218,7 +186,7 @@ class LandingPage extends StatelessWidget {
                 boxShadow: [
                   BoxShadow(
                     blurRadius: 20,
-                    color: Colors.black.withOpacity(.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     offset: const Offset(0, 10),
                   ),
                 ],
@@ -229,9 +197,11 @@ class LandingPage extends StatelessWidget {
                   filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
+                      color: Colors.white.withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: SafeArea(
                       child: Padding(
@@ -241,8 +211,12 @@ class LandingPage extends StatelessWidget {
                         ),
                         child: Obx(
                           () => GNav(
-                            rippleColor: AppColors.primary.withOpacity(0.1),
-                            hoverColor: AppColors.primary.withOpacity(0.05),
+                            rippleColor: AppColors.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            hoverColor: AppColors.primary.withValues(
+                              alpha: 0.05,
+                            ),
                             gap: 8,
                             activeColor: AppColors.primary,
                             iconSize: 24,
@@ -251,8 +225,8 @@ class LandingPage extends StatelessWidget {
                               vertical: 12,
                             ),
                             duration: const Duration(milliseconds: 400),
-                            tabBackgroundColor: AppColors.primary.withOpacity(
-                              0.1,
+                            tabBackgroundColor: AppColors.primary.withValues(
+                              alpha: 0.1,
                             ),
                             color: AppColors.textSecondary,
                             tabs: controller.currentRole.value == UserRole.user

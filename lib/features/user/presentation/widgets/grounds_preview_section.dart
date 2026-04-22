@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/widgets/app_shimmer.dart';
+import 'package:sport_studio/widgets/app_shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/widgets/section_header.dart';
-import 'package:sports_studio/features/user/controller/home_controller.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart'
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/widgets/section_header.dart';
+import 'package:sport_studio/features/user/controller/home_controller.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart'
     as sports_landing;
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/features/user/presentation/pages/ground_detail_page.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/features/user/presentation/pages/ground_detail_page.dart';
 
 class GroundsPreviewSection extends StatelessWidget {
   const GroundsPreviewSection({super.key});
@@ -46,7 +46,10 @@ class GroundsPreviewSection extends StatelessWidget {
               );
             }
 
-            if (controller.filteredGrounds.isEmpty) {
+            // Use the globally filtered grounds which respect Category, City, and Nearby filters
+            final previewGrounds = controller.filteredGrounds;
+
+            if (previewGrounds.isEmpty) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.l),
@@ -73,9 +76,9 @@ class GroundsPreviewSection extends StatelessWidget {
             return ListView.builder(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
               scrollDirection: Axis.horizontal,
-              itemCount: controller.filteredGrounds.length,
+              itemCount: previewGrounds.length,
               itemBuilder: (context, index) {
-                final ground = controller.filteredGrounds[index];
+                final ground = previewGrounds[index];
                 return GroundCard(ground: ground);
               },
             );
@@ -116,7 +119,7 @@ class GroundCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

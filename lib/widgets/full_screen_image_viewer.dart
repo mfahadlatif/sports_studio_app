@@ -64,7 +64,7 @@ class FullScreenImageViewer extends StatelessWidget {
             top: 50,
             right: 20,
             child: CircleAvatar(
-              backgroundColor: Colors.black.withOpacity(0.5),
+              backgroundColor: Colors.black.withValues(alpha: 0.5),
               child: IconButton(
                 icon: const Icon(Icons.close, color: Colors.white),
                 onPressed: () => Get.back(),

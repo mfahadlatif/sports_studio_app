@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/controller/onboarding_controller.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/controller/onboarding_controller.dart';
 
 class OnboardingPage extends StatelessWidget {
   const OnboardingPage({super.key});
@@ -118,7 +118,7 @@ class OnboardingPage extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: controller.currentPage.value == index
                                 ? AppColors.primary
-                                : AppColors.primary.withOpacity(0.2),
+                                : AppColors.primary.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),

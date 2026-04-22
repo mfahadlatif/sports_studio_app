@@ -1,8 +1,9 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
 
 /// Service to handle app initialization and data fetching on startup
 class AppInitializationService extends GetxService {
@@ -49,6 +50,18 @@ class AppInitializationService extends GetxService {
     try {
       final profileController = Get.find<ProfileController>();
       await profileController.fetchProfile();
+
+      // Safety check: Restrict admin access on mobile
+      final role = await _storage.read(key: 'user_role');
+      if (role == 'admin') {
+        print('⚠ Admin detected on mobile app. Logging out...');
+        final landingController = Get.put(LandingController(), permanent: true);
+        await landingController.logout();
+        AppUtils.showError(
+          title: 'Access Denied',
+          message: 'Admin access is restricted to the web dashboard.',
+        );
+      }
     } catch (e) {
       print('Failed to initialize user data: $e');
     }
@@ -65,16 +78,12 @@ class AppInitializationService extends GetxService {
       }
     } catch (e) {
       print('Failed to fetch notifications: $e');
-      // Don't show error to user on startup, just log it
     }
   }
 
   /// Perform any additional initialization
   Future<void> _performAdditionalInitialization() async {
     try {
-      // Preload frequently used data
-      // Cache user preferences
-      // Initialize other services
       await Future.delayed(const Duration(milliseconds: 500)); // Simulate work
     } catch (e) {
       print('Failed to perform additional initialization: $e');

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/theme/app_spacing.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/theme/app_spacing.dart';
 
 class TermsPage extends StatelessWidget {
   const TermsPage({super.key});
@@ -17,7 +17,7 @@ class TermsPage extends StatelessWidget {
             Text('Terms & Conditions', style: AppTextStyles.h2),
             const SizedBox(height: 10),
             Text(
-              'These terms govern the use of Sports Studio. By using the app, you agree to these terms.',
+              'These terms govern the use of Sport Studio. By using the app, you agree to these terms.',
               style: AppTextStyles.bodyMedium,
             ),
             const SizedBox(height: 20),
@@ -35,7 +35,7 @@ class TermsPage extends StatelessWidget {
             ),
             _section(
               'Liability',
-              'Sports Studio is a booking platform; venue-specific rules and safety policies apply at the venue.',
+              'Sport Studio is a booking platform; venue-specific rules and safety policies apply at the venue.',
             ),
           ],
         ),

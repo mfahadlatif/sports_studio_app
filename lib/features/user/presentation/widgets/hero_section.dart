@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
 
 class HeroSection extends StatelessWidget {
   const HeroSection({super.key});
@@ -14,9 +14,9 @@ class HeroSection extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.m,
-        60,
+        30,
         AppSpacing.m,
-        AppSpacing.xl,
+        AppSpacing.l,
       ),
       decoration: const BoxDecoration(
         color: AppColors.secondary,
@@ -31,9 +31,9 @@ class HeroSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -46,7 +46,7 @@ class HeroSection extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'WELCOME TO SPORTS STUDIO',
+                  'WELCOME TO SPORT STUDIO',
                   style: AppTextStyles.label.copyWith(color: AppColors.primary),
                 ),
               ],

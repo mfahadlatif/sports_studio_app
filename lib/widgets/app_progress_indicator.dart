@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
 
 class AppProgressIndicator extends StatelessWidget {
   final double size;
@@ -8,8 +8,8 @@ class AppProgressIndicator extends StatelessWidget {
 
   const AppProgressIndicator({
     super.key,
-    this.size = 56, // Updated default size to 56
-    this.strokeWidth = 4,
+    this.size = 40,
+    this.strokeWidth = 3,
     this.color,
   });
 

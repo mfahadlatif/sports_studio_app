@@ -1,16 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/controller/booking_controller.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/controller/booking_controller.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
 
 class BookingSlotPage extends StatelessWidget {
   const BookingSlotPage({super.key});
@@ -82,7 +81,7 @@ class BookingSlotPage extends StatelessWidget {
             width: 70,
             height: 70,
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withOpacity(0.3),
+              color: AppColors.primaryLight.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(16),
             ),
             clipBehavior: Clip.antiAlias,
@@ -224,6 +223,9 @@ class BookingSlotPage extends StatelessWidget {
   }
 
   Widget _buildPlayersSelector(BookingController controller) {
+    final ground = Get.arguments;
+    final int maxCapacity = int.tryParse(ground?['capacity']?.toString() ?? ground?['max_players']?.toString() ?? '30') ?? 30;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
       child: Container(
@@ -240,7 +242,7 @@ class BookingSlotPage extends StatelessWidget {
               children: [
                 const Icon(Icons.groups_outlined, color: AppColors.primary),
                 const SizedBox(width: 8),
-                Text('Number of Players', style: AppTextStyles.bodyLarge),
+                Text('Players (Max $maxCapacity)', style: AppTextStyles.bodyLarge),
               ],
             ),
             Row(
@@ -258,7 +260,7 @@ class BookingSlotPage extends StatelessWidget {
                 ),
                 IconButton(
                   onPressed: () =>
-                      controller.incrementPlayers(30), // Max 30 for now
+                      controller.incrementPlayers(maxCapacity),
                   icon: const Icon(Icons.add_circle_outline),
                   color: AppColors.primary,
                 ),
@@ -360,6 +362,7 @@ class BookingSlotPage extends StatelessWidget {
                     Expanded(
                       child: TextField(
                         controller: promoCtrl,
+                        textCapitalization: TextCapitalization.none,
                         decoration: InputDecoration(
                           hintText: 'Enter code',
                           isDense: true,
@@ -411,10 +414,10 @@ class BookingSlotPage extends StatelessWidget {
                             margin: const EdgeInsets.only(right: 12),
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryLight.withOpacity(0.3),
+                              color: AppColors.primaryLight.withValues(alpha: 0.3),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: AppColors.primary.withOpacity(0.1),
+                                color: AppColors.primary.withValues(alpha: 0.1),
                               ),
                             ),
                             child: Row(
@@ -535,7 +538,7 @@ class BookingSlotPage extends StatelessWidget {
                           boxShadow: isSelected
                               ? [
                                   BoxShadow(
-                                    color: AppColors.primary.withOpacity(0.3),
+                                    color: AppColors.primary.withValues(alpha: 0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
                                   ),
@@ -579,7 +582,7 @@ class BookingSlotPage extends StatelessWidget {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, -5),
           ),

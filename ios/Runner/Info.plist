@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Sports Studio</string>
+	<string>Sport Studio</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,11 +15,11 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>sports_studio</string>
+	<string>sport_studio</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>1.0.1</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -34,7 +34,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>6</string>
+	<string>11</string>
 	<key>GMSApiKey</key>
 	<string>AIzaSyAY9KTE4x_NevYZJ5ayqvhs7G4s0vZpQwE</string>
 	<key>LSApplicationQueriesSchemes</key>
@@ -57,17 +57,17 @@
 		<true/>
 	</dict>
 	<key>NSCameraUsageDescription</key>
-	<string>Sports Studio needs access to your camera to take a profile picture or upload arena photos.</string>
+	<string>Sport Studio needs access to your camera to take a profile picture or upload arena photos.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Sports Studio uses your location to provide personalized sports ground recommendations based on your area.</string>
+	<string>Sport Studio uses your location to provide personalized sports ground recommendations based on your area.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Sports Studio uses your location to show nearby ground suggestions even when the app is in the background.</string>
+	<string>Sport Studio uses your location to show nearby ground suggestions even when the app is in the background.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Sports Studio uses your location to show you the closest sports grounds and events near you.</string>
+	<string>Sport Studio uses your location to show you the closest sports grounds and events near you.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Sports Studio needs access to your photo library to save and upload arena images.</string>
+	<string>Sport Studio needs access to your photo library to save and upload arena images.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Sports Studio needs access to your photo library to select a profile picture or arena images.</string>
+	<string>Sport Studio needs access to your photo library to select a profile picture or arena images.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -95,6 +95,10 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>

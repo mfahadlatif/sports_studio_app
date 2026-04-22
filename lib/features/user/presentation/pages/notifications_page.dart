@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({super.key});
@@ -191,64 +191,77 @@ class _NotificationsPageState extends State<NotificationsPage> {
             ),
         ],
       ),
-      body: _isLoading
-          ? const AppProgressIndicator()
-          : Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 900),
-                child: Column(
-                  children: [
-                    // Unread count banner
-                    if (unreadCount > 0)
-                      Container(
-                        margin: const EdgeInsets.all(AppSpacing.m),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.m,
-                          vertical: AppSpacing.s,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
+      body: RefreshIndicator(
+        onRefresh: _fetchNotifications,
+        color: AppColors.primary,
+        child: _isLoading
+            ? const Center(child: AppProgressIndicator())
+            : Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 900),
+                  child: Column(
+                    children: [
+                      // Unread count banner
+                      if (unreadCount > 0)
+                        Container(
+                          margin: const EdgeInsets.all(AppSpacing.m),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.m,
+                            vertical: AppSpacing.s,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.mail_outline,
+                                color: AppColors.primary,
+                                size: 18,
+                              ),
+                              const SizedBox(width: AppSpacing.s),
+                              Text(
+                                '$unreadCount unread notification${unreadCount > 1 ? 's' : ''}',
+                                style: AppTextStyles.bodySmall.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.mail_outline,
-                              color: AppColors.primary,
-                              size: 18,
-                            ),
-                            const SizedBox(width: AppSpacing.s),
-                            Text(
-                              '$unreadCount unread notification${unreadCount > 1 ? 's' : ''}',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
 
-                    // List
-                    Expanded(
-                      child: _notifications.isEmpty
-                          ? _emptyState()
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.m,
+                      // List
+                      Expanded(
+                        child: _notifications.isEmpty
+                            ? ListView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                children: [
+                                  SizedBox(
+                                    height: MediaQuery.of(context).size.height * 0.2,
+                                  ),
+                                  _emptyState(),
+                                ],
+                              )
+                            : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.m,
+                                ),
+                                itemCount: _notifications.length,
+                                itemBuilder: (ctx, i) =>
+                                    _buildNotificationCard(_notifications[i]),
                               ),
-                              itemCount: _notifications.length,
-                              itemBuilder: (ctx, i) =>
-                                  _buildNotificationCard(_notifications[i]),
-                            ),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 

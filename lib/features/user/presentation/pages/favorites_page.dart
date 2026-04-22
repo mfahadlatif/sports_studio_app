@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/presentation/widgets/ground_card_wide.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/presentation/widgets/ground_card_wide.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
 
-import 'package:sports_studio/features/user/controller/favorites_controller.dart';
+import 'package:sport_studio/features/user/controller/favorites_controller.dart';
 
 class FavoritesPage extends StatelessWidget {
   const FavoritesPage({super.key});

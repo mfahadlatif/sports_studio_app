@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/network/api_client.dart';
 
-import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
-import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/widgets/app_button.dart';
 
 class OwnerDealsPage extends StatefulWidget {
   const OwnerDealsPage({super.key});
@@ -434,6 +434,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                     _label('Target Ground (Optional)'),
                     Obx(
                       () => DropdownButtonFormField<int>(
+                        isExpanded: true,
                         initialValue: _selectedGroundId,
                         hint: const Text('All Grounds'),
                         decoration: InputDecoration(
@@ -453,7 +454,11 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                           ...groundsCtrl.grounds.map(
                             (g) => DropdownMenuItem<int>(
                               value: g.id,
-                              child: Text(g.name),
+                              child: Text(
+                                g.name,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
                           ),
                         ],
@@ -508,6 +513,7 @@ class _DealFormSheetState extends State<_DealFormSheet> {
                     TextField(
                       controller: _descCtrl,
                       maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         hintText: 'Details about this offer...',
                         filled: true,
@@ -551,6 +557,9 @@ class _DealFormSheetState extends State<_DealFormSheet> {
   }) => TextField(
     controller: ctrl,
     keyboardType: type,
+    textCapitalization: ctrl == _codeCtrl
+        ? TextCapitalization.none
+        : TextCapitalization.sentences,
     decoration: InputDecoration(
       hintText: hint,
       filled: true,

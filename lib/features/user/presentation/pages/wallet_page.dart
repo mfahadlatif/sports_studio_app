@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/controllers/system_settings_controller.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/controllers/system_settings_controller.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class WalletPage extends StatefulWidget {
   const WalletPage({super.key});
@@ -35,6 +35,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   Future<void> _fetchAll() async {
     setState(() => _loading = true);
     try {
+      await Get.find<SystemSettingsController>().fetchSettings();
       final res = await Future.wait([
         ApiClient().dio.get('/wallet'),
         ApiClient().dio.get('/withdrawals'),
@@ -89,8 +90,16 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
     final amount = double.tryParse(_withdrawAmountCtrl.text.trim());
 
     if (amount == null || amount < minAmount) {
-      AppUtils.showError(
-        message: 'Amount must be at least ${minAmount.toStringAsFixed(0)}',
+      Get.dialog(
+        AlertDialog(
+          title: const Text('Minimum Withdrawal'),
+          content: Text(
+            'The minimum withdrawal amount is ${AppConstants.currencySymbol} ${minAmount.toStringAsFixed(0)}. Please enter an amount equal to or greater than this.',
+          ),
+          actions: [
+            TextButton(onPressed: () => Get.back(), child: const Text('OK')),
+          ],
+        ),
       );
       return;
     }
@@ -139,11 +148,13 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
               const SizedBox(height: AppSpacing.m),
               TextField(
                 controller: bankNameCtrl,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Bank Name'),
               ),
               const SizedBox(height: AppSpacing.m),
               TextField(
                 controller: titleCtrl,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Account Title'),
               ),
               const SizedBox(height: AppSpacing.m),
@@ -241,7 +252,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                   color: AppColors.primary,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
+                      color: Colors.black.withValues(alpha: 0.04),
                       blurRadius: 10,
                       offset: const Offset(0, 2),
                     ),
@@ -349,7 +360,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: AppColors.border.withOpacity(0.6)),
+                  side: BorderSide(
+                    color: AppColors.border.withValues(alpha: 0.6),
+                  ),
                 ),
                 child: ListTile(
                   leading: Radio<int>(
@@ -398,133 +411,142 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
 
   Widget _withdraw() {
     final settingsController = Get.find<SystemSettingsController>();
-    final minAmount = settingsController.minWithdrawalAmount.toStringAsFixed(0);
 
-    return RefreshIndicator(
-      onRefresh: _fetchAll,
-      child: ListView(
-        padding: const EdgeInsets.all(AppSpacing.m),
-        children: [
-          Text('Request Withdrawal', style: AppTextStyles.h3),
-          const SizedBox(height: AppSpacing.s),
-          TextField(
-            controller: _withdrawAmountCtrl,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              labelText: 'Amount (min $minAmount)',
-              prefixText: '${AppConstants.currencySymbol} ',
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedBankAccountId,
-            decoration: const InputDecoration(labelText: 'Bank Account'),
-            items: _bankAccounts
-                .map((b) {
-                  final m = b as Map? ?? {};
-                  final id = int.tryParse(m['id']?.toString() ?? '');
-                  if (id == null) return null;
-                  return DropdownMenuItem(
-                    value: id,
-                    child: Text(
-                      '${m['bank_name'] ?? 'Bank'} • ${m['account_number'] ?? ''}',
-                    ),
-                  );
-                })
-                .whereType<DropdownMenuItem<int>>()
-                .toList(),
-            onChanged: (v) => setState(() => _selectedBankAccountId = v),
-          ),
-          const SizedBox(height: AppSpacing.m),
-          AppButton(label: 'Submit Withdrawal', onPressed: _requestWithdrawal),
-          const SizedBox(height: AppSpacing.l),
-          Text('My Withdrawal Requests', style: AppTextStyles.h3),
-          const SizedBox(height: AppSpacing.s),
-          if (_withdrawals.isEmpty)
-            Text(
-              'No withdrawals yet.',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textMuted,
+    return Obx(() {
+      final minAmountVal = settingsController.minWithdrawalAmount;
+      final minAmountStr = minAmountVal.toStringAsFixed(0);
+
+      return RefreshIndicator(
+        onRefresh: _fetchAll,
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.m),
+          children: [
+            Text('Request Withdrawal', style: AppTextStyles.h3),
+            const SizedBox(height: AppSpacing.s),
+            TextField(
+              controller: _withdrawAmountCtrl,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'Amount (min $minAmountStr)',
+                prefixText: '${AppConstants.currencySymbol} ',
               ),
-            )
-          else
-            ..._withdrawals.map((w) {
-              final m = w as Map? ?? {};
-              final status = m['status']?.toString() ?? 'pending';
-              final amount =
-                  double.tryParse(m['amount']?.toString() ?? '0') ?? 0;
-              final notes = m['admin_notes']?.toString() ?? '';
-
-              Color color = Colors.orange;
-              if (status == 'completed') color = Colors.green;
-              if (status == 'rejected') color = Colors.red;
-              if (status == 'processing') color = Colors.blue;
-
-              return Card(
-                elevation: 0,
-                margin: const EdgeInsets.only(bottom: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: AppColors.border.withOpacity(0.5)),
+            ),
+            const SizedBox(height: AppSpacing.s),
+            DropdownButtonFormField<int>(
+              value: _selectedBankAccountId,
+              decoration: const InputDecoration(labelText: 'Bank Account'),
+              items: _bankAccounts
+                  .map((b) {
+                    final m = b as Map? ?? {};
+                    final id = int.tryParse(m['id']?.toString() ?? '');
+                    if (id == null) return null;
+                    return DropdownMenuItem(
+                      value: id,
+                      child: Text(
+                        '${m['bank_name'] ?? 'Bank'} • ${m['account_number'] ?? ''}',
+                      ),
+                    );
+                  })
+                  .whereType<DropdownMenuItem<int>>()
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedBankAccountId = v),
+            ),
+            const SizedBox(height: AppSpacing.m),
+            AppButton(
+              label: 'Submit Withdrawal',
+              onPressed: _requestWithdrawal,
+            ),
+            const SizedBox(height: AppSpacing.l),
+            Text('My Withdrawal Requests', style: AppTextStyles.h3),
+            const SizedBox(height: AppSpacing.s),
+            if (_withdrawals.isEmpty)
+              Text(
+                'No withdrawals yet.',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: AppColors.textMuted,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            '${AppConstants.currencySymbol} ${amount.toStringAsFixed(0)}',
-                            style: AppTextStyles.h3,
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+              )
+            else
+              ..._withdrawals.map((w) {
+                final m = w as Map? ?? {};
+                final status = m['status']?.toString() ?? 'pending';
+                final amount =
+                    double.tryParse(m['amount']?.toString() ?? '0') ?? 0;
+                final notes = m['admin_notes']?.toString() ?? '';
+
+                Color color = Colors.orange;
+                if (status == 'completed') color = Colors.green;
+                if (status == 'rejected') color = Colors.red;
+                if (status == 'processing') color = Colors.blue;
+
+                return Card(
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: AppColors.border.withValues(alpha: 0.5),
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${AppConstants.currencySymbol} ${amount.toStringAsFixed(0)}',
+                              style: AppTextStyles.h3,
                             ),
-                            decoration: BoxDecoration(
-                              color: color.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              status.toUpperCase(),
-                              style: TextStyle(
-                                color: color,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
                               ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                status.toUpperCase(),
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (notes.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            'Note: $notes',
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                              fontStyle: FontStyle.italic,
                             ),
                           ),
                         ],
-                      ),
-                      if (notes.isNotEmpty) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 4),
                         Text(
-                          'Note: $notes',
+                          'Requested: ${AppUtils.formatDate(m['created_at'])}',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                            fontStyle: FontStyle.italic,
+                            color: AppColors.textMuted,
+                            fontSize: 10,
                           ),
                         ),
                       ],
-                      const SizedBox(height: 4),
-                      Text(
-                        'Requested: ${AppUtils.formatDate(m['created_at'])}',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textMuted,
-                          fontSize: 10,
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              );
-            }),
-        ],
-      ),
-    );
+                );
+              }),
+          ],
+        ),
+      );
+    });
   }
 
   Widget _history() {
@@ -544,7 +566,7 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
                     Icon(
                       Icons.history_toggle_off,
                       size: 64,
-                      color: AppColors.textMuted.withOpacity(0.5),
+                      color: AppColors.textMuted.withValues(alpha: 0.5),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -591,7 +613,9 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: (isCredit ? Colors.green : Colors.red).withOpacity(0.1),
+                color: (isCredit ? Colors.green : Colors.red).withValues(
+                  alpha: 0.1,
+                ),
                 shape: BoxShape.circle,
               ),
               child: Icon(

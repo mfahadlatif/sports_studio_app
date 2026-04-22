@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_shimmer.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/features/owner/presentation/pages/complex_detail_page.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_shimmer.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/features/owner/presentation/pages/add_complex_page.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/features/owner/presentation/pages/complex_detail_page.dart';
 
 class SportsComplexesPage extends StatefulWidget {
   const SportsComplexesPage({super.key});
@@ -108,6 +108,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
             padding: const EdgeInsets.all(AppSpacing.m),
             child: TextField(
               onChanged: (v) => setState(() => _searchQuery = v),
+              textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: 'Search complexes...',
                 prefixIcon: const Icon(Icons.search),
@@ -165,7 +166,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -180,7 +181,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                 gradient: LinearGradient(
                   colors: [
                     AppColors.primary,
-                    AppColors.primary.withOpacity(0.4),
+                    AppColors.primary.withValues(alpha: 0.4),
                   ],
                 ),
                 borderRadius: const BorderRadius.vertical(
@@ -234,7 +235,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.05),
+                                color: AppColors.primary.withValues(alpha: 0.05),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -257,28 +258,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // Status
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isActive
-                                    ? Colors.green.withOpacity(0.1)
-                                    : Colors.grey.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                isActive ? 'ACTIVE' : 'INACTIVE',
-                                style: TextStyle(
-                                  color: isActive ? Colors.green : Colors.grey,
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
+                            const SizedBox(width: 8),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -300,7 +280,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                                       color: AppColors.background,
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
-                                        color: AppColors.border.withOpacity(0.3),
+                                        color: AppColors.border.withValues(alpha: 0.3),
                                       ),
                                     ),
                                     child: info['asset'] != null 
@@ -335,7 +315,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                           size: 20,
                         ),
                         style: IconButton.styleFrom(
-                          backgroundColor: Colors.red.withOpacity(0.08),
+                          backgroundColor: Colors.red.withValues(alpha: 0.08),
                         ),
                       ),
                     ],
@@ -405,7 +385,7 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
         Icon(
           Icons.business_outlined,
           size: 72,
-          color: AppColors.textMuted.withOpacity(0.4),
+          color: AppColors.textMuted.withValues(alpha: 0.4),
         ),
         const SizedBox(height: AppSpacing.m),
         Text('No complexes yet', style: AppTextStyles.h2),

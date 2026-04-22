@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class AdminReviewsPage extends StatefulWidget {
   const AdminReviewsPage({super.key});
@@ -105,7 +105,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(color: AppColors.border.withOpacity(0.6)),
+                        side: BorderSide(color: AppColors.border.withValues(alpha: 0.6)),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(AppSpacing.m),
@@ -123,7 +123,7 @@ class _AdminReviewsPageState extends State<AdminReviewsPage> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: statusColor.withOpacity(0.1),
+                                    color: statusColor.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/widgets/app_button.dart';
 
 class AdminUsersPage extends StatefulWidget {
-  const AdminUsersPage({super.key});
+  final bool isTab;
+  const AdminUsersPage({super.key, this.isTab = false});
 
   @override
   State<AdminUsersPage> createState() => _AdminUsersPageState();
@@ -53,7 +54,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
     }).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('User Management')),
+      appBar: AppBar(
+        title: const Text('User Management'),
+        automaticallyImplyLeading: !widget.isTab,
+      ),
       body: Column(
         children: [
           Padding(
@@ -70,6 +74,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                 ),
               ),
               onChanged: (v) => setState(() => _searchQuery = v),
+              textCapitalization: TextCapitalization.none,
             ),
           ),
           Expanded(
@@ -317,6 +322,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               const SizedBox(height: 10),
               TextField(
                 controller: descCtrl,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(labelText: 'Description'),
               ),
               const SizedBox(height: AppSpacing.m),

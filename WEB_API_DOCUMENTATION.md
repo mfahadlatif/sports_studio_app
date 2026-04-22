@@ -1,8 +1,8 @@
-# Sports Studio Web - Complete API Documentation
+# Sport Studio Web - Complete API Documentation
 
 ## Overview
 
-Sports Studio Web is a comprehensive sports facility management platform built with React (frontend) and Laravel (backend). This document provides complete API endpoints, parameters, and responses for the mobile app integration.
+Sport Studio Web is a comprehensive sports facility management platform built with React (frontend) and Laravel (backend). This document provides complete API endpoints, parameters, and responses for the mobile app integration.
 
 ## Base URL
 

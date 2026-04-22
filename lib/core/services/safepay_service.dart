@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_services.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class SafepayService extends GetxService {

@@ -1,6 +1,6 @@
 # Owner Features and Application Flow (Code-Matched) 🏟️
 
-This document details the exact functionalities, UI components, and data structures implemented in the **Sports Studio Web** application for the **Owner** role.
+This document details the exact functionalities, UI components, and data structures implemented in the **Sport Studio Web** application for the **Owner** role.
 
 ---
 

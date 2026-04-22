@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 

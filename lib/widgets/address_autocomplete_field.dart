@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/widgets/map_location_picker_screen.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/widgets/map_location_picker_screen.dart';
 
 /// Address autocomplete using OpenStreetMap Nominatim — no API key required.
 /// Matches the web app's LocationAutocomplete behaviour exactly.
@@ -44,6 +44,11 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   void initState() {
     super.initState();
     _focusNode.addListener(_onFocusChange);
+    widget.controller.addListener(_onControllerChange);
+  }
+
+  void _onControllerChange() {
+    if (mounted) setState(() {});
   }
 
   void _onFocusChange() {
@@ -59,6 +64,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    widget.controller.removeListener(_onControllerChange);
     _focusNode.dispose();
     _debounce?.cancel();
     super.dispose();
@@ -82,6 +88,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           'format': 'json',
           'addressdetails': 1,
           'limit': 5,
+          'accept-language': 'en',
         },
         options: Options(
           headers: {
@@ -165,6 +172,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                 controller: widget.controller,
                 focusNode: _focusNode,
                 onChanged: _onChanged,
+                textCapitalization: TextCapitalization.sentences,
                 onTap: () {
                   if (widget.controller.text.isNotEmpty && _suggestions.isNotEmpty) {
                     setState(() => _showSuggestions = true);
@@ -189,7 +197,20 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
                             ),
                           ),
                         )
-                      : const Icon(Icons.search, color: AppColors.textMuted, size: 18),
+                      : widget.controller.text.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.clear, size: 18),
+                              onPressed: () {
+                                widget.controller.clear();
+                                widget.onSelect?.call('', null, null);
+                                setState(() {
+                                  _suggestions.clear();
+                                  _showSuggestions = false;
+                                });
+                              },
+                            )
+                          : const Icon(Icons.search,
+                              color: AppColors.textMuted, size: 18),
                   filled: true,
                   fillColor: AppColors.inputBackground,
                   contentPadding: const EdgeInsets.symmetric(
@@ -210,7 +231,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(AppConstants.borderRadius),
-                border: Border.all(color: AppColors.border.withOpacity(0.5), width: 1.5),
+                border: Border.all(color: AppColors.border.withValues(alpha: 0.5), width: 1.5),
               ),
               child: IconButton(
                 icon: const Icon(Icons.map_outlined, color: AppColors.primary, size: 24),
@@ -225,7 +246,7 @@ class _AddressAutocompleteFieldState extends State<AddressAutocompleteField> {
           Material(
             elevation: 8,
             borderRadius: BorderRadius.circular(12),
-            shadowColor: Colors.black.withOpacity(0.12),
+            shadowColor: Colors.black.withValues(alpha: 0.12),
             child: Container(
               constraints: const BoxConstraints(maxHeight: 280),
               decoration: BoxDecoration(

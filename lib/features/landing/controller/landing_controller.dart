@@ -1,7 +1,8 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/core/services/notification_service.dart';
 
 class LandingController extends GetxController {
   final RxInt currentNavIndex = 0.obs;
@@ -22,11 +23,20 @@ class LandingController extends GetxController {
 
   Future<void> logout() async {
     try {
-      // Clear token and role first to stop any outgoing requests
+      // 1. Clear FCM token from backend first while we still have the local auth_token
+      if (Get.isRegistered<NotificationService>()) {
+        try {
+          await Get.find<NotificationService>().clearToken();
+        } catch (e) {
+          print('Error clearing FCM token during logout: $e');
+        }
+      }
+
+      // 2. Clear token and role locally
       await _storage.delete(key: 'auth_token');
       await _storage.delete(key: 'user_role');
 
-      // Clear profile data
+      // 3. Clear profile data
       if (Get.isRegistered<ProfileController>()) {
         Get.find<ProfileController>().userProfile.value = {};
       }
@@ -37,6 +47,7 @@ class LandingController extends GetxController {
       // Clear all routes and go to auth
       Get.offAllNamed('/auth');
     } catch (e) {
+      print('Logout Error: $e');
       // Emergency redirect in case of storage failure
       Get.offAllNamed('/auth');
     }

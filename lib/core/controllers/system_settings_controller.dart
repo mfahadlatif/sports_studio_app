@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/network/api_client.dart';
 
 class SystemSettingsController extends GetxController {
   final RxMap<String, dynamic> settings = <String, dynamic>{}.obs;
@@ -14,39 +14,77 @@ class SystemSettingsController extends GetxController {
   Future<void> fetchSettings() async {
     isLoading.value = true;
     try {
-      // Trying public endpoint first, fallback to admin-shared if needed
-      // Most production apps have a /public/settings or /config endpoint
-      final res = await ApiClient().dio.get('/public/settings');
-      if (res.statusCode == 200) {
-        final body = res.data;
-        final list = body is List ? body : (body is Map && body['data'] is List ? body['data'] as List : const []);
+      // Try multiple common settings endpoints
+      final endpoints = ['/settings', '/admin/settings', '/public/settings'];
+      dynamic body;
 
+      for (final path in endpoints) {
+        try {
+          final res = await ApiClient().dio.get(path);
+          if (res.statusCode == 200 && res.data != null) {
+            body = res.data;
+            break; // Stop at first successful response
+          }
+        } catch (_) {}
+      }
+
+      if (body != null) {
         final map = <String, dynamic>{};
-        for (final item in list) {
-          final m = item as Map? ?? {};
-          final key = m['key']?.toString();
-          if (key == null) continue;
-          map[key] = m['value'];
+
+        if (body is Map && body['data'] is List) {
+          for (final item in body['data']) {
+            if (item is Map) map[item['key']?.toString() ?? ''] = item['value'];
+          }
+        } else if (body is List) {
+          for (final item in body) {
+            if (item is Map) map[item['key']?.toString() ?? ''] = item['value'];
+          }
+        } else if (body is Map) {
+          // Check for data key first
+          final data = body['data'];
+          if (data is Map) {
+            data.forEach((k, v) => map[k] = v);
+          } else {
+            body.forEach((k, v) => map[k] = v);
+          }
         }
-        settings.assignAll(map);
+
+        if (map.isNotEmpty) {
+          settings.assignAll(map);
+        }
       }
     } catch (e) {
       print('Failed to fetch system settings: $e');
-      // Fallback defaults if API fails
+    } finally {
+      // Ensure basic defaults if settings are still empty
       if (settings.isEmpty) {
         settings.addAll({
           'commission_fee': '3',
           'service_fee': '2.0',
+          'minimum_withdrawal': '400',
         });
       }
-    } finally {
       isLoading.value = false;
     }
   }
 
   double get commissionRate {
-    final val = settings['commission_fee']?.toString() ?? '3';
+    // Exact keys from AdminSettings.tsx in the website codebase
+    final val = settings['ground_booking_commission_fee']?.toString() ??
+        settings['ground_commission']?.toString() ??
+        settings['GROUND COMMISSION']?.toString() ??
+        settings['commission_fee']?.toString() ??
+        '3';
     return double.tryParse(val) ?? 3.0;
+  }
+
+  double get eventCommissionRate {
+    // Exact keys from AdminSettings.tsx in the website codebase
+    final val = settings['event_booking_commission_fee']?.toString() ??
+        settings['event_commission']?.toString() ??
+        settings['EVENT COMMISSION']?.toString() ??
+        '5';
+    return double.tryParse(val) ?? 5.0;
   }
 
   double get bookingServiceFee {
@@ -55,8 +93,13 @@ class SystemSettingsController extends GetxController {
   }
 
   double get minWithdrawalAmount {
-    // Default to 10 if not set
-    final val = settings['minimum_withdrawal']?.toString() ?? '10';
-    return double.tryParse(val) ?? 10.0;
+    // Exact keys from AdminSettings.tsx in the website codebase
+    final val = settings['min_withdrawal']?.toString() ??
+        settings['minimum_withdrawal']?.toString() ??
+        settings['MIN PAYOUT']?.toString() ??
+        settings['min_payout']?.toString() ??
+        settings['payout_min']?.toString() ??
+        '400'; // Default to 400 as per admin setting
+    return double.tryParse(val) ?? 400.0;
   }
 }

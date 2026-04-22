@@ -1,38 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
-import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/terms_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/booking_policy_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/cancellation_policy_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/newsletter_subscribe_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/joined_events_page.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sport_studio/features/user/presentation/pages/wallet_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/user_bookings_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/favorites_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/managed_events_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/deals_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/edit_profile_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/notifications_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/contact_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/joined_events_page.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/features/user/presentation/pages/join_requests_page.dart';
+import 'package:sport_studio/features/user/controller/join_requests_controller.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
 
 // Owner Features
-import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
-import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/sports_grounds_page.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_dashboard_view.dart';
-import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_reports_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/sports_complexes_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_deals_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/setting_detail_page.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -44,189 +38,144 @@ class ProfilePage extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildModernHeader(profileController),
-                const SizedBox(height: AppSpacing.l),
+      body: RefreshIndicator(
+        onRefresh: () => profileController.refreshProfileData(),
+        displacement: 40,
+        color: AppColors.primary,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildModernHeader(profileController),
+                  const SizedBox(height: AppSpacing.l),
 
-                // Content Card
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Obx(() {
-                    final role = landingController.currentRole.value;
-                    final isOwner = role == UserRole.owner;
+                  // Content Card
+                  Container(
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Obx(() {
+                      final role = landingController.currentRole.value;
+                      final isOwner = role == UserRole.owner;
 
-                    return Column(
-                      children: [
-                        const SizedBox(height: AppSpacing.m),
+                      return Column(
+                        children: [
+                          const SizedBox(height: AppSpacing.m),
 
-                        // BUSINESS MANAGEMENT (For Owners)
-                        if (isOwner) ...[
-                          _buildSectionTitle('BUSINESS MANAGEMENT'),
+                          // BUSINESS MANAGEMENT (For Owners)
+                          if (isOwner) ...[
+                            _buildSectionTitle('BUSINESS MANAGEMENT'),
+                            _buildOption(
+                              icon: Icons.dashboard_outlined,
+                              title: 'Dashboard',
+                              subtitle: 'Overview and analytics',
+                              onTap: () => landingController.changeNavIndex(0),
+                              color: Colors.blue,
+                            ),
+                            _buildOption(
+                              icon: Icons.corporate_fare_outlined,
+                              title: 'Sports Complexes',
+                              subtitle: 'Manage all complexes',
+                              onTap: () =>
+                                  Get.to(() => const SportsComplexesPage()),
+                              color: Colors.indigo,
+                            ),
+                            _buildOption(
+                              icon: Icons.layers_outlined,
+                              title: 'My Grounds',
+                              subtitle: 'Manage all arenas',
+                              onTap: () => landingController.changeNavIndex(1),
+                              color: Colors.teal,
+                            ),
+                            _buildOption(
+                              icon: Icons.calendar_month_outlined,
+                              title: 'Bookings',
+                              subtitle: 'View all bookings',
+                              onTap: () => landingController.changeNavIndex(2),
+                              color: Colors.green,
+                            ),
+                            _buildOption(
+                              icon: Icons.analytics_outlined,
+                              title: 'Reports',
+                              subtitle: 'Analytics and revenue',
+                              onTap: () =>
+                                  Get.to(() => const OwnerReportsPage()),
+                              color: Colors.blueGrey,
+                            ),
+                            _buildOption(
+                              icon: Icons.settings_outlined,
+                              title: 'Settings',
+                              subtitle: 'Profile & preferences',
+                              onTap: () =>
+                                  Get.to(() => const EditProfilePage()),
+                              color: Colors.grey,
+                            ),
+                            _buildOption(
+                              icon: Icons.local_offer_outlined,
+                              title: 'Hot Deals',
+                              subtitle: 'Manage offers',
+                              onTap: () => Get.to(() => const OwnerDealsPage()),
+                              color: Colors.orange,
+                            ),
+                            _buildOption(
+                              icon: Icons.rate_review_outlined,
+                              title: 'Reviews',
+                              subtitle: 'Moderate feedback',
+                              onTap: () =>
+                                  Get.to(() => const ReviewModerationPage()),
+                              color: Colors.purple,
+                            ),
+                            _buildOption(
+                              icon: Icons.account_balance_wallet_outlined,
+                              title: 'My Wallet',
+                              subtitle: 'Track earnings & payouts',
+                              onTap: () => Get.to(() => const WalletPage()),
+                              color: Colors.green,
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.l,
+                              ),
+                              child: Divider(height: 32),
+                            ),
+                          ],
+
+                          _buildSectionTitle('ACCOUNT'),
                           _buildOption(
-                            icon: Icons.dashboard_outlined,
-                            title: 'Dashboard',
-                            subtitle: 'Overview and analytics',
-                            onTap: () => landingController.changeNavIndex(0),
-                            color: Colors.blue,
-                          ),
-                          _buildOption(
-                            icon: Icons.corporate_fare_outlined,
-                            title: 'Sports Complexes',
-                            subtitle: 'Manage all complexes',
-                            onTap: () =>
-                                Get.to(() => const SportsComplexesPage()),
-                            color: Colors.indigo,
-                          ),
-                          _buildOption(
-                            icon: Icons.layers_outlined,
-                            title: 'My Grounds',
-                            subtitle: 'Manage all arenas',
-                            onTap: () => landingController.changeNavIndex(1),
+                            icon: Icons.person_outline,
+                            title: 'Personal Information',
+                            subtitle: 'Update your name, email and details',
+                            onTap: () => Get.to(() => const EditProfilePage()),
                             color: Colors.teal,
                           ),
                           _buildOption(
-                            icon: Icons.calendar_month_outlined,
-                            title: 'Bookings',
-                            subtitle: 'View all bookings',
-                            onTap: () => landingController.changeNavIndex(2),
-                            color: Colors.green,
-                          ),
-                          _buildOption(
-                            icon: Icons.analytics_outlined,
-                            title: 'Reports',
-                            subtitle: 'Analytics and revenue',
-                            onTap: () => Get.to(() => const OwnerReportsPage()),
+                            icon: Icons.lock_outline,
+                            title: 'Change Password',
+                            subtitle: 'Update your account security',
+                            onTap: () => Get.to(
+                              () => const SettingDetailPage(),
+                              arguments: const {
+                                'title': 'Change Password',
+                                'description': 'Update your password',
+                              },
+                            ),
                             color: Colors.blueGrey,
                           ),
-                          _buildOption(
-                            icon: Icons.settings_outlined,
-                            title: 'Settings',
-                            subtitle: 'Profile & preferences',
-                            onTap: () => Get.to(() => const EditProfilePage()),
-                            color: Colors.grey,
-                          ),
-                          _buildOption(
-                            icon: Icons.local_offer_outlined,
-                            title: 'Hot Deals',
-                            subtitle: 'Manage offers',
-                            onTap: () => Get.to(() => const OwnerDealsPage()),
-                            color: Colors.orange,
-                          ),
-                          _buildOption(
-                            icon: Icons.rate_review_outlined,
-                            title: 'Reviews',
-                            subtitle: 'Moderate feedback',
-                            onTap: () =>
-                                Get.to(() => const ReviewModerationPage()),
-                            color: Colors.purple,
-                          ),
-                          _buildOption(
-                            icon: Icons.account_balance_wallet_outlined,
-                            title: 'My Wallet',
-                            subtitle: 'Track earnings & payouts',
-                            onTap: () => Get.to(() => const WalletPage()),
-                            color: Colors.green,
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: AppSpacing.l,
-                            ),
-                            child: Divider(height: 32),
-                          ),
-                        ],
 
-                        _buildSectionTitle('ACCOUNT'),
-                        _buildOption(
-                          icon: Icons.person_outline,
-                          title: 'Personal Information',
-                          subtitle: 'Update your name, email and details',
-                          onTap: () => Get.to(() => const EditProfilePage()),
-                          color: Colors.teal,
-                        ),
-                        _buildOption(
-                          icon: Icons.lock_outline,
-                          title: 'Change Password',
-                          subtitle: 'Update your account security',
-                          onTap: () => Get.to(
-                            () => const SettingDetailPage(),
-                            arguments: const {
-                              'title': 'Change Password',
-                              'description': 'Update your password',
-                            },
-                          ),
-                          color: Colors.blueGrey,
-                        ),
-
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: AppSpacing.l,
-                          ),
-                          child: Divider(height: 32),
-                        ),
-
-                        if (!isOwner) ...[
-                          _buildSectionTitle('ACTIVITY'),
-                          _buildOption(
-                            icon: Icons.calendar_today_outlined,
-                            title: 'My Match Bookings',
-                            subtitle: 'Upcoming and past arena games',
-                            onTap: () => Get.to(() => const UserBookingsPage()),
-                            color: Colors.blue,
-                          ),
-                          _buildOption(
-                            icon: Icons.account_balance_wallet_outlined,
-                            title: 'Wallet & Withdrawals',
-                            subtitle: 'Balance and cash-out requests',
-                            onTap: () => Get.to(() => const WalletPage()),
-                            color: Colors.green,
-                          ),
-                          _buildOption(
-                            icon: Icons.favorite_border,
-                            title: 'Saved Grounds',
-                            subtitle: 'Quick access to your favorite arenas',
-                            onTap: () => Get.to(() => const FavoritesPage()),
-                            color: Colors.red,
-                          ),
-                          _buildOption(
-                            icon: Icons.event_seat_outlined,
-                            title: 'My Booked Events',
-                            subtitle: 'Manage events you have joined',
-                            onTap: () => Get.to(() => const JoinedEventsPage()),
-                            color: Colors.cyan,
-                          ),
-                          _buildOption(
-                            icon: Icons.event_note_outlined,
-                            title: 'My Managed Events',
-                            subtitle: 'Events you organize for the community',
-                            onTap: () =>
-                                Get.to(() => const ManagedEventsPage()),
-                            color: Colors.pink,
-                          ),
-                          _buildOption(
-                            icon: Icons.local_offer_outlined,
-                            title: 'Active Promo Codes',
-                            subtitle: 'Exclusive deals just for you',
-                            onTap: () => Get.to(() => const DealsPage()),
-                            color: Colors.orange,
-                          ),
-                        ],
-                        if (!isOwner)
                           const Padding(
                             padding: EdgeInsets.symmetric(
                               horizontal: AppSpacing.l,
@@ -234,58 +183,127 @@ class ProfilePage extends StatelessWidget {
                             child: Divider(height: 32),
                           ),
 
-                        _buildSectionTitle('SETTINGS'),
-                        _buildOption(
-                          icon: Icons.notifications_none_outlined,
-                          title: 'Notifications',
-                          subtitle: 'Manage alerts and push notifications',
-                          onTap: () => Get.to(() => const NotificationsPage()),
-                          color: Colors.amber,
-                        ),
+                          if (!isOwner) ...[
+                            _buildSectionTitle('ACTIVITY'),
+                            _buildOption(
+                              icon: Icons.calendar_today_outlined,
+                              title: 'My Match Bookings',
+                              subtitle: 'Upcoming and past arena games',
+                              onTap: () =>
+                                  Get.to(() => const UserBookingsPage()),
+                              color: Colors.blue,
+                            ),
+                            _buildOption(
+                              icon: Icons.account_balance_wallet_outlined,
+                              title: 'Wallet & Withdrawals',
+                              subtitle: 'Balance and cash-out requests',
+                              onTap: () => Get.to(() => const WalletPage()),
+                              color: Colors.green,
+                            ),
+                            _buildOption(
+                              icon: Icons.favorite_border,
+                              title: 'Saved Grounds',
+                              subtitle: 'Quick access to your favorite arenas',
+                              onTap: () => Get.to(() => const FavoritesPage()),
+                              color: Colors.red,
+                            ),
+                            _buildOption(
+                              icon: Icons.event_seat_outlined,
+                              title: 'My Booked Events',
+                              subtitle: 'Manage events you have joined',
+                              onTap: () =>
+                                  Get.to(() => const JoinedEventsPage()),
+                              color: Colors.cyan,
+                            ),
+                            _buildOption(
+                              icon: Icons.event_note_outlined,
+                              title: 'My Managed Events',
+                              subtitle: 'Events you organize for the community',
+                              onTap: () =>
+                                  Get.to(() => const ManagedEventsPage()),
+                              color: Colors.pink,
+                            ),
+                            Obx(() => (profileController.hasOrganizedEvents.value || profileController.pendingJoinRequestsCount.value > 0) ? _buildOption(
+                              icon: Icons.person_add_alt_1_outlined,
+                              title: 'Join Requests',
+                              subtitle: 'Approve players for your events',
+                              onTap: () =>
+                                  Get.to(() => const JoinRequestsPage()),
+                              color: Colors.orange,
+                              badge: profileController.pendingJoinRequestsCount.value > 0
+                                  ? profileController.pendingJoinRequestsCount.value.toString()
+                                  : null,
+                            ) : const SizedBox.shrink()),
+                            _buildOption(
+                              icon: Icons.local_offer_outlined,
+                              title: 'Active Promo Codes',
+                              subtitle: 'Exclusive deals just for you',
+                              onTap: () => Get.to(() => const DealsPage()),
+                              color: Colors.orange,
+                            ),
+                          ],
+                          if (!isOwner)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: AppSpacing.l,
+                              ),
+                              child: Divider(height: 32),
+                            ),
 
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: AppSpacing.l,
+                          _buildSectionTitle('SETTINGS'),
+                          _buildOption(
+                            icon: Icons.notifications_none_outlined,
+                            title: 'Notifications',
+                            subtitle: 'Manage alerts and push notifications',
+                            onTap: () =>
+                                Get.to(() => const NotificationsPage()),
+                            color: Colors.amber,
                           ),
-                          child: Divider(height: 32),
-                        ),
 
-                        _buildSectionTitle('SUPPORT'),
-                        _buildOption(
-                          icon: Icons.help_outline,
-                          title: 'Help & Support',
-                          subtitle: 'Questions? Reach out to our team',
-                          onTap: () => Get.to(() => const ContactPage()),
-                          color: Colors.deepPurple,
-                        ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.l,
+                            ),
+                            child: Divider(height: 32),
+                          ),
 
-                        const SizedBox(height: AppSpacing.l),
-                        _buildLogoutButton(landingController),
-                        const SizedBox(height: AppSpacing.xl),
-                      ],
-                    );
-                  }),
-                ),
-                const SizedBox(height: AppSpacing.l),
-                // Branding Footer
-                Column(
-                  children: [
-                    Image.asset(
-                      AppConstants.appLogo,
-                      height: 30,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Version 1.0.0',
-                      style: AppTextStyles.label.copyWith(
-                        color: AppColors.textMuted.withOpacity(0.5),
+                          _buildSectionTitle('SUPPORT'),
+                          _buildOption(
+                            icon: Icons.help_outline,
+                            title: 'Help & Support',
+                            subtitle: 'Questions? Reach out to our team',
+                            onTap: () => Get.to(() => const ContactPage()),
+                            color: Colors.deepPurple,
+                          ),
+
+                          const SizedBox(height: AppSpacing.l),
+                          _buildLogoutButton(landingController),
+                          const SizedBox(height: AppSpacing.xl),
+                        ],
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+                  // Branding Footer
+                  Column(
+                    children: [
+                      Image.asset(
+                        AppConstants.appLogo,
+                        height: 30,
+                        fit: BoxFit.contain,
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 40),
-              ],
+                      const SizedBox(height: 8),
+                      Text(
+                        'Version 1.0.0',
+                        style: AppTextStyles.label.copyWith(
+                          color: AppColors.textMuted.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           ),
         ),
@@ -312,7 +330,7 @@ class ProfilePage extends StatelessWidget {
 
         final user = profileController.userProfile;
         final name = user['name'] ?? 'Sports Lover';
-        final email = user['email'] ?? 'Welcome to Sports Studio';
+        final email = user['email'] ?? 'Welcome to Sport Studio';
 
         return Column(
           children: [
@@ -327,12 +345,16 @@ class ProfilePage extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 54,
                     backgroundColor: AppColors.primaryLight,
-                    backgroundImage: user['avatar'] != null
+                    backgroundImage:
+                        (user['avatar'] != null &&
+                            user['avatar'].toString().isNotEmpty)
                         ? NetworkImage(
                             UrlHelper.sanitizeUrl(user['avatar'].toString()),
                           )
                         : null,
-                    child: user['avatar'] == null
+                    child:
+                        (user['avatar'] == null ||
+                            user['avatar'].toString().isEmpty)
                         ? const Icon(
                             Icons.person,
                             size: 60,
@@ -374,7 +396,7 @@ class ProfilePage extends StatelessWidget {
             Text(
               email,
               style: AppTextStyles.bodyMedium.copyWith(
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: 12),
@@ -396,9 +418,11 @@ class ProfilePage extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.5)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -433,7 +457,7 @@ class ProfilePage extends StatelessWidget {
                   Text(
                     'Verified Account',
                     style: AppTextStyles.label.copyWith(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                     ),
                   ),
                 ],
@@ -467,6 +491,7 @@ class ProfilePage extends StatelessWidget {
     required String subtitle,
     required Color color,
     VoidCallback? onTap,
+    String? badge,
   }) {
     return ListTile(
       onTap: onTap,
@@ -477,14 +502,38 @@ class ProfilePage extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Icon(icon, color: color, size: 24),
       ),
-      title: Text(
-        title,
-        style: AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            title,
+            style:
+                AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+          ),
+          if (badge != null) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                badge,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ],
       ),
       subtitle: Text(
         subtitle,
@@ -521,7 +570,7 @@ class ProfilePage extends StatelessWidget {
                 );
               },
               style: TextButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.05),
+                backgroundColor: Colors.red.withValues(alpha: 0.05),
                 foregroundColor: Colors.red,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -562,7 +611,7 @@ class ProfilePage extends StatelessWidget {
           borderRadius: BorderRadius.circular(32),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -576,7 +625,7 @@ class ProfilePage extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, size: 40, color: color),

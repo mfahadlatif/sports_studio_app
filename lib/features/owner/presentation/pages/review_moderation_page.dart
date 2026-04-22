@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
-import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/core/models/models.dart';
 
 class ReviewModerationPage extends StatefulWidget {
   const ReviewModerationPage({super.key});
@@ -33,33 +34,71 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
     try {
       // Load grounds from the controller if available
       if (Get.isRegistered<GroundsController>()) {
-        _grounds = Get.find<GroundsController>()
-            .grounds
-            .where((g) => g.status == 'active')
-            .map((g) => {'id': g.id, 'name': g.name})
+        final ctrl = Get.find<GroundsController>();
+        _grounds = ctrl.grounds
+            .where((g) {
+              // Rule: Ground is active ONLY if both ground AND parent complex are active
+              final isGroundActive = g.status == 'active';
+              final parentComplex =
+                  g.complex ??
+                  ctrl.complexes.firstWhere(
+                    (c) => c.id == g.complexId,
+                    orElse: () => Complex(
+                      id: 0,
+                      ownerId: 0,
+                      name: '',
+                      address: '',
+                      status: 'active',
+                    ),
+                  );
+              return (isGroundActive && parentComplex.status == 'active');
+            })
+            .map((g) => {'id': g.id, 'name': g.name, 'status': 'active'})
             .toList();
       } else {
         final gRes = await ApiClient().dio.get('/grounds');
         if (gRes.statusCode == 200) {
           final List data = gRes.data['data'] ?? gRes.data ?? [];
           _grounds = data
-              .where((g) => g['status'] == 'active')
-              .map((g) => {'id': g['id'], 'name': g['name']})
+              .where((g) {
+                final isGroundActive =
+                    (g['status']?.toString().toLowerCase() == 'active' ||
+                    g['status']?.toString() == '1');
+                bool isComplexActive = true;
+                if (g['complex'] != null) {
+                  final cStatus = g['complex']['status']
+                      ?.toString()
+                      .toLowerCase();
+                  isComplexActive =
+                      (cStatus == 'active' ||
+                      g['complex']['status']?.toString() == '1');
+                }
+                return (isGroundActive && isComplexActive);
+              })
+              .map(
+                (g) => {'id': g['id'], 'name': g['name'], 'status': 'active'},
+              )
               .toList();
         }
       }
 
       final allReviews = <Map<String, dynamic>>[];
+      final activeGroundIds = _grounds.map((g) => g['id'].toString()).toSet();
+
       // Fetch all reviews for owner's grounds in one go
       final rRes = await ApiClient().dio.get('/owner/reviews');
       if (rRes.statusCode == 200) {
         final data = rRes.data is List ? rRes.data : (rRes.data['data'] ?? []);
         for (final r in data) {
-          allReviews.add({
-            ...Map<String, dynamic>.from(r),
-            'ground_name': r['ground']?['name'] ?? 'Arena',
-            'status': r['status'] ?? 'active',
-          });
+          final gId = r['ground_id']?.toString();
+          // ONLY include reviews for grounds that are currently active
+          if (activeGroundIds.contains(gId)) {
+            allReviews.add({
+              ...Map<String, dynamic>.from(r),
+              'ground_name': r['ground']?['name'] ?? 'Arena',
+              'status': r['status'] ?? 'active',
+            });
+          }
         }
       }
 
@@ -124,45 +163,7 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
     }
   }
 
-  Future<void> _toggleStatus(Map<String, dynamic> review) async {
-    final id = review['id'];
-    final currentStatus = review['status'] ?? 'active';
-    final newStatus = currentStatus == 'active' ? 'hidden' : 'active';
-    try {
-      await ApiClient().dio.put(
-        '/reviews/$id/status',
-        data: {'status': newStatus},
-      );
-    } catch (_) {}
-    // Update locally regardless (API may not exist yet)
-    setState(() {
-      final idx = _reviews.indexWhere((r) => r['id'] == id);
-      if (idx != -1) _reviews[idx] = {..._reviews[idx], 'status': newStatus};
-    });
-    Get.snackbar(
-      'Updated',
-      'Review ${newStatus == 'hidden' ? 'hidden' : 'activated'}',
-    );
-  }
 
-  Future<void> _deleteReview(Map<String, dynamic> review) async {
-    Get.defaultDialog(
-      title: 'Delete Review?',
-      middleText: 'This will permanently remove this review.',
-      textConfirm: 'Delete',
-      textCancel: 'Cancel',
-      confirmTextColor: Colors.white,
-      buttonColor: Colors.red,
-      onConfirm: () async {
-        Get.back();
-        try {
-          await ApiClient().dio.delete('/reviews/${review['id']}');
-        } catch (_) {}
-        setState(() => _reviews.removeWhere((r) => r['id'] == review['id']));
-        Get.snackbar('Deleted', 'Review permanently deleted');
-      },
-    );
-  }
 
   List<Map<String, dynamic>> get _filtered {
     return _reviews.where((r) {
@@ -196,6 +197,7 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
               children: [
                 TextField(
                   onChanged: (v) => setState(() => _searchQuery = v),
+                  textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
                     hintText: 'Search by comment or player name...',
                     prefixIcon: const Icon(Icons.search),
@@ -209,7 +211,9 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
                 ),
                 const SizedBox(height: AppSpacing.s),
                 DropdownButtonFormField<String>(
-                  initialValue: _groundFilter,
+                  value:
+                      _groundFilter, // Changed from initialValue to value for better reactive updates
+                  isExpanded: true,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.filter_list_outlined),
                     filled: true,
@@ -223,14 +227,21 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
                   items: [
                     const DropdownMenuItem(
                       value: 'all',
-                      child: Text('All Grounds'),
-                    ),
-                    ..._grounds.map(
-                      (g) => DropdownMenuItem(
-                        value: g['id'].toString(),
-                        child: Text(g['name'].toString()),
+                      child: Text(
+                        'All Grounds',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
+                    ..._grounds.map((g) {
+                      return DropdownMenuItem(
+                        value: g['id'].toString(),
+                        child: Text(
+                          g['name']?.toString() ?? '',
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      );
+                    }),
                   ],
                   onChanged: (v) => setState(() => _groundFilter = v ?? 'all'),
                 ),
@@ -434,42 +445,8 @@ class _ReviewModerationPageState extends State<ReviewModerationPage> {
               ),
               const SizedBox(height: AppSpacing.m),
 
-              // Actions
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _toggleStatus(review),
-                      icon: Icon(
-                        isHidden
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        size: 16,
-                      ),
-                      label: Text(isHidden ? 'Show' : 'Hide'),
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: isHidden ? AppColors.primary : Colors.orange,
-                        ),
-                        foregroundColor: isHidden
-                            ? AppColors.primary
-                            : Colors.orange,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.s),
-                  IconButton(
-                    onPressed: () => _deleteReview(review),
-                    icon: const Icon(Icons.delete_outline, color: Colors.red),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.red.withValues(alpha: 0.08),
-                    ),
-                  ),
-                ],
-              ),
+              // Actions removed as per user request
+              const SizedBox(height: AppSpacing.s),
             ],
           ),
         ),

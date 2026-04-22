@@ -1,6 +1,6 @@
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/features/auth/controller/auth_controller.dart';
-import 'package:sports_studio/widgets/app_text_field.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/features/auth/controller/auth_controller.dart';
+import 'package:sport_studio/widgets/app_text_field.dart';
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

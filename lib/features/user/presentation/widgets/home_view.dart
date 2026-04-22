@@ -2,19 +2,20 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'hero_section.dart';
 import 'grounds_preview_section.dart';
+import 'events_preview_section.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart'
+import 'package:sport_studio/features/landing/controller/landing_controller.dart'
     as sports_landing;
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/widgets/section_header.dart';
-import 'package:sports_studio/features/user/controller/home_controller.dart';
-import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/widgets/section_header.dart';
+import 'package:sport_studio/features/user/controller/home_controller.dart';
+import 'package:sport_studio/features/user/presentation/pages/create_match_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/user_bookings_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/deals_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -23,13 +24,22 @@ class HomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(HomeController());
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Center(
+      body: RefreshIndicator(
+        onRefresh: () => controller.refreshData(),
+        displacement: 40,
+        color: AppColors.primary,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 1000),
             child: Column(
               children: [
                 const HeroSection(),
+                const SizedBox(height: AppSpacing.s),
+
+                // Location & Nearby Filters
+                _buildLocationFilters(controller),
                 const SizedBox(height: AppSpacing.m),
 
                 // Quick Actions
@@ -88,6 +98,9 @@ class HomeView extends StatelessWidget {
                 _buildCategorySelector(),
                 const SizedBox(height: AppSpacing.l),
 
+                const SizedBox(height: AppSpacing.l),
+                const EventsPreviewSection(),
+                const SizedBox(height: AppSpacing.l),
                 const GroundsPreviewSection(),
                 const SizedBox(height: AppSpacing.l),
 
@@ -188,7 +201,7 @@ class HomeView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.secondary.withOpacity(0.2),
+                          color: AppColors.secondary.withValues(alpha: 0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 8),
                         ),
@@ -258,13 +271,138 @@ class HomeView extends StatelessWidget {
                 ),
 
                 const SizedBox(height: AppSpacing.l),
+                
+                // Testimonials (Website Sync)
+                _buildTestimonialsSection(),
 
                 const SizedBox(height: AppSpacing.xxl), // Just for scroll space
               ],
             ),
           ),
         ),
-      ),
+      ),)
+    );
+  }
+
+  Widget _buildTestimonialsSection() {
+    final List<Map<String, String>> reviews = [
+      {
+        'name': 'Ahmed Hassan',
+        'location': 'Karachi, PK',
+        'avatar': 'https://i.pravatar.cc/150?u=ahmed',
+        'text': 'The Safepay system gave me peace of mind. Booking grounds in Karachi has never been this secure and professional.',
+        'rating': '5.0',
+      },
+      {
+        'name': 'Zoya Khan',
+        'location': 'Islamabad, PK',
+        'avatar': 'https://i.pravatar.cc/150?u=zoya',
+        'text': 'Finally a platform that shows real-time availability! I organized a corporate tournament in Islamabad without a single phone call.',
+        'rating': '5.0',
+      },
+      {
+        'name': 'Marcus Chen',
+        'location': 'Global Traveller',
+        'avatar': 'https://i.pravatar.cc/150?u=marcus',
+        'text': 'Travelled to Lahore for a tournament and used Sport Studio. The facility quality matched the app photos perfectly. Impressive!',
+        'rating': '4.9',
+      },
+    ];
+
+    return Column(
+      children: [
+        SectionHeader(
+          title: 'What Players Say',
+          subtitle: 'Join thousands of satisfied athletes',
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+            scrollDirection: Axis.horizontal,
+            itemCount: reviews.length,
+            itemBuilder: (context, index) {
+              final r = reviews[index];
+              return Container(
+                width: 280,
+                margin: const EdgeInsets.only(right: 16, bottom: 8, top: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundImage: NetworkImage(r['avatar']!),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                r['name']!,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              Text(
+                                r['location']!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            const Icon(Icons.star_rounded, color: Colors.amber, size: 14),
+                            const SizedBox(width: 2),
+                            Text(
+                              r['rating']!,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      r['text']!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[700],
+                        height: 1.4,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -284,12 +422,12 @@ class HomeView extends StatelessWidget {
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
+                color: Colors.black.withValues(alpha: 0.04),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
             ],
-            border: Border.all(color: color.withOpacity(0.1)),
+            border: Border.all(color: color.withValues(alpha: 0.1)),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -297,7 +435,7 @@ class HomeView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: color, size: 24),
@@ -332,12 +470,12 @@ class HomeView extends StatelessWidget {
           ),
           padding: const EdgeInsets.all(AppSpacing.m),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.white.withOpacity(0.2)),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.03),
+                color: Colors.black.withValues(alpha: 0.03),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -349,7 +487,7 @@ class HomeView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(icon, color: AppColors.primary, size: 28),
@@ -483,7 +621,7 @@ class HomeView extends StatelessWidget {
         const SizedBox(width: 8),
         Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
         const SizedBox(width: 8),
-        Expanded(child: Divider(color: AppColors.primary.withOpacity(0.2))),
+        Expanded(child: Divider(color: AppColors.primary.withValues(alpha: 0.2))),
       ],
     ),
   );
@@ -527,7 +665,7 @@ class HomeView extends StatelessWidget {
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -559,6 +697,117 @@ class HomeView extends StatelessWidget {
           });
         },
       ),
+    );
+  }
+
+  Widget _buildLocationFilters(HomeController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // City Selector Header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: _sectionHeader('Choose City', LucideIcons.mapPin),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.m),
+              child: Obx(() => FilterChip(
+                label: Text(
+                  'Nearby',
+                  style: TextStyle(
+                    color: controller.isNearbyActive.value ? Colors.white : AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                selected: controller.isNearbyActive.value,
+                onSelected: (val) => controller.toggleNearby(val),
+                selectedColor: AppColors.primary,
+                checkmarkColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              )),
+            ),
+          ],
+        ),
+        Obx(() {
+          if (controller.isNearbyActive.value) {
+            return Padding(
+              padding: const EdgeInsets.only(left: AppSpacing.m, right: AppSpacing.m, top: 8),
+              child: Row(
+                children: [
+                  const Icon(Icons.my_location, size: 14, color: AppColors.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      controller.currentLocationAddress.value.isEmpty
+                          ? 'Locating your area...'
+                          : 'Showing within 50km of ${controller.currentLocationAddress.value}',
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.primary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        }),
+        const SizedBox(height: AppSpacing.s),
+        
+        // Horizontal City List
+        SizedBox(
+          height: 45,
+          child: Obx(() {
+            // Read observable to register it with Obx
+            final currentCity = controller.selectedCity.value;
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+              scrollDirection: Axis.horizontal,
+            itemCount: controller.pakistanCities.length,
+            itemBuilder: (context, index) {
+              final city = controller.pakistanCities[index];
+              final isSelected = currentCity == city;
+              
+              return GestureDetector(
+                onTap: () => controller.updateCity(city),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.primary : Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? AppColors.primary : AppColors.border.withValues(alpha: 0.5),
+                    ),
+                    boxShadow: isSelected ? [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      )
+                    ] : null,
+                  ),
+                  child: Text(
+                    city,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textPrimary,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              );
+            },
+            );
+          }),
+        ),
+      ],
     );
   }
 }

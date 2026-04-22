@@ -1,4 +1,4 @@
-# Sports Studio: Admin API Specification 🛡️
+# Sport Studio: Admin API Specification 🛡️
 
 This document details the elevated privilege endpoints available only to the **Admin** role. These routes are protected by the `auth:sanctum` middleware and role-based checks.
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
 
 class AppShimmer extends StatelessWidget {
   final double width;

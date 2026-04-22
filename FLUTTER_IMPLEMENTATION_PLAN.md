@@ -1,4 +1,4 @@
-# Flutter Implementation Plan - Cricket Oasis / Sports Studio
+# Flutter Implementation Plan - Cricket Oasis / Sport Studio
 
 This document outlines the step-by-step plan to implement the core foundation of your Flutter mobile application. We will follow a **Clean Architecture** approach using **Provider** for state management.
 

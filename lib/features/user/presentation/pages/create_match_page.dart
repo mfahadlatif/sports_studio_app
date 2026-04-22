@@ -2,22 +2,21 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/controllers/system_settings_controller.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
-import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sport_studio/core/controllers/system_settings_controller.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
+import 'package:sport_studio/widgets/app_button.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart' as dio_form;
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/owner/controller/bookings_controller.dart';
 
 class CreateMatchPage extends StatefulWidget {
   const CreateMatchPage({super.key});
@@ -123,6 +122,12 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     final picked = await showTimePicker(
       context: context,
       initialTime: isStart ? _selectedTime : _selectedEndTime,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       setState(() {
@@ -233,7 +238,10 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           'Are you sure you want to create this event? It will be published according to your privacy settings.',
         ),
         actions: [
-          TextButton(onPressed: () => Get.back(), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Discard Changes'),
+          ),
           ElevatedButton(
             onPressed: () {
               Get.back();
@@ -317,6 +325,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
 
       final res = await ApiClient().dio.post('/events', data: formData);
       if (res.statusCode == 200 || res.statusCode == 201) {
+        Get.find<ProfileController>().hasOrganizedEvents.value = true;
         Get.back(result: true);
         AppUtils.showSuccess(message: 'Event created successfully!');
       }
@@ -333,14 +342,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
           }
         }
       }
-      Get.snackbar(
-        'Error',
-        msg,
-        backgroundColor: Colors.red.withOpacity(0.1),
-        colorText: Colors.red,
-        snackPosition: SnackPosition.TOP,
-        duration: const Duration(seconds: 5),
-      );
+      AppUtils.showError(message: msg);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -415,6 +417,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       TextField(
                         controller: _descCtrl,
                         maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: InputDecoration(
                           hintText:
                               'Describe your event, rules, and what participants can expect...',
@@ -555,10 +558,10 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.05),
+                            color: AppColors.primary.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: AppColors.primary.withOpacity(0.2),
+                              color: AppColors.primary.withValues(alpha: 0.2),
                             ),
                           ),
                           child: Row(
@@ -739,7 +742,26 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       ),
                       const SizedBox(height: 20),
                       // Registration Fee (full width)
-                      _lbl('Registration Fee (${AppConstants.currencySymbol})'),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _lbl(
+                            'Registration Fee (${AppConstants.currencySymbol})',
+                          ),
+                          Obx(() {
+                            final settings =
+                                Get.find<SystemSettingsController>();
+                            return Text(
+                              'Admin Commission: ${settings.eventCommissionRate.toStringAsFixed(0)}%',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
                       _textField(
                         _feeCtrl,
                         '50',
@@ -810,7 +832,8 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       // Net Earning card (matching website's slate-50 bg card)
                       Obx(() {
                         final commissionRate =
-                            Get.find<SystemSettingsController>().commissionRate;
+                            Get.find<SystemSettingsController>()
+                                .eventCommissionRate;
                         final regFee = double.tryParse(_feeCtrl.text) ?? 0.0;
                         final platformFee = (regFee * commissionRate) / 100;
                         final netEarning = regFee - platformFee;
@@ -981,6 +1004,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       TextField(
                         controller: _rulesCtrl,
                         maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: _textAreaDecoration(
                           'List tournament rules, equipment requirements, etc.',
                         ),
@@ -990,6 +1014,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                       TextField(
                         controller: _safetyCtrl,
                         maxLines: 3,
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: _textAreaDecoration(
                           'Emergency protocols, first aid info...',
                         ),
@@ -1052,7 +1077,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: const Text('Cancel'),
+                        child: const Text('Discard Changes'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -1094,13 +1119,13 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: hasError
-              ? Colors.red.withOpacity(0.5)
+              ? Colors.red.withValues(alpha: 0.5)
               : const Color(0xFFE2E8F0),
           width: hasError ? 1.5 : 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1149,6 +1174,13 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
   }) => TextField(
     controller: ctrl,
     keyboardType: keyboardType,
+    textCapitalization:
+        (keyboardType == TextInputType.emailAddress ||
+            keyboardType == TextInputType.visiblePassword ||
+            keyboardType == TextInputType.number ||
+            keyboardType == TextInputType.phone)
+        ? TextCapitalization.none
+        : TextCapitalization.sentences,
     onChanged: onChanged,
     decoration: InputDecoration(
       hintText: hint,
@@ -1200,7 +1232,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withOpacity(0.05)
+              ? AppColors.primary.withValues(alpha: 0.05)
               : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
@@ -1266,13 +1298,13 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     bool fullWidth = false,
   }) {
     final bgColor = hasError
-        ? Colors.red.withOpacity(0.05)
+        ? Colors.red.withValues(alpha: 0.05)
         : const Color(0xFFF1F5F9);
     final labelColor = hasError ? Colors.red : const Color(0xFF94A3B8);
     final iconColor = hasError ? Colors.red : AppColors.primary;
     final valueColor = hasError ? Colors.red : AppColors.textPrimary;
     final borderColor = hasError
-        ? Colors.red.withOpacity(0.5)
+        ? Colors.red.withValues(alpha: 0.5)
         : const Color(0xFFE2E8F0);
 
     return GestureDetector(
@@ -1378,7 +1410,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _errors['images'] == true
-                    ? Colors.red.withOpacity(0.5)
+                    ? Colors.red.withValues(alpha: 0.5)
                     : const Color(0xFFCBD5E1),
                 style: BorderStyle.solid,
               ),
@@ -1574,7 +1606,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? AppColors.primary.withOpacity(0.05)
+                        ? AppColors.primary.withValues(alpha: 0.05)
                         : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
@@ -1586,7 +1618,7 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: AppColors.primary.withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -1709,9 +1741,11 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
                     vertical: 10,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.05),
+                    color: Colors.red.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.red.withOpacity(0.15)),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.15),
+                    ),
                   ),
                   child: Row(
                     children: [

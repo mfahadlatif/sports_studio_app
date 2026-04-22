@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/presentation/widgets/ground_card_wide.dart';
-import 'package:sports_studio/features/user/controller/home_controller.dart';
-import 'package:sports_studio/features/user/controller/favorites_controller.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/widgets/address_autocomplete_field.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/presentation/widgets/ground_card_wide.dart';
+import 'package:sport_studio/features/user/controller/home_controller.dart';
+import 'package:sport_studio/features/user/controller/favorites_controller.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/widgets/address_autocomplete_field.dart';
 
 class GroundsPage extends StatefulWidget {
-  const GroundsPage({super.key});
+  final bool isTab;
+  const GroundsPage({super.key, this.isTab = false});
 
   @override
   State<GroundsPage> createState() => _GroundsPageState();
@@ -20,6 +21,7 @@ class _GroundsPageState extends State<GroundsPage>
     with SingleTickerProviderStateMixin {
   late AnimationController _animCtrl;
   final TextEditingController _locationCtrl = TextEditingController();
+  final TextEditingController _searchCtrl = TextEditingController();
 
   @override
   void initState() {
@@ -34,6 +36,15 @@ class _GroundsPageState extends State<GroundsPage>
   void dispose() {
     _animCtrl.dispose();
     _locationCtrl.dispose();
+    _searchCtrl.dispose();
+    // Reset filters when the screen is disposed to avoid leaking filter state to home
+    try {
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().resetFilters();
+      }
+      _searchCtrl.clear();
+      _locationCtrl.clear();
+    } catch (_) {}
     super.dispose();
   }
 
@@ -44,13 +55,19 @@ class _GroundsPageState extends State<GroundsPage>
 
     return Scaffold(
       backgroundColor: Colors.grey[50], // Very light grey for modern feel
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: () => controller.refreshData(),
+        displacement: 40,
+        color: AppColors.primary,
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           // Premium Sliver App Bar
           SliverAppBar(
             expandedHeight: 180.0,
             floating: false,
             pinned: true,
+            automaticallyImplyLeading: !widget.isTab,
             backgroundColor: AppColors.primary,
             elevation: 0,
             flexibleSpace: FlexibleSpaceBar(
@@ -125,7 +142,13 @@ class _GroundsPageState extends State<GroundsPage>
           // Grounds List
           Obx(() {
             if (controller.isLoading.value) {
-              return const SliverFillRemaining(child: AppProgressIndicator());
+              return SliverToBoxAdapter(
+                child: Container(
+                  height: 300,
+                  alignment: Alignment.center,
+                  child: const AppProgressIndicator(),
+                ),
+              );
             }
 
             if (controller.filteredGrounds.isEmpty) {
@@ -171,7 +194,7 @@ class _GroundsPageState extends State<GroundsPage>
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildPremiumSearchBar(
@@ -189,13 +212,14 @@ class _GroundsPageState extends State<GroundsPage>
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 20,
                 offset: const Offset(0, 4),
               ),
             ],
           ),
           child: TextField(
+            controller: _searchCtrl,
             onChanged: (val) => controller.updateSearchQuery(val),
             decoration: InputDecoration(
               hintText: hint,
@@ -203,9 +227,24 @@ class _GroundsPageState extends State<GroundsPage>
                 color: AppColors.textMuted,
               ),
               prefixIcon: Icon(icon, color: AppColors.primary),
+              suffixIcon: ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _searchCtrl,
+                builder: (context, value, child) {
+                  return value.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 20),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            controller.updateSearchQuery('');
+                          },
+                        )
+                      : const SizedBox.shrink();
+                },
+              ),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(vertical: 15),
             ),
+            textCapitalization: TextCapitalization.sentences,
           ),
         ),
       ),
@@ -246,7 +285,7 @@ class _GroundsPageState extends State<GroundsPage>
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),
@@ -349,8 +388,7 @@ class _GroundsPageState extends State<GroundsPage>
                         runSpacing: 12,
                         children: AppConstants.groundAmenities.map((amenity) {
                           return _filterChip(
-                            amenity['id']!,
-                            '${amenity['name']} ${amenity['icon']}',
+                            amenity,
                             controller,
                           );
                         }).toList(),
@@ -409,34 +447,59 @@ class _GroundsPageState extends State<GroundsPage>
     );
   }
 
-  Widget _filterChip(String id, String label, HomeController controller) {
+  Widget _filterChip(Map<String, String> amenity, HomeController controller) {
+    final String id = amenity['id']!;
+    final String name = amenity['name']!;
+    final String icon = amenity['icon']!;
+    final String assetPath = amenity['asset'] ?? '';
     final isSelected = controller.selectedAmenities.contains(id);
+
     return GestureDetector(
       onTap: () => controller.toggleAmenity(id),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.border,
+            width: isSelected ? 1.5 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
                   ),
                 ]
               : null,
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textPrimary,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (assetPath.isNotEmpty)
+              Image.asset(
+                assetPath,
+                width: 18,
+                height: 18,
+                color: isSelected ? Colors.white : AppColors.primary,
+              )
+            else
+              Text(
+                icon,
+                style: const TextStyle(fontSize: 16),
+              ),
+            const SizedBox(width: 10),
+            Text(
+              name,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ),
       ),
     );

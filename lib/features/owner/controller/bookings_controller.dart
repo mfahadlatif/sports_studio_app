@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:dio/dio.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 
 class BookingsController extends GetxController {
   final RxBool isLoading = false.obs;
@@ -11,6 +12,8 @@ class BookingsController extends GetxController {
   final RxList<dynamic> cancelledBookings = <dynamic>[].obs;
 
   final RxString searchQuery = ''.obs;
+  final RxnInt selectedGroundId = RxnInt();
+  final RxnString selectedGroundName = RxnString();
   final RxList<dynamic> allData = <dynamic>[].obs;
 
   @override
@@ -18,11 +21,15 @@ class BookingsController extends GetxController {
     super.onInit();
     fetchBookings();
     // Re-fetch when search query changes (with debounce)
-    debounce(searchQuery, (_) => fetchBookings(), time: const Duration(milliseconds: 500));
+    debounce(
+      searchQuery,
+      (_) => fetchBookings(),
+      time: const Duration(milliseconds: 500),
+    );
   }
 
-  Future<void> fetchBookings() async {
-    isLoading.value = true;
+  Future<void> fetchBookings({bool silent = false}) async {
+    if (!silent) isLoading.value = true;
     try {
       final token = await ApiClient().storage.read(key: 'auth_token');
       final headers = {
@@ -33,6 +40,9 @@ class BookingsController extends GetxController {
       final Map<String, dynamic> queryParams = {};
       if (searchQuery.isNotEmpty) {
         queryParams['search'] = searchQuery.value;
+      }
+      if (selectedGroundId.value != null) {
+        queryParams['ground_id'] = selectedGroundId.value;
       }
 
       // 1. Fetch Ground Bookings
@@ -45,7 +55,7 @@ class BookingsController extends GetxController {
       final List groundBookingsRaw = (bookingResponse.data is Map)
           ? (bookingResponse.data['data'] as List? ?? [])
           : (bookingResponse.data as List? ?? []);
-      
+
       print('✅ [Bookings] Ground bookings count: ${groundBookingsRaw.length}');
 
       final groundBookings = groundBookingsRaw
@@ -57,7 +67,11 @@ class BookingsController extends GetxController {
               'sport_type': b['ground']?['type'] ?? 'Sports',
               'start': b['start_time'],
               'end': b['end_time'],
-              'price': double.tryParse((b['total_price'] ?? b['total_amount'] ?? 0).toString()) ?? 0.0,
+              'price':
+                  double.tryParse(
+                    (b['total_price'] ?? b['total_amount'] ?? 0).toString(),
+                  ) ??
+                  0.0,
             },
           )
           .toList();
@@ -74,6 +88,7 @@ class BookingsController extends GetxController {
             : (eventResponse.data ?? []);
 
         eventParticipations = eventDataRaw
+            .where((p) => p['event'] != null)
             .map(
               (p) => {
                 ...p,
@@ -82,8 +97,14 @@ class BookingsController extends GetxController {
                 'sport_type': 'Event',
                 'start': p['event']?['start_time'],
                 'end': p['event']?['end_time'],
-                'price': double.tryParse((p['event']?['registration_fee'] ?? 0).toString()) ?? 0.0,
-                'status': p['status'] == 'accepted'
+                'price':
+                    double.tryParse(
+                      (p['event']?['registration_fee'] ?? 0).toString(),
+                    ) ??
+                    0.0,
+                'organizer_id': p['event']?['organizer_id'],
+                'status':
+                    (p['status'] == 'confirmed' || p['status'] == 'accepted')
                     ? 'confirmed'
                     : (p['status'] == 'pending' ? 'pending' : 'cancelled'),
               },
@@ -98,22 +119,32 @@ class BookingsController extends GetxController {
 
       // Sort by date descending
       combined.sort((a, b) {
-        final dateA = DateTime.tryParse(a['start']?.toString() ?? '') ?? DateTime.now();
-        final dateB = DateTime.tryParse(b['start']?.toString() ?? '') ?? DateTime.now();
+        final dateA =
+            DateTime.tryParse(a['start']?.toString() ?? '') ?? DateTime.now();
+        final dateB =
+            DateTime.tryParse(b['start']?.toString() ?? '') ?? DateTime.now();
         return dateB.compareTo(dateA);
       });
 
       allData.value = combined;
 
       final now = DateTime.now();
-      
+
       upcomingBookings.value = combined.where((b) {
         final status = b['status']?.toString().toLowerCase() ?? '';
-        final endDate = DateTime.tryParse(b['end']?.toString() ?? '') ?? now.add(const Duration(hours: 1));
-        
+        final endDate =
+            DateTime.tryParse(b['end']?.toString() ?? '') ??
+            now.add(const Duration(hours: 1));
+
         // Exclude hard-cancelled states
-        if (['cancelled', 'rejected', 'failed', 'refunded', 'expired'].contains(status)) {
-            return false;
+        if ([
+          'cancelled',
+          'rejected',
+          'failed',
+          'refunded',
+          'expired',
+        ].contains(status)) {
+          return false;
         }
 
         // Must be in the future
@@ -122,12 +153,20 @@ class BookingsController extends GetxController {
 
       pastBookings.value = combined.where((b) {
         final status = b['status']?.toString().toLowerCase() ?? '';
-        final endDate = DateTime.tryParse(b['end']?.toString() ?? '') ?? now.subtract(const Duration(hours: 1));
-        
+        final endDate =
+            DateTime.tryParse(b['end']?.toString() ?? '') ??
+            now.subtract(const Duration(hours: 1));
+
         // Exclude hard-cancelled states for "History" usually, but some want them there.
         // For this app, let's keep History as "what happened".
-        if (['cancelled', 'rejected', 'failed', 'refunded', 'expired'].contains(status)) {
-            return false;
+        if ([
+          'cancelled',
+          'rejected',
+          'failed',
+          'refunded',
+          'expired',
+        ].contains(status)) {
+          return false;
         }
 
         return endDate.isBefore(now);
@@ -135,13 +174,21 @@ class BookingsController extends GetxController {
 
       cancelledBookings.value = combined.where((b) {
         final status = b['status']?.toString().toLowerCase() ?? '';
-        return status == 'cancelled' || status == 'rejected' || status == 'failed' || status == 'refunded' || status == 'expired';
+        return status == 'cancelled' ||
+            status == 'rejected' ||
+            status == 'failed' ||
+            status == 'refunded' ||
+            status == 'expired';
       }).toList();
-      
-      print('✅ [Bookings] Split: Upcoming: ${upcomingBookings.length}, Past: ${pastBookings.length}, Cancelled: ${cancelledBookings.length}');
+
+      print(
+        '✅ [Bookings] Split: Upcoming: ${upcomingBookings.length}, Past: ${pastBookings.length}, Cancelled: ${cancelledBookings.length}',
+      );
     } catch (e) {
-      print('Fetch Bookings Error: $e');
-      Get.snackbar('Error', 'Failed to fetch bookings');
+      print('❌ [BookingsCtrl] fetchBookings error: $e');
+      if (!silent) {
+        AppUtils.showError(message: 'Failed to refresh bookings.');
+      }
     } finally {
       isLoading.value = false;
     }
@@ -167,17 +214,20 @@ class BookingsController extends GetxController {
       );
       if (response.statusCode == 200) {
         await fetchBookings();
-        final isAccepted = newStatus == 'confirmed';
-        Get.snackbar(
-          'Success',
-          'Booking ${isAccepted ? "accepted" : "declined"} successfully',
-          backgroundColor: isAccepted
-              ? const Color(0xFFDCFCE7)
-              : const Color(0xFFFEE2E2),
-        );
+
+        String successMsg = 'Booking status updated successfully';
+        if (newStatus == 'confirmed')
+          successMsg = 'Booking accepted successfully';
+        if (newStatus == 'cancelled')
+          successMsg = 'Booking declined successfully';
+        if (newStatus == 'completed')
+          successMsg = 'Booking marked as completed';
+
+        AppUtils.showSuccess(message: successMsg);
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to update booking');
+      print('❌ [BookingsCtrl] updateBookingStatus error: $e');
+      AppUtils.showError(message: e);
     } finally {
       isActioning.value = false;
     }
@@ -188,17 +238,16 @@ class BookingsController extends GetxController {
     try {
       final id = booking['id'];
       // Match website/backend: POST /bookings/:id/finalize-payment (cash/COD)
-      final response = await ApiClient().dio.post('/bookings/$id/finalize-payment');
+      final response = await ApiClient().dio.post(
+        '/bookings/$id/finalize-payment',
+      );
       if (response.statusCode == 200) {
         await fetchBookings();
-        Get.snackbar(
-          'Marked as Paid',
-          'Booking has been confirmed as paid',
-          backgroundColor: const Color(0xFFDCFCE7),
-        );
+        AppUtils.showSuccess(message: 'Booking has been confirmed as paid');
       }
     } catch (e) {
-      Get.snackbar('Error', 'Failed to mark as paid');
+      print('❌ [BookingsCtrl] markAsPaid error: $e');
+      AppUtils.showError(message: e);
     } finally {
       isActioning.value = false;
     }
@@ -212,7 +261,9 @@ class BookingsController extends GetxController {
         queryParameters: {'date': date},
       );
       if (response.statusCode == 200) {
-        return response.data is List ? response.data : (response.data['data'] ?? []);
+        return response.data is List
+            ? response.data
+            : (response.data['data'] ?? []);
       }
     } catch (e) {
       print('Fetch Ground Bookings Error: $e');
@@ -242,9 +293,11 @@ class BookingsController extends GetxController {
         'payment_status': 'paid',
         'payment_method': 'cash',
       };
-      if (customerPhone != null && customerPhone.isNotEmpty) data['customer_phone'] = customerPhone;
-      if (customerEmail != null && customerEmail.isNotEmpty) data['customer_email'] = customerEmail;
-      
+      if (customerPhone != null && customerPhone.isNotEmpty)
+        data['customer_phone'] = customerPhone;
+      if (customerEmail != null && customerEmail.isNotEmpty)
+        data['customer_email'] = customerEmail;
+
       final response = await ApiClient().dio.post('/bookings', data: data);
       if (response.statusCode == 200 || response.statusCode == 201) {
         await fetchBookings();

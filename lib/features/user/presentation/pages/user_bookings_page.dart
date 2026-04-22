@@ -3,19 +3,27 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
-import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/user/presentation/pages/user_booking_detail_page.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sport_studio/features/user/presentation/pages/payment_page.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/user/presentation/pages/user_booking_detail_page.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
-class UserBookingsPage extends StatelessWidget {
+class UserBookingsPage extends StatefulWidget {
   const UserBookingsPage({super.key});
+
+  @override
+  State<UserBookingsPage> createState() => _UserBookingsPageState();
+}
+
+class _UserBookingsPageState extends State<UserBookingsPage> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
 
   @override
   Widget build(BuildContext context) {
@@ -31,65 +39,135 @@ class UserBookingsPage extends StatelessWidget {
           elevation: 0,
           backgroundColor: Colors.white,
           foregroundColor: AppColors.textPrimary,
+          actions: [
+            IconButton(
+              onPressed: () => setState(() => _isSearching = !_isSearching),
+              icon: Icon(_isSearching ? Icons.close : Icons.search),
+              color: _isSearching ? Colors.red : null,
+            ),
+          ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(50),
-            child: Container(
-              height: 42,
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                padding: const EdgeInsets.all(0),
-                indicatorSize: TabBarIndicatorSize.tab,
-                isScrollable: false,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: AppColors.primary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
+            preferredSize: Size.fromHeight(_isSearching ? 100 : 50),
+            child: Column(
+              children: [
+                if (_isSearching)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                    child: Container(
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.primary, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: true,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                        ),
+                        onChanged: (val) => controller.searchQuery.value = val,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Search by ID, ground, status...',
+                          border: InputBorder.none,
+                          hintStyle: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: AppColors.primary,
+                          ),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    controller.searchQuery.value = '';
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.clear, size: 20),
+                                )
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
+                  ),
+                Container(
+                  height: 42,
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TabBar(
+                    padding: const EdgeInsets.all(0),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    isScrollable: false,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.primary,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    labelColor: AppColors.surface,
+                    unselectedLabelColor: AppColors.textMuted,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    indicatorPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    tabs: const [
+                      Tab(text: 'Upcoming'),
+                      Tab(text: 'History'),
+                      Tab(text: 'Cancelled'),
+                    ],
+                  ),
                 ),
-                labelColor: AppColors.surface,
-                unselectedLabelColor: AppColors.textMuted,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                ),
-                indicatorPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                tabs: const [
-                  Tab(text: 'Upcoming'),
-                  Tab(text: 'History'),
-                  Tab(text: 'Cancelled'),
-                ],
-              ),
+              ],
             ),
           ),
         ),
         body: TabBarView(
           children: [
-            _buildBookingList('Upcoming', controller),
-            _buildBookingList('Past', controller),
-            _buildBookingList('Cancelled', controller),
+            _buildBookingList(context, 'Upcoming', controller),
+            _buildBookingList(context, 'Past', controller),
+            _buildBookingList(context, 'Cancelled', controller),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBookingList(String type, BookingsController controller) {
+  Widget _buildBookingList(
+    BuildContext context,
+    String type,
+    BookingsController controller,
+  ) {
     return Obx(() {
       if (controller.isLoading.value) {
         return const AppProgressIndicator();
@@ -102,39 +180,49 @@ class UserBookingsPage extends StatelessWidget {
           : controller.cancelledBookings;
 
       if (list.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        return RefreshIndicator(
+          onRefresh: () => controller.fetchBookings(),
+          color: AppColors.primary,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 20,
+              SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.03),
+                            blurRadius: 20,
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        type == 'Upcoming'
+                            ? Icons.calendar_today_outlined
+                            : type == 'Past'
+                            ? Icons.history_outlined
+                            : Icons.cancel_outlined,
+                        size: 64,
+                        color: AppColors.textMuted.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.l),
+                    Text('No $type matches found', style: AppTextStyles.h3),
+                    const SizedBox(height: AppSpacing.s),
+                    Text(
+                      'Matches you book will appear here',
+                      style: AppTextStyles.bodySmall.copyWith(
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
-                ),
-                child: Icon(
-                  type == 'Upcoming'
-                      ? Icons.calendar_today_outlined
-                      : type == 'Past'
-                      ? Icons.history_outlined
-                      : Icons.cancel_outlined,
-                  size: 64,
-                  color: AppColors.textMuted.withOpacity(0.4),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.l),
-              Text('No $type matches found', style: AppTextStyles.h3),
-              const SizedBox(height: AppSpacing.s),
-              Text(
-                'Matches you book will appear here',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textMuted,
                 ),
               ),
             ],
@@ -142,15 +230,23 @@ class UserBookingsPage extends StatelessWidget {
         );
       }
 
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(AppSpacing.m),
-            itemCount: list.length,
-            itemBuilder: (context, index) {
-              return _BookingCard(booking: list[index], controller: controller);
-            },
+      return RefreshIndicator(
+        onRefresh: () => controller.fetchBookings(),
+        color: AppColors.primary,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSpacing.m),
+              itemCount: list.length,
+              itemBuilder: (context, index) {
+                return _BookingCard(
+                  booking: list[index],
+                  controller: controller,
+                );
+              },
+            ),
           ),
         ),
       );
@@ -237,13 +333,13 @@ class _BookingCard extends StatelessWidget {
       onTap: () =>
           Get.to(() => const UserBookingDetailPage(), arguments: booking),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -255,7 +351,7 @@ class _BookingCard extends StatelessWidget {
             children: [
               // Ticket Top: Match Discovery
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Row(
                   children: [
                     Hero(
@@ -330,7 +426,7 @@ class _BookingCard extends StatelessWidget {
 
               // Dotted Ticket Divider
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(
                   children: List.generate(
                     20,
@@ -347,23 +443,30 @@ class _BookingCard extends StatelessWidget {
 
               // Match Schedule Section
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: Row(
                   children: [
-                    _DetailPill(Icons.calendar_month_rounded, dateStr),
+                    Expanded(
+                      child: _DetailPill(Icons.calendar_month_rounded, dateStr),
+                    ),
                     const SizedBox(width: 8),
-                    _DetailPill(Icons.history_toggle_off_rounded, timeRange),
+                    Expanded(
+                      child: _DetailPill(
+                        Icons.history_toggle_off_rounded,
+                        timeRange,
+                      ),
+                    ),
                   ],
                 ),
               ),
 
               // Footer: Price & Actions
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.04),
+                  color: AppColors.primary.withValues(alpha: 0.04),
                   border: Border(
-                    top: BorderSide(color: Colors.grey.withOpacity(0.05)),
+                    top: BorderSide(color: Colors.grey.withValues(alpha: 0.05)),
                   ),
                 ),
                 child: Row(
@@ -396,10 +499,17 @@ class _BookingCard extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () => Get.to(
                           () => const PaymentPage(),
-                          arguments: {
-                            'bookingId': booking['id'],
-                            'totalPrice': totalAmount,
-                          },
+                          arguments: isEvent
+                              ? {
+                                  'participantId': booking['id'],
+                                  'totalPrice': totalAmount,
+                                  'type': 'event_participant',
+                                }
+                              : {
+                                  'bookingId': booking['id'],
+                                  'totalPrice': totalAmount,
+                                  'type': 'booking',
+                                },
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
@@ -418,7 +528,37 @@ class _BookingCard extends StatelessWidget {
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ),
-                    ] else if (status == 'pending' || status == 'confirmed')
+                    ] else if ((status == 'pending' || status == 'confirmed') &&
+                        booking['is_event_linked'] == true)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              size: 12,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Event Locked',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (status == 'pending' || status == 'confirmed')
                       _CancelButton(
                         onPressed: () => _confirmCancel(context, booking),
                       ),
@@ -459,7 +599,7 @@ class _StatusTag extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -495,12 +635,16 @@ class _DetailPill extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: AppColors.textMuted),
           const SizedBox(width: 6),
-          Text(
-            text,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+          Flexible(
+            child: Text(
+              text,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -552,7 +696,7 @@ class _BookingCountdownState extends State<_BookingCountdown> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.1),
+        color: Colors.red.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Row(
@@ -647,7 +791,7 @@ class _CancelButton extends StatelessWidget {
       ),
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        backgroundColor: Colors.red.withOpacity(0.05),
+        backgroundColor: Colors.red.withValues(alpha: 0.05),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );

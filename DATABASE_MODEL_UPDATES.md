@@ -1,4 +1,4 @@
-# Sports Studio App - Database Model Updates
+# Sport Studio App - Database Model Updates
 
 ## 📋 Overview
 

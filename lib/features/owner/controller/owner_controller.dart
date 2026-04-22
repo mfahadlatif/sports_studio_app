@@ -1,5 +1,5 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/network/api_client.dart';
 
 class OwnerController extends GetxController {
   final RxBool isLoading = false.obs;

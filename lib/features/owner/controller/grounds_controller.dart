@@ -1,7 +1,7 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 
 class GroundsController extends GetxController {
   final ApiClient _apiClient = ApiClient();

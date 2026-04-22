@@ -42,7 +42,10 @@ class Complex {
       description: json['description'],
       rating: double.tryParse(json['rating']?.toString() ?? '') ?? 0.0,
       images: _parseJsonList<String>(json['images']),
-      status: json['status'] ?? 'active',
+      status: (json['status']?.toString().toLowerCase() == 'active' ||
+              json['status']?.toString() == '1')
+          ? 'active'
+          : 'inactive',
       grounds: json['grounds'] != null && json['grounds'] is List
           ? (json['grounds'] as List)
               .where((g) => g != null && g is Map<String, dynamic>)
@@ -141,8 +144,14 @@ class Ground {
       type: json['type'] ?? 'cricket',
       images: _parseJsonList<String>(json['images']),
       amenities: _parseJsonList<String>(json['amenities']),
-      lighting: json['lighting'] == 1 || json['lighting'] == true,
-      status: json['status'] ?? 'active',
+      lighting: json['lighting'] == 1 ||
+          json['lighting'] == true ||
+          json['has_lighting'] == 1 ||
+          json['has_lighting'] == true,
+      status: (json['status']?.toString().toLowerCase() == 'active' ||
+              json['status']?.toString() == '1')
+          ? 'active'
+          : 'inactive',
       bookingsCount: json['bookings_count'] != null
           ? int.tryParse(json['bookings_count'].toString())
           : null,
@@ -207,6 +216,10 @@ class Booking {
   final User? user;
   final Event? event;
 
+  final String? customerName;
+  final String? customerPhone;
+  final String? customerEmail;
+
   Booking({
     required this.id,
     required this.userId,
@@ -224,6 +237,9 @@ class Booking {
     this.ground,
     this.user,
     this.event,
+    this.customerName,
+    this.customerPhone,
+    this.customerEmail,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
@@ -257,6 +273,9 @@ class Booking {
       event: json['event'] != null && json['event'] is Map<String, dynamic>
           ? Event.fromJson(json['event'])
           : null,
+      customerName: json['customer_name']?.toString(),
+      customerPhone: json['customer_phone']?.toString(),
+      customerEmail: json['customer_email']?.toString(),
     );
   }
 
@@ -278,6 +297,9 @@ class Booking {
       'ground': ground?.toJson(),
       'user': user?.toJson(),
       'event': event?.toJson(),
+      'customer_name': customerName,
+      'customer_phone': customerPhone,
+      'customer_email': customerEmail,
     };
   }
 }
@@ -311,6 +333,7 @@ class Event {
   final double? longitude;
   final double? avgRating;
   final int? reviewsCount;
+  final bool isVip;
 
   int get playersLeft {
     if (maxParticipants == null || maxParticipants == 0) return 0;
@@ -346,6 +369,7 @@ class Event {
     this.longitude,
     this.avgRating,
     this.reviewsCount,
+    this.isVip = false,
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
@@ -395,6 +419,7 @@ class Event {
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
       avgRating: double.tryParse(json['avg_rating']?.toString() ?? ''),
       reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? ''),
+      isVip: json['is_vip'] == 1 || json['is_vip'] == true,
     );
   }
 
@@ -428,6 +453,7 @@ class Event {
       'longitude': longitude,
       'avg_rating': avgRating,
       'reviews_count': reviewsCount,
+      'is_vip': isVip,
     };
   }
 }
@@ -524,6 +550,7 @@ class User {
   final String? fcmToken;
   final DateTime? phoneVerifiedAt;
   final bool? isPhoneVerified;
+  final int? pendingJoinRequestsCount;
 
   User({
     required this.id,
@@ -545,6 +572,7 @@ class User {
     this.fcmToken,
     this.phoneVerifiedAt,
     this.isPhoneVerified,
+    this.pendingJoinRequestsCount,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -576,6 +604,7 @@ class User {
           ? DateTime.tryParse(json['phone_verified_at'].toString())
           : null,
       isPhoneVerified: json['is_phone_verified'] == 1 || json['is_phone_verified'] == true || json['is_phone_verified']?.toString() == '1',
+      pendingJoinRequestsCount: int.tryParse(json['pending_join_requests_count']?.toString() ?? ''),
     );
   }
 
@@ -600,6 +629,7 @@ class User {
       'fcm_token': fcmToken,
       'phone_verified_at': phoneVerifiedAt?.toIso8601String(),
       'is_phone_verified': isPhoneVerified,
+      'pending_join_requests_count': pendingJoinRequestsCount,
     };
   }
 }

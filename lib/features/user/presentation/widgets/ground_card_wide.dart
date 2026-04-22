@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/controller/favorites_controller.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/features/user/presentation/pages/ground_detail_page.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/controller/favorites_controller.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/features/user/presentation/pages/ground_detail_page.dart';
 
 class GroundCardWide extends StatelessWidget {
   final dynamic ground;
@@ -41,7 +41,7 @@ class GroundCardWide extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -210,10 +210,10 @@ class _FavoriteButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.9),
+            color: Colors.white.withValues(alpha: 0.9),
             shape: BoxShape.circle,
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10),
+              BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10),
             ],
           ),
           child: Icon(

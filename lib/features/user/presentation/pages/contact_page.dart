@@ -4,7 +4,7 @@ import '../../controller/contact_controller.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
-import 'package:sports_studio/widgets/app_button.dart';
+import 'package:sport_studio/widgets/app_button.dart';
 
 class ContactPage extends StatefulWidget {
   const ContactPage({super.key});
@@ -56,7 +56,7 @@ class _ContactPageState extends State<ContactPage> {
                 _buildContactInfo(
                   icon: Icons.email_outlined,
                   title: 'Email Us',
-                  info: 'support@sportspot.com',
+                  info: 'info@sportstudio.squarenex.com',
                 ),
                 const SizedBox(height: AppSpacing.m),
                 _buildContactInfo(
@@ -81,7 +81,7 @@ class _ContactPageState extends State<ContactPage> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: Colors.black.withValues(alpha: 0.05),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -94,6 +94,7 @@ class _ContactPageState extends State<ContactPage> {
                       const SizedBox(height: AppSpacing.l),
                       TextField(
                         controller: _nameController,
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
                           hintText: 'Full Name',
                           prefixIcon: Icon(Icons.person_outline),
@@ -102,6 +103,7 @@ class _ContactPageState extends State<ContactPage> {
                       const SizedBox(height: AppSpacing.m),
                       TextField(
                         controller: _emailController,
+                        textCapitalization: TextCapitalization.none,
                         decoration: const InputDecoration(
                           hintText: 'Email Address',
                           prefixIcon: Icon(Icons.email_outlined),
@@ -110,6 +112,7 @@ class _ContactPageState extends State<ContactPage> {
                       const SizedBox(height: AppSpacing.m),
                       TextField(
                         controller: _subjectController,
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
                           hintText: 'Subject',
                           prefixIcon: Icon(Icons.subject_outlined),
@@ -119,6 +122,7 @@ class _ContactPageState extends State<ContactPage> {
                       TextField(
                         controller: _messageController,
                         maxLines: 4,
+                        textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
                           hintText: 'Your Message',
                         ),
@@ -163,9 +167,9 @@ class _ContactPageState extends State<ContactPage> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight.withOpacity(0.5),
+        color: AppColors.primaryLight.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [

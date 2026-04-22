@@ -1,26 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/widgets/app_shimmer.dart';
+import 'package:sport_studio/widgets/app_shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/controller/events_controller.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/core/models/models.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/controller/events_controller.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/models/models.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/user/presentation/pages/create_match_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class EventsPage extends StatelessWidget {
-  const EventsPage({super.key});
+  final bool isTab;
+  const EventsPage({super.key, this.isTab = false});
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(EventsController());
 
     return Scaffold(
-      appBar: AppBar(title: const Text('All Events'), centerTitle: true),
+      appBar: AppBar(
+        title: const Text('All Events'),
+        centerTitle: true,
+        automaticallyImplyLeading: !isTab,
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
           final result = await Get.to(() => const CreateMatchPage());
@@ -32,51 +37,63 @@ class EventsPage extends StatelessWidget {
         icon: const Icon(Icons.add),
         backgroundColor: AppColors.primary,
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
-          child: Obx(() {
-            if (controller.isLoadingEvents.value) {
-              return ListView.builder(
-                padding: const EdgeInsets.all(AppSpacing.m),
-                itemCount: 4,
-                itemBuilder: (_, __) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.m),
-                  child:
-                      AppShimmer.groundCard(), // using groundCard as it matches event card layout
-                ),
-              );
-            }
+      body: RefreshIndicator(
+        onRefresh: () => controller.fetchPublicEvents(),
+        color: AppColors.primary,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Obx(() {
+              if (controller.isLoadingEvents.value) {
+                return ListView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(AppSpacing.m),
+                  itemCount: 4,
+                  itemBuilder: (_, __) => Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.m),
+                    child:
+                        AppShimmer.groundCard(), // using groundCard as it matches event card layout
+                  ),
+                );
+              }
 
-            if (controller.events.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+              if (controller.events.isEmpty) {
+                return ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
                   children: [
-                    Icon(
-                      Icons.event_busy,
-                      size: 64,
-                      color: AppColors.textMuted.withOpacity(0.5),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    const Text(
-                      'No events available at the moment.',
-                      style: TextStyle(color: AppColors.textMuted),
+                    SizedBox(height: MediaQuery.of(context).size.height * 0.3),
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.event_busy,
+                            size: 64,
+                            color: AppColors.textMuted.withValues(alpha: 0.5),
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                          const Text(
+                            'No events available at the moment.',
+                            style: TextStyle(color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
-                ),
-              );
-            }
+                );
+              }
 
-            return ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.m),
-              itemCount: controller.events.length,
-              itemBuilder: (context, index) {
-                final event = controller.events[index];
-                return _buildEventCard(event);
-              },
-            );
-          }),
+              return ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(AppSpacing.m),
+                itemCount: controller.events.length,
+                itemBuilder: (context, index) {
+                  final event = controller.events[index];
+                  return _buildEventCard(event);
+                },
+              );
+            }),
+          ),
         ),
       ),
     );
@@ -105,7 +122,7 @@ class EventsPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

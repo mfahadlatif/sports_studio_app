@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 
-import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sport_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sport_studio/core/models/models.dart';
 
 class BookingDetailPage extends StatefulWidget {
   const BookingDetailPage({super.key});
@@ -19,7 +20,7 @@ class BookingDetailPage extends StatefulWidget {
 }
 
 class _BookingDetailPageState extends State<BookingDetailPage> {
-  dynamic _booking;
+  Booking? _booking;
   bool _isLoading = true;
   bool _isUpdating = false;
 
@@ -34,7 +35,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     final args = Get.arguments;
     if (args is Map && args['booking'] != null) {
       setState(() {
-        _booking = args['booking'];
+        _booking = args['booking'] is Booking
+            ? args['booking'] as Booking
+            : Booking.fromJson(Map<String, dynamic>.from(args['booking'] as Map));
         _isLoading = false;
       });
       return;
@@ -49,10 +52,16 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     try {
       final res = await ApiClient().dio.get('/bookings/$id');
       if (res.statusCode == 200) {
-        setState(() => _booking = res.data);
+        final data = res.data is Map && res.data['data'] != null
+            ? res.data['data']
+            : res.data;
+        setState(() {
+          _booking = Booking.fromJson(Map<String, dynamic>.from(data as Map));
+        });
       }
     } catch (e) {
-      Get.snackbar('Error', 'Could not load booking');
+      print('❌ [BookingDetail] _loadBooking error: $id | $e');
+      AppUtils.showError(message: 'Could not load booking details. Please try again.');
       Get.back();
     } finally {
       setState(() => _isLoading = false);
@@ -60,57 +69,70 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   }
 
   Future<void> _updateStatus(String newStatus, {String? reason}) async {
+    if (_booking == null) return;
     setState(() => _isUpdating = true);
     try {
-      final id = _booking['id'];
+      final id = _booking!.id;
       final payload = <String, dynamic>{'status': newStatus};
-      if (reason != null) payload['rejection_reason'] = reason;
+      if (reason != null && reason.isNotEmpty) {
+        payload['rejection_reason'] = reason;
+      }
       if (newStatus == 'cancelled') payload['payment_status'] = 'refunded';
 
       final res = await ApiClient().dio.put('/bookings/$id', data: payload);
       if (res.statusCode == 200) {
-        setState(() => _booking = {..._booking, 'status': newStatus});
-        // Refresh parent list if controller is active
-        if (Get.isRegistered<BookingsController>()) {
-          Get.find<BookingsController>().fetchBookings();
+        final data = res.data is Map && res.data['data'] != null ? res.data['data'] : res.data;
+        if (data is Map) {
+          setState(() => _booking = Booking.fromJson(Map<String, dynamic>.from(data as Map)));
+        } else {
+           _loadBooking(); // fallback
         }
-        Get.snackbar(
-          'Success',
-          'Booking ${newStatus == 'confirmed' ? 'accepted' : 'declined'}',
-          backgroundColor: newStatus == 'confirmed'
-              ? const Color(0xFFDCFCE7)
-              : const Color(0xFFFEE2E2),
-        );
+        
+        if (Get.isRegistered<BookingsController>()) {
+          Get.find<BookingsController>().fetchBookings(silent: true);
+        }
+
+        String successMsg = 'Booking status updated successfully';
+        if (newStatus == 'confirmed') successMsg = 'Booking accepted successfully';
+        if (newStatus == 'cancelled') successMsg = 'Booking declined successfully';
+        if (newStatus == 'completed') successMsg = 'Booking marked as completed';
+
+        AppUtils.showSuccess(message: successMsg);
+      } else {
+        // Explicitly handle failure if statusCode is not 200
+        throw Exception('Server returned status ${res.statusCode}');
       }
-    } catch (_) {
-      Get.snackbar('Error', 'Failed to update booking');
+    } catch (e) {
+      print('❌ [BookingDetail] _updateStatus error: $e');
+      AppUtils.showError(message: e);
     } finally {
       setState(() => _isUpdating = false);
     }
   }
 
   Future<void> _markAsPaid() async {
+    if (_booking == null) return;
     setState(() => _isUpdating = true);
     try {
-      final id = _booking['id'];
+      final id = _booking!.id;
       // Match website/backend: POST /bookings/:id/finalize-payment (cash/COD)
       final res = await ApiClient().dio.post('/bookings/$id/finalize-payment');
       if (res.statusCode == 200) {
-        final updated = res.data is Map && res.data['booking'] != null
-            ? res.data['booking'] as Map<String, dynamic>
-            : res.data as Map<String, dynamic>;
-        setState(() => _booking = updated);
+        final Map<String, dynamic> responseMap = Map<String, dynamic>.from(res.data as Map);
+        final dynamic bookingData = responseMap['booking'] ?? responseMap['data'] ?? responseMap;
+        
+        setState(() {
+          _booking = Booking.fromJson(Map<String, dynamic>.from(bookingData as Map));
+        });
+
         if (Get.isRegistered<BookingsController>()) {
           Get.find<BookingsController>().fetchBookings();
         }
-        Get.snackbar(
-          'Paid',
-          'Booking marked as paid',
-          backgroundColor: const Color(0xFFDCFCE7),
-        );
+        AppUtils.showSuccess(message: 'Booking has been confirmed as paid');
       }
-    } catch (_) {
-      Get.snackbar('Error', 'Failed to mark as paid');
+    } catch (e) {
+      print('❌ [BookingDetail] _markAsPaid error: $e');
+      AppUtils.showError(message: e);
     } finally {
       setState(() => _isUpdating = false);
     }
@@ -134,7 +156,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _booking != null ? 'Booking #${_booking['id']}' : 'Booking Details',
+          _booking != null ? 'Booking #${_booking!.id}' : 'Booking Details',
         ),
         centerTitle: true,
       ),
@@ -164,25 +186,36 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   );
 
   Widget _buildBody() {
-    final String status = (_booking['status'] ?? 'pending').toString();
-    final String paymentStatus = (_booking['payment_status'] ?? 'unpaid')
-        .toString();
+    final booking = _booking!;
+
+    final String status = (booking.status).toString();
+    final String paymentStatus = (booking.paymentStatus).toString();
+
     final userName =
-        _booking['user']?['name'] ??
-        _booking['customer_name'] ??
-        'Walk-in Customer';
-    final userEmail =
-        _booking['user']?['email'] ?? _booking['customer_email'] ?? 'N/A';
-    final userPhone =
-        _booking['user']?['phone'] ?? _booking['customer_phone'] ?? 'N/A';
-    final groundName = _booking['ground']?['name'] ?? 'Ground';
-    final groundType = _booking['ground']?['type'] ?? '';
-    final startTime = _booking['start_time'] ?? '';
-    final endTime = _booking['end_time'] ?? '';
-    final date = _booking['date'] ?? startTime.toString().substring(0, 10);
-    final totalPrice = _booking['total_price'] ?? _booking['total_amount'] ?? 0;
-    final createdAt = _booking['created_at'] ?? '';
-    final updatedAt = _booking['updated_at'] ?? '';
+        booking.customerName ?? booking.user?.name ?? 'Walk-in Customer';
+
+    final userEmail = (booking.customerEmail?.isNotEmpty == true)
+        ? booking.customerEmail!
+        : (booking.user?.email.isNotEmpty == true
+              ? booking.user!.email
+              : 'N/A');
+
+    final userPhone = (booking.customerPhone?.isNotEmpty == true)
+        ? booking.customerPhone!
+        : (booking.user?.phone?.isNotEmpty == true
+              ? booking.user!.phone!
+              : 'N/A');
+
+    final groundName = booking.ground?.name ?? 'Ground';
+    final groundType = booking.ground?.type ?? '';
+    final startTime = booking.startTime.toIso8601String();
+    final endTime = booking.endTime.toIso8601String();
+    final date = AppUtils.formatDate(
+      booking.startTime.toIso8601String().substring(0, 10),
+    );
+    final totalPrice = booking.totalPrice;
+    final createdAt = booking.createdAt?.toIso8601String() ?? '';
+    final updatedAt = booking.updatedAt?.toIso8601String() ?? '';
 
     final statusColor = _statusColor(status);
 
@@ -195,7 +228,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Ground Image Header
-              if (_booking['ground'] != null)
+              if (booking.ground != null)
                 Container(
                   height: 180,
                   width: double.infinity,
@@ -204,7 +237,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -214,11 +247,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     borderRadius: BorderRadius.circular(20),
                     child: CachedNetworkImage(
                       imageUrl: UrlHelper.sanitizeUrl(
-                        (_booking['ground']['images'] is List &&
-                                (_booking['ground']['images'] as List)
-                                    .isNotEmpty)
-                            ? _booking['ground']['images'][0].toString()
-                            : _booking['ground']['image_path']?.toString(),
+                        (booking.ground!.images != null &&
+                                booking.ground!.images!.isNotEmpty)
+                            ? booking.ground!.images![0].toString()
+                            : booking.ground?.name ?? '',
                       ),
                       fit: BoxFit.cover,
                       placeholder: (context, url) =>
@@ -320,13 +352,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 crossAxisCount: 2,
                 mainAxisSpacing: AppSpacing.m,
                 crossAxisSpacing: AppSpacing.m,
-                childAspectRatio: 2.7,
+                childAspectRatio: 2.0,
                 children: [
-                  _infoCell(
-                    Icons.calendar_today_outlined,
-                    'Date',
-                    AppUtils.formatDate(date),
-                  ),
+                  _infoCell(Icons.calendar_today_outlined, 'Date', date),
                   _infoCell(
                     Icons.access_time_outlined,
                     'Time',
@@ -335,7 +363,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                   _infoCell(
                     Icons.people_outline,
                     'Players',
-                    '${_booking['players'] ?? 1} people',
+                    '${booking.players} people',
                   ),
                   _infoCell(
                     null,
@@ -362,12 +390,10 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                         shape: BoxShape.circle,
                       ),
                       child: ClipOval(
-                        child:
-                            (_booking['user'] != null &&
-                                _booking['user']['avatar'] != null)
+                        child: (booking.user?.avatar != null)
                             ? CachedNetworkImage(
                                 imageUrl: UrlHelper.sanitizeUrl(
-                                  _booking['user']['avatar'].toString(),
+                                  booking.user!.avatar.toString(),
                                 ),
                                 fit: BoxFit.cover,
                                 placeholder: (context, url) => const Center(
@@ -402,7 +428,14 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(userName, style: AppTextStyles.bodyLarge),
+                              Expanded(
+                                child: Text(
+                                  userName,
+                                  style: AppTextStyles.bodyLarge,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               if (userPhone != 'N/A')
                                 IconButton(
                                   onPressed: () =>
@@ -414,7 +447,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                   ),
                                   style: IconButton.styleFrom(
                                     backgroundColor: AppColors.primaryLight
-                                        .withOpacity(0.1),
+                                        .withValues(alpha: 0.1),
                                   ),
                                 ),
                             ],
@@ -428,10 +461,14 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                 color: AppColors.textMuted,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                userEmail,
-                                style: AppTextStyles.bodySmall.copyWith(
-                                  color: AppColors.textMuted,
+                              Expanded(
+                                child: Text(
+                                  userEmail,
+                                  style: AppTextStyles.bodySmall.copyWith(
+                                    color: AppColors.textMuted,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -446,10 +483,14 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                   color: AppColors.textMuted,
                                 ),
                                 const SizedBox(width: 4),
-                                Text(
-                                  userPhone,
-                                  style: AppTextStyles.bodySmall.copyWith(
-                                    color: AppColors.textMuted,
+                                Expanded(
+                                  child: Text(
+                                    userPhone,
+                                    style: AppTextStyles.bodySmall.copyWith(
+                                      color: AppColors.textMuted,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -467,12 +508,9 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               // Only show if there's actually something to do.
               () {
                 final isNotOnline =
-                    _booking['payment_method']?.toString().toLowerCase() !=
-                        'safepay' &&
-                    _booking['payment_method']?.toString().toLowerCase() !=
-                        'online' &&
-                    _booking['payment_method']?.toString().toLowerCase() !=
-                        'wallet';
+                    booking.paymentMethod?.toLowerCase() != 'safepay' &&
+                    booking.paymentMethod?.toLowerCase() != 'online' &&
+                    booking.paymentMethod?.toLowerCase() != 'wallet';
 
                 final canAcceptDecline = status == 'pending';
                 final canMarkPaid =
@@ -681,8 +719,11 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               ),
               Text(
                 value,
-                style: AppTextStyles.bodySmall,
-                maxLines: 1,
+                style: AppTextStyles.bodySmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                ),
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],
@@ -729,6 +770,8 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textMuted,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                 ],
               ),
@@ -774,6 +817,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
             TextField(
               controller: reasonCtrl,
               maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
                 hintText: 'Reason for declining...',
                 filled: true,

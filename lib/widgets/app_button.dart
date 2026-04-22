@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
 
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 /// A premium app-wide button with proper inline loading state.
 
@@ -68,7 +68,7 @@ class AppButton extends StatelessWidget {
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: bg,
-          disabledBackgroundColor: bg.withOpacity(0.7),
+          disabledBackgroundColor: bg.withValues(alpha: 0.7),
           elevation: isLoading ? 0 : 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),

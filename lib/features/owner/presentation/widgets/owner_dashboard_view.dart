@@ -1,25 +1,23 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/widgets/section_header.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/widgets/app_shimmer.dart';
+import 'package:sport_studio/widgets/app_shimmer.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/features/owner/controller/owner_controller.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/sports_grounds_page.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
-import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
+import 'package:sport_studio/features/owner/controller/owner_controller.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_reports_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/sports_complexes_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_deals_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/add_complex_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/sports_grounds_page.dart';
+import 'package:sport_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sport_studio/features/user/presentation/pages/wallet_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/edit_profile_page.dart';
 
 class OwnerDashboardView extends StatelessWidget {
   const OwnerDashboardView({super.key});
@@ -27,6 +25,7 @@ class OwnerDashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(OwnerController());
+    final profileController = Get.put(ProfileController());
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -38,7 +37,7 @@ class OwnerDashboardView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Top Section (Header + Banner) ───────────────────
-              _buildTopSection(controller),
+              _buildTopSection(controller, profileController),
 
               const SizedBox(height: AppSpacing.l),
 
@@ -192,7 +191,10 @@ class OwnerDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildTopSection(OwnerController controller) {
+  Widget _buildTopSection(
+    OwnerController controller,
+    ProfileController profileController,
+  ) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -211,7 +213,7 @@ class OwnerDashboardView extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildHeader(),
+          _buildHeader(profileController),
           _buildVisualBanner(controller),
           const SizedBox(height: 30),
         ],
@@ -339,8 +341,9 @@ class OwnerDashboardView extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         crossAxisCount: 4,
+        childAspectRatio: 0.8,
         crossAxisSpacing: AppSpacing.m,
-        mainAxisSpacing: AppSpacing.m,
+        mainAxisSpacing: AppSpacing.l,
         children: [
           _buildNewManagementCard(
             'Complex',
@@ -465,7 +468,11 @@ class OwnerDashboardView extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           children: [
-            Icon(icon, size: 48, color: AppColors.textMuted.withValues(alpha: 0.3)),
+            Icon(
+              icon,
+              size: 48,
+              color: AppColors.textMuted.withValues(alpha: 0.3),
+            ),
             const SizedBox(height: 12),
             Text(
               message,
@@ -478,7 +485,7 @@ class OwnerDashboardView extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(ProfileController profileController) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(AppSpacing.m, 60, AppSpacing.m, 20),
@@ -495,32 +502,55 @@ class OwnerDashboardView extends StatelessWidget {
                   Text(
                     'Welcome Back,',
                     style: AppTextStyles.bodyMedium.copyWith(
-                      color: AppColors.textSecondary,
+                      color: Colors.white,
                     ),
                   ),
                 ],
               ),
-              Text(
-                'Owner Dashboard',
-                style: AppTextStyles.h2.copyWith(fontWeight: FontWeight.w900),
+              Obx(
+                () => Text(
+                  profileController.userName,
+                  style: AppTextStyles.h2.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: AppColors.primary.withValues(alpha: 0.2),
-                width: 2,
+          Obx(() {
+            final avatar = profileController.userAvatar;
+            return Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.background.withValues(alpha: 0.2),
+                  width: 2,
+                ),
               ),
-            ),
-            child: CircleAvatar(
-              radius: 22,
-              backgroundColor: AppColors.primaryLight,
-              child: const Icon(Icons.person, color: AppColors.primary),
-            ),
-          ),
+              child: CircleAvatar(
+                radius: 22,
+                backgroundColor: AppColors.primaryLight,
+                backgroundImage: (avatar != null && avatar.isNotEmpty)
+                    ? CachedNetworkImageProvider(UrlHelper.sanitizeUrl(avatar))
+                    : null,
+                child: (avatar == null || avatar.isEmpty)
+                    ? Text(
+                        profileController.userName.isNotEmpty
+                            ? profileController.userName
+                                  .substring(0, 1)
+                                  .toUpperCase()
+                            : 'O',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
+              ),
+            );
+          }),
         ],
       ),
     );
@@ -572,15 +602,21 @@ class OwnerDashboardView extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        complex['name'] ?? 'Unnamed',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      Expanded(
+                        child: Text(
+                          complex['name'] ?? 'Unnamed',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (complex['status'] == 'active')
+                      if (complex['status'] == 'active' ||
+                          complex['status'] == '1' ||
+                          complex['status'] == 1)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
@@ -650,7 +686,6 @@ class OwnerDashboardView extends StatelessWidget {
     final groundName = booking['ground'] != null
         ? booking['ground']['name']
         : 'Arena';
-    final startTime = booking['start_time'] ?? '';
     final totalAmount = booking['total_price'] ?? '0';
     final paymentStatus = (booking['payment_status'] ?? 'unpaid')
         .toString()
@@ -683,14 +718,16 @@ class OwnerDashboardView extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: AppColors.primaryLight.withValues(alpha: 0.5),
                 border: Border.all(
-                  color: (paymentStatus == 'paid' ? Colors.green : Colors.orange)
-                      .withValues(alpha: 0.3),
+                  color:
+                      (paymentStatus == 'paid' ? Colors.green : Colors.orange)
+                          .withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(26),
-                child: (booking['user'] != null &&
+                child:
+                    (booking['user'] != null &&
                         booking['user']['avatar'] != null)
                     ? CachedNetworkImage(
                         imageUrl: UrlHelper.sanitizeUrl(
@@ -764,8 +801,11 @@ class OwnerDashboardView extends StatelessWidget {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.sports_cricket_outlined,
-                          size: 12, color: AppColors.textSecondary),
+                      Icon(
+                        Icons.sports_cricket_outlined,
+                        size: 12,
+                        color: AppColors.textSecondary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         groundName,
@@ -780,10 +820,11 @@ class OwnerDashboardView extends StatelessWidget {
                           vertical: 2,
                         ),
                         decoration: BoxDecoration(
-                          color: (paymentStatus == 'paid'
-                                  ? Colors.green
-                                  : Colors.orange)
-                              .withValues(alpha: 0.1),
+                          color:
+                              (paymentStatus == 'paid'
+                                      ? Colors.green
+                                      : Colors.orange)
+                                  .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(

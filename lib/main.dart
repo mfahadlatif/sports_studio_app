@@ -1,50 +1,52 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:sports_studio/core/controllers/system_settings_controller.dart';
-import 'package:sports_studio/core/theme/app_theme.dart';
-import 'package:sports_studio/features/landing/presentation/landing_page.dart';
-import 'package:sports_studio/features/auth/presentation/pages/auth_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/ground_detail_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/booking_slot_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/complex_detail_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/owner_ground_detail_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/onboarding_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/event_detail_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/create_match_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/setting_detail_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/edit_profile_page.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
-import 'package:sports_studio/features/user/presentation/pages/payment_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/user_bookings_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/deals_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/notifications_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/favorites_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/managed_events_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/privacy_policy_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/transactions_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/owner_reports_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/owner_deals_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/sports_complexes_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/review_moderation_page.dart';
-import 'package:sports_studio/features/owner/presentation/pages/add_complex_page.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/features/user/controller/favorites_controller.dart';
-import 'package:sports_studio/features/user/presentation/pages/contact_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_withdrawals_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_reports_page.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
-import 'package:sports_studio/core/services/app_initialization_service.dart';
-import 'package:sports_studio/core/services/data_fetch_service.dart';
-import 'package:sports_studio/core/services/safepay_service.dart';
+import 'package:sport_studio/core/controllers/system_settings_controller.dart';
+import 'package:sport_studio/core/theme/app_theme.dart';
+import 'package:sport_studio/features/landing/presentation/landing_page.dart';
+import 'package:sport_studio/features/auth/presentation/pages/auth_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/ground_detail_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/booking_slot_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/add_edit_ground_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/complex_detail_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_ground_detail_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/onboarding_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/event_detail_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/create_match_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/setting_detail_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/edit_profile_page.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sport_studio/features/user/presentation/pages/payment_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/user_bookings_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/deals_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/notifications_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/favorites_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/managed_events_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/privacy_policy_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/transactions_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_reports_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/booking_detail_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/owner_deals_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/sports_complexes_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/review_moderation_page.dart';
+import 'package:sport_studio/features/owner/presentation/pages/add_complex_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/join_requests_page.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/features/user/controller/favorites_controller.dart';
+import 'package:sport_studio/features/user/presentation/pages/contact_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_users_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_withdrawals_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_reports_page.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/core/services/app_initialization_service.dart';
+import 'package:sport_studio/core/services/data_fetch_service.dart';
+import 'package:sport_studio/core/services/safepay_service.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:sports_studio/features/user/presentation/pages/wallet_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/transaction_detail_page.dart';
+import 'package:sport_studio/core/services/notification_service.dart';
+import 'package:sport_studio/features/user/presentation/pages/wallet_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/transaction_detail_page.dart';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -53,8 +55,14 @@ void main() async {
   await Firebase.initializeApp();
   await dotenv.load(fileName: ".env");
 
+  // Initialize Notification Service
+  Get.put(NotificationService());
+  await Get.find<NotificationService>().init();
+
   const storage = FlutterSecureStorage();
-  final String? hasSeenOnboarding = await storage.read(key: 'has_seen_onboarding');
+  final String? hasSeenOnboarding = await storage.read(
+    key: 'has_seen_onboarding',
+  );
   final String? authToken = await storage.read(key: 'auth_token');
 
   String initialRoute = '/onboarding';
@@ -103,7 +111,7 @@ class SportsStudioApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      title: 'Sports Studio',
+      title: 'Sport Studio',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       initialRoute: initialRoute,
@@ -245,6 +253,11 @@ class SportsStudioApp extends StatelessWidget {
           name: '/add-complex',
           page: () => const AddComplexPage(),
           transition: Transition.downToUp,
+        ),
+        GetPage(
+          name: '/join-requests',
+          page: () => const JoinRequestsPage(),
+          transition: Transition.rightToLeft,
         ),
         // ── Admin Feature Routes ──────────────────────────────
         GetPage(

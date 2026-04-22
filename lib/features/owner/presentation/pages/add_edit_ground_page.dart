@@ -3,18 +3,19 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
 import 'package:dio/dio.dart' as dio_form;
-import 'package:sports_studio/core/utils/url_helper.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/widgets/address_autocomplete_field.dart';
-import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
-import 'package:sports_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/widgets/address_autocomplete_field.dart';
+import 'package:sport_studio/widgets/full_screen_image_viewer.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/controllers/system_settings_controller.dart';
 
 class AddEditGroundPage extends StatefulWidget {
   const AddEditGroundPage({super.key});
@@ -37,7 +38,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   final _lngCtrl = TextEditingController();
 
   String _selectedSport = 'cricket';
-  String _selectedStatus = 'active';
   bool _hasLighting = false;
   bool _isSubmitting = false;
 
@@ -53,7 +53,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   String _complexAddress = '';
   String? _complexLat;
   String? _complexLng;
-  int? _selectedComplexIdForStep;
 
   final List<Map<String, String>> _groundAmenitiesConfig =
       AppConstants.groundAmenities;
@@ -96,6 +95,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
 
   void _prefillFromExisting() {
     final g = _existingGround;
+    _complexId = int.tryParse(g['complex_id']?.toString() ?? '') ?? _complexId;
     _nameCtrl.text = g['name'] ?? '';
     _locationCtrl.text = g['location'] ?? '';
     _priceController.text = (g['price_per_hour'] ?? '').toString();
@@ -108,8 +108,11 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
             .toString();
     _latCtrl.text = (g['latitude'] ?? '').toString();
     _lngCtrl.text = (g['longitude'] ?? '').toString();
-    _selectedStatus = g['status'] ?? 'active';
-    _hasLighting = g['has_lighting'] == true || g['has_lighting'] == 1;
+    _hasLighting =
+        g['has_lighting'] == true ||
+        g['has_lighting'] == 1 ||
+        g['lighting'] == true ||
+        g['lighting'] == 1;
 
     if (g['type'] != null) {
       _selectedSport = _normalizeType(g['type'].toString());
@@ -146,17 +149,29 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       }
     } catch (_) {}
 
-    final images = UrlHelper.getParsedImages(g['images']);
-    _existingUrls.addAll(
-      images.map(UrlHelper.sanitizeUrl).where((e) => e.isNotEmpty),
-    );
+    // Robust image pre-filling from all possible API keys
+    final Set<String> detectedImages = {};
+
+    // Check various common image fields
+    detectedImages.addAll(UrlHelper.getParsedImages(g['images']));
+    detectedImages.addAll(UrlHelper.getParsedImages(g['media']));
+    detectedImages.addAll(UrlHelper.getParsedImages(g['image_path']));
+    detectedImages.addAll(UrlHelper.getParsedImages(g['image']));
+
+    for (var img in detectedImages) {
+      final sanitized = UrlHelper.sanitizeUrl(img);
+      if (sanitized.isNotEmpty && !_existingUrls.contains(sanitized)) {
+        _existingUrls.add(sanitized);
+      }
+    }
   }
 
   String _normalizeType(String raw) {
     final lower = raw.toLowerCase();
     for (var s in _sportConfigs) {
-      if (s['id'] == lower || s['name']!.toLowerCase() == lower)
+      if (s['id'] == lower || s['name']!.toLowerCase() == lower) {
         return s['id']!;
+      }
     }
     return 'cricket';
   }
@@ -184,7 +199,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
           .map(UrlHelper.getRawPath)
           .toList();
 
-      final mediaApi = MediaApiService();
       for (var file in _pickedImages) {
         try {
           // Add model info to help the backend associate the media
@@ -203,7 +217,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
             finalImagePaths.add(uploadRes.data['path']);
           }
         } catch (e) {
-          print('Error uploading file: $e');
+          debugPrint('Error uploading file: $e');
         }
       }
 
@@ -221,8 +235,8 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
         'opening_time': _openTimeController.text.trim(),
         'closing_time': _closeTimeController.text.trim(),
         'type': _selectedSport,
-        'status': _selectedStatus,
         'lighting': _hasLighting ? '1' : '0',
+        'has_lighting': _hasLighting ? '1' : '0',
         if (_complexId != null) 'complex_id': _complexId.toString(),
         'latitude': _latCtrl.text.trim().isEmpty
             ? (_complexLat ?? '0.0')
@@ -297,7 +311,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       message: _isEdit
           ? 'Your changes have been saved successfully.'
           : 'Your ground has been added successfully. Please wait for admin approval. Once approved, your ground will be activated.',
-      onConfirm: () => Get.back(),
     );
   }
 
@@ -377,6 +390,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                   TextField(
                     controller: _descCtrl,
                     maxLines: 4,
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       hintText: 'Describe this ground...',
                       hintStyle: AppTextStyles.bodySmall,
@@ -414,7 +428,23 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                     label: 'Pricing & Availability',
                   ),
                   const SizedBox(height: AppSpacing.m),
-                  _lbl('Price per Hour (${AppConstants.currencySymbol}) *'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _lbl('Price per Hour (${AppConstants.currencySymbol}) *'),
+                      Obx(() {
+                        final settings = Get.find<SystemSettingsController>();
+                        return Text(
+                          'Admin Commission: ${settings.commissionRate.toStringAsFixed(0)}%',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange,
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
                   _textField(
                     _priceController,
                     'Rate per hour',
@@ -477,12 +507,14 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
   Widget _buildSelectComplexStep() {
     final controller = Get.put(GroundsController());
     return Obx(() {
-      if (controller.isLoading.value)
+      if (controller.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
-      if (controller.complexes.isEmpty)
+      }
+      if (controller.complexes.isEmpty) {
         return const Center(
           child: Text('No complexes found. Add a complex first.'),
         );
+      }
 
       return ListView.builder(
         padding: const EdgeInsets.all(16),
@@ -510,26 +542,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 children: [
                   Text(c.address, maxLines: 1, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? Colors.green.withValues(alpha: 0.1)
-                          : Colors.orange.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      isActive ? 'ACTIVE' : 'APPROVAL PENDING',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: isActive ? Colors.green : Colors.orange,
-                      ),
-                    ),
-                  ),
                 ],
               ),
               trailing: isActive
@@ -546,7 +558,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                       _complexAddress = c.address;
                       _complexLat = c.latitude?.toString();
                       _complexLng = c.longitude?.toString();
-                      _selectedComplexIdForStep = c.id;
 
                       // Auto-populate location from newly selected complex
                       _locationCtrl.text = _complexAddress;
@@ -603,13 +614,13 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
             border: Border.all(
               color: isSelected
                   ? AppColors.primary
-                  : AppColors.border.withOpacity(0.5),
+                  : AppColors.border.withValues(alpha: 0.5),
               width: 1.5,
             ),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       blurRadius: 6,
                       offset: const Offset(0, 3),
                     ),
@@ -672,13 +683,13 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
               border: Border.all(
                 color: isSelected
                     ? AppColors.primary
-                    : AppColors.border.withOpacity(0.5),
+                    : AppColors.border.withValues(alpha: 0.5),
                 width: 1.5,
               ),
               boxShadow: isSelected
                   ? [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -691,8 +702,8 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.white.withOpacity(0.2)
-                        : AppColors.primaryLight.withOpacity(0.5),
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : AppColors.primaryLight.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
                   child: assetPath.isNotEmpty
@@ -764,7 +775,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
               color: AppColors.primaryLight,
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               border: Border.all(
-                color: AppColors.primary.withOpacity(0.3),
+                color: AppColors.primary.withValues(alpha: 0.3),
                 width: 1.5,
               ),
             ),
@@ -819,7 +830,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                             AppConstants.borderRadius,
                           ),
                           border: Border.all(
-                            color: AppColors.border.withOpacity(0.5),
+                            color: AppColors.border.withValues(alpha: 0.5),
                           ),
                         ),
                         child: ClipRRect(
@@ -888,13 +899,6 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
           _hasLighting,
           (v) => setState(() => _hasLighting = v),
         ),
-        const SizedBox(height: 10),
-        _toggleItem(
-          'Ground Status',
-          'Active grounds are available for booking',
-          _selectedStatus == 'active',
-          (v) => setState(() => _selectedStatus = v ? 'active' : 'inactive'),
-        ),
       ],
     );
   }
@@ -936,7 +940,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
           Switch(
             value: val,
             onChanged: onChanged,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),
@@ -948,17 +952,32 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       onTap: () async {
         final TimeOfDay? picked = await showTimePicker(
           context: context,
-          initialTime: TimeOfDay.now(),
+          initialTime: TimeOfDay(
+            hour: int.tryParse(ctrl.text.split(':').first) ?? 8,
+            minute: int.tryParse(ctrl.text.split(':').last) ?? 0,
+          ),
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(alwaysUse24HourFormat: false),
+              child: child!,
+            );
+          },
         );
         if (picked != null) {
           final h = picked.hour.toString().padLeft(2, '0');
           final m = picked.minute.toString().padLeft(2, '0');
-          ctrl.text = '$h:$m';
+          setState(() {
+            ctrl.text = '$h:$m';
+          });
         }
       },
       child: AbsorbPointer(
         child: TextField(
-          controller: ctrl,
+          controller: TextEditingController(
+            text: AppUtils.formatTime(ctrl.text),
+          ),
           style: AppTextStyles.bodySmall,
           decoration: InputDecoration(
             hintText: 'Select Time',
@@ -995,6 +1014,12 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     return TextField(
       controller: ctrl,
       keyboardType: keyboardType,
+      textCapitalization:
+          (keyboardType == TextInputType.emailAddress ||
+              keyboardType == TextInputType.number ||
+              keyboardType == TextInputType.phone)
+          ? TextCapitalization.none
+          : TextCapitalization.sentences,
       style: AppTextStyles.bodySmall,
       decoration: InputDecoration(
         hintText: hint,
@@ -1039,7 +1064,7 @@ class _Card extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppConstants.borderRadius + 8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),

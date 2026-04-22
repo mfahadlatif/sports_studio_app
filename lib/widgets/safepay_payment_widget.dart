@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:safepay_checkout/safepay_payment_gateway.dart';
-import 'package:sports_studio/core/services/safepay_service.dart';
+import 'package:sport_studio/core/services/safepay_service.dart';
 
 class SafepayPaymentWidget extends StatelessWidget {
   final double amount;

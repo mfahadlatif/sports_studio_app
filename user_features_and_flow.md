@@ -1,6 +1,6 @@
 # User Features & Application Flow (Code-Matched) ⚽🏆
 
-This document details the player-facing functionalities, UI components, and real-time mechanisms implemented in the **Sports Studio Web** application.
+This document details the player-facing functionalities, UI components, and real-time mechanisms implemented in the **Sport Studio Web** application.
 
 ---
 

@@ -8,7 +8,7 @@ class AppSpacing {
 }
 
 class AppConstants {
-  static const String appName = 'Sports Studio';
+  static const String appName = 'Sport Studio';
   static const double borderRadius = 12.0;
   static const double cardRadius = 16.0;
   static const double buttonRadius = 12.0;

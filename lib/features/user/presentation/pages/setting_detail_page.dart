@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/widgets/phone_input_field.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/widgets/phone_input_field.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 
 class SettingDetailPage extends StatefulWidget {
   const SettingDetailPage({super.key});
@@ -221,7 +221,7 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
       const SizedBox(width: 8),
       Text(title, style: AppTextStyles.h3.copyWith(color: AppColors.primary)),
       const SizedBox(width: 8),
-      Expanded(child: Divider(color: AppColors.primary.withOpacity(0.2))),
+      Expanded(child: Divider(color: AppColors.primary.withValues(alpha: 0.2))),
     ],
   );
 
@@ -249,6 +249,12 @@ class _SettingDetailPageState extends State<SettingDetailPage> {
           controller: controller,
           keyboardType: keyboardType,
           obscureText: isPassword,
+          textCapitalization: (isPassword ||
+                  keyboardType == TextInputType.emailAddress ||
+                  keyboardType == TextInputType.number ||
+                  keyboardType == TextInputType.phone)
+              ? TextCapitalization.none
+              : TextCapitalization.sentences,
           decoration: InputDecoration(
             hintText: label,
             hintStyle: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),

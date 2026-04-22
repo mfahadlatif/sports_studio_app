@@ -1,4 +1,4 @@
-# Sports Studio: User API Specification 👕
+# Sport Studio: User API Specification 👕
 
 This document details all API endpoints available for the **Regular User** role. It covers searching, booking, social features, and community participation.
 

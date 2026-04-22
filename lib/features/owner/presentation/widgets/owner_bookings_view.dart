@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/core/constants/user_roles.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
-import 'package:sports_studio/features/owner/controller/bookings_controller.dart';
-import 'package:sports_studio/features/owner/controller/grounds_controller.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/features/owner/presentation/pages/booking_detail_page.dart';
-import 'package:sports_studio/features/user/presentation/pages/user_booking_detail_page.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
+import 'package:sport_studio/features/owner/controller/bookings_controller.dart';
+import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/features/owner/presentation/pages/booking_detail_page.dart';
+import 'package:sport_studio/features/user/presentation/pages/user_booking_detail_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
 
 class OwnerBookingsView extends StatefulWidget {
-  const OwnerBookingsView({super.key});
+  final bool isTab;
+  const OwnerBookingsView({super.key, this.isTab = false});
 
   @override
   State<OwnerBookingsView> createState() => _OwnerBookingsViewState();
@@ -26,6 +28,41 @@ class OwnerBookingsView extends StatefulWidget {
 class _OwnerBookingsViewState extends State<OwnerBookingsView> {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _handleArguments();
+  }
+
+  void _handleArguments() {
+    final BookingsController controller = Get.isRegistered<BookingsController>()
+        ? Get.find<BookingsController>()
+        : Get.put(BookingsController());
+    final args = Get.arguments;
+    if (args != null && args is Map && args.containsKey('groundId')) {
+      final gId = int.tryParse(args['groundId'].toString());
+      if (gId != null) {
+        controller.selectedGroundId.value = gId;
+        controller.selectedGroundName.value = args['groundName']?.toString();
+        controller.fetchBookings();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Get.isRegistered<BookingsController>()) {
+      final controller = Get.find<BookingsController>();
+      if (controller.selectedGroundId.value != null) {
+        controller.selectedGroundId.value = null;
+        controller.selectedGroundName.value = null;
+        controller.fetchBookings(silent: true);
+      }
+    }
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,97 +74,188 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
 
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
+      child: Obx(() => Scaffold(
         appBar: AppBar(
-          title: _isSearching
-              ? TextField(
-                  controller: _searchController,
-                  autofocus: true,
-                  style: const TextStyle(color: AppColors.primary),
-                  onChanged: (val) => controller.searchQuery.value = val,
-                  decoration: const InputDecoration(
-                    hintText: 'Search by client, ID, ground...',
-                    border: InputBorder.none,
-                    hintStyle: TextStyle(color: AppColors.textMuted),
-                  ),
-                )
-              : Text(isOwnerOrAdmin ? 'All Bookings' : 'My Bookings'),
+          automaticallyImplyLeading: !widget.isTab,
+          title: const Text('Bookings'),
+          centerTitle: true,
           actions: [
-            if (_isSearching)
-              IconButton(
-                onPressed: () {
-                  setState(() => _isSearching = false);
-                  _searchController.clear();
-                  controller.searchQuery.value = '';
-                },
-                icon: const Icon(Icons.close),
-              )
-            else ...[
-              IconButton(
-                onPressed: () => setState(() => _isSearching = true),
-                icon: const Icon(Icons.search),
-              ),
-              if (isOwnerOrAdmin)
-                TextButton.icon(
-                  onPressed: () => _showManualBookingSheet(context, controller),
-                  icon: const Icon(Icons.add, color: AppColors.primary),
-                  label: Text(
-                    'Manual Entry',
-                    style: AppTextStyles.label.copyWith(
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-            ],
+            IconButton(
+              onPressed: () => setState(() => _isSearching = !_isSearching),
+              icon: Icon(_isSearching ? Icons.close : Icons.search),
+              color: _isSearching ? Colors.red : null,
+            ),
           ],
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(50),
-            child: Container(
-              height: 42,
-              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TabBar(
-                padding: const EdgeInsets.all(0),
-                indicatorSize: TabBarIndicatorSize.tab,
-                isScrollable: false,
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: AppColors.primary,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.04),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
+            preferredSize: Size.fromHeight(
+              (_isSearching ? 60 : 0) +
+                  (Get.find<BookingsController>().selectedGroundId.value != null
+                      ? 50
+                      : 0) +
+                  60,
+            ),
+            child: Column(
+              children: [
+                if (_isSearching)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                    child: Container(
+                      height: 45,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.primary,
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: true,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                        ),
+                        onChanged: (val) => controller.searchQuery.value = val,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          hintText: 'Search by client, ID, ground...',
+                          border: InputBorder.none,
+                          hintStyle: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 13,
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: AppColors.primary,
+                          ),
+                          suffixIcon: _searchController.text.isNotEmpty
+                              ? IconButton(
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    controller.searchQuery.value = '';
+                                    setState(() {});
+                                  },
+                                  icon: const Icon(Icons.clear, size: 20),
+                                )
+                              : null,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                          ),
+                        ),
+                      ),
                     ),
-                  ],
+                  ),
+                Obx(() {
+                  if (controller.selectedGroundId.value == null) return const SizedBox.shrink();
+                  return Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.filter_alt, size: 14, color: Colors.orange),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Filtered: ${controller.selectedGroundName.value ?? controller.selectedGroundId.value}',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              controller.selectedGroundId.value = null;
+                              controller.selectedGroundName.value = null;
+                              controller.fetchBookings();
+                            },
+                            child: const Icon(Icons.cancel, size: 18, color: Colors.orange),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                Container(
+                  height: 42,
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: TabBar(
+                    padding: const EdgeInsets.all(0),
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    isScrollable: false,
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.primary,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    labelColor: AppColors.surface,
+                    unselectedLabelColor: AppColors.textMuted,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    indicatorPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(text: 'Upcoming'),
+                      Tab(text: 'Past'),
+                      Tab(text: 'Cancelled'),
+                    ],
+                  ),
                 ),
-                labelColor: AppColors.surface,
-                unselectedLabelColor: AppColors.textMuted,
-                labelStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-                unselectedLabelStyle: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 12,
-                ),
-                indicatorPadding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
-                dividerColor: Colors.transparent,
-                tabs: const [
-                  Tab(text: 'Upcoming'),
-                  Tab(text: 'Past'),
-                  Tab(text: 'Cancelled'),
-                ],
-              ),
+              ],
             ),
           ),
         ),
+        floatingActionButton: isOwnerOrAdmin
+            ? FloatingActionButton.extended(
+                onPressed: () => _showManualBookingSheet(context, controller),
+                backgroundColor: AppColors.primary,
+                icon: const Icon(Icons.add, color: Colors.white),
+                label: const Text(
+                  'Manual Entry',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              )
+            : null,
         body: TabBarView(
           children: [
             _buildBookingList('Upcoming', controller, isOwnerOrAdmin),
@@ -135,7 +263,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
             _buildBookingList('Cancelled', controller, isOwnerOrAdmin),
           ],
         ),
-      ),
+      )),
     );
   }
 
@@ -144,58 +272,87 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
     BookingsController controller,
     bool isOwnerOrAdmin,
   ) {
-    return Obx(() {
-      if (controller.isLoading.value) {
-        return const AppProgressIndicator();
-      }
+    return RefreshIndicator(
+      onRefresh: () => controller.fetchBookings(),
+      color: AppColors.primary,
+      child: Obx(() {
+        if (controller.isLoading.value) {
+          return const SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            child: SizedBox(
+              height: 500,
+              child: Center(child: AppProgressIndicator()),
+            ),
+          );
+        }
 
-      final list = type == 'Upcoming'
-          ? controller.upcomingBookings
-          : type == 'Past'
-          ? controller.pastBookings
-          : controller.cancelledBookings;
+        final profileController = Get.find<ProfileController>();
+        final userId = profileController.userProfile['id']?.toString();
 
-      if (list.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+        final rawList = type == 'Upcoming'
+            ? controller.upcomingBookings
+            : type == 'Past'
+            ? controller.pastBookings
+            : controller.cancelledBookings;
+
+        // Filter: If owner/admin, only show events they organize.
+        // User joined events (not organized by them) should be in JoinedEventsPage.
+        final list = rawList.where((b) {
+          if (isOwnerOrAdmin && b['type'] == 'event') {
+            return b['organizer_id']?.toString() == userId;
+          }
+          return true;
+        }).toList();
+
+        if (list.isEmpty) {
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              Icon(
-                Icons.calendar_month_outlined,
-                size: 64,
-                color: AppColors.textMuted.withValues(alpha: 0.5),
-              ),
-              const SizedBox(height: AppSpacing.m),
-              Text(
-                'No $type bookings found.',
-                style: AppTextStyles.bodyMedium.copyWith(
-                  color: AppColors.textMuted,
+              SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.calendar_month_outlined,
+                      size: 64,
+                      color: AppColors.textMuted.withValues(alpha: 0.5),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    Text(
+                      'No $type bookings found.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textMuted,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
+          );
+        }
+
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSpacing.m),
+              itemCount: list.length,
+              itemBuilder: (context, index) {
+                return _buildBookingCard(
+                  context,
+                  list[index],
+                  type,
+                  controller,
+                  isOwnerOrAdmin,
+                );
+              },
+            ),
           ),
         );
-      }
-
-      return Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: ListView.builder(
-            padding: const EdgeInsets.all(AppSpacing.m),
-            itemCount: list.length,
-            itemBuilder: (context, index) {
-              return _buildBookingCard(
-                context,
-                list[index],
-                type,
-                controller,
-                isOwnerOrAdmin,
-              );
-            },
-          ),
-        ),
-      );
-    });
+      }),
+    );
   }
 
   Widget _buildBookingCard(
@@ -227,11 +384,13 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
     final String dateStr = (booking['date'] ?? '').toString();
     final String rawStart = (booking['start_time'] ?? '').toString();
     final String rawEnd = (booking['end_time'] ?? '').toString();
-    
+
     // Extract date correctly
     String displayDate = dateStr;
     if (displayDate.isEmpty && rawStart.isNotEmpty) {
-      displayDate = rawStart.contains(' ') ? rawStart.split(' ')[0] : (rawStart.contains('T') ? rawStart.split('T')[0] : rawStart);
+      displayDate = rawStart.contains(' ')
+          ? rawStart.split(' ')[0]
+          : (rawStart.contains('T') ? rawStart.split('T')[0] : rawStart);
     }
     final formattedDate = AppUtils.formatDate(displayDate);
 
@@ -919,6 +1078,8 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
             TextField(
               controller: reasonController,
               maxLines: 3,
+              textCapitalization: TextCapitalization.sentences,
+
               decoration: InputDecoration(
                 hintText: 'e.g. Facility under maintenance...',
                 filled: true,
@@ -996,7 +1157,12 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
   @override
   void initState() {
     super.initState();
-    // Pre-fetch if ground already selected (unlikely here but for safety)
+    // Refresh grounds to ensure updated operating hours are shown
+    Future.microtask(() {
+      try {
+        Get.find<GroundsController>().fetchComplexesAndGrounds();
+      } catch (_) {}
+    });
   }
 
   Future<void> _fetchAvailability() async {
@@ -1057,6 +1223,8 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     child: Text(
                       'Manual Booking Entry',
                       style: AppTextStyles.h2,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
                     ),
                   ),
                   IconButton(
@@ -1078,6 +1246,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     const SizedBox(height: AppSpacing.s),
                     Obx(
                       () => DropdownButtonFormField<int>(
+                        isExpanded: true,
                         value: _selectedGroundId,
                         hint: const Text('Choose a ground'),
                         decoration: InputDecoration(
@@ -1095,6 +1264,8 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                                 value: g.id,
                                 child: Text(
                                   '${g.name} (${g.complexName ?? "Complex"})',
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
                             )
@@ -1122,10 +1293,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     const SizedBox(height: AppSpacing.m),
 
                     // Phone & Email (Column layout)
-                    Text(
-                      'Phone (optional)',
-                      style: AppTextStyles.label,
-                    ),
+                    Text('Phone (optional)', style: AppTextStyles.label),
                     const SizedBox(height: AppSpacing.s),
                     _field(
                       _phoneCtrl,
@@ -1134,10 +1302,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                       type: TextInputType.phone,
                     ),
                     const SizedBox(height: AppSpacing.m),
-                    Text(
-                      'Email (optional)',
-                      style: AppTextStyles.label,
-                    ),
+                    Text('Email (optional)', style: AppTextStyles.label),
                     const SizedBox(height: AppSpacing.s),
                     _field(
                       _emailCtrl,
@@ -1184,7 +1349,7 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                     // Time Slots Grid
                     Text('Select Time Slots', style: AppTextStyles.label),
                     const SizedBox(height: AppSpacing.s),
-                    _buildSlotsGrid(),
+                    Obx(() => _buildSlotsGrid()),
                     const SizedBox(height: AppSpacing.m),
 
                     // Players & Amount
@@ -1194,7 +1359,12 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Players', style: AppTextStyles.label),
+                              Text(
+                                'Players',
+                                style: AppTextStyles.label,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                               const SizedBox(height: AppSpacing.s),
                               _field(
                                 _playersCtrl,
@@ -1213,6 +1383,8 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
                               Text(
                                 'Total Amount (${AppConstants.currencySymbol})',
                                 style: AppTextStyles.label,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
                               ),
                               const SizedBox(height: AppSpacing.s),
                               _field(
@@ -1248,15 +1420,32 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
   }
 
   Widget _buildSlotsGrid() {
+    final groundsController = Get.find<GroundsController>();
+    // Touch reactive variable to prevent Obx error when no ground is selected
+    groundsController.grounds.length;
+
     if (_selectedGroundId == null) {
       return Container(
-        padding: const EdgeInsets.all(AppSpacing.m),
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
           color: AppColors.background,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
         ),
-        child: const Center(
-          child: Text('Select a ground to see available slots'),
+        child: Column(
+          children: [
+            Icon(
+              Icons.sports_cricket_outlined,
+              size: 40,
+              color: AppColors.textMuted.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Select a ground to see available slots',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ],
         ),
       );
     }
@@ -1266,7 +1455,6 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
     }
 
     // Generate 24 slots
-    final groundsController = Get.find<GroundsController>();
     final ground = groundsController.grounds.firstWhereOrNull(
       (g) => g.id.toString() == _selectedGroundId.toString(),
     );
@@ -1401,6 +1589,9 @@ class _ManualBookingSheetState extends State<_ManualBookingSheet> {
     return TextField(
       controller: ctrl,
       keyboardType: type,
+      textCapitalization: type == TextInputType.emailAddress
+          ? TextCapitalization.none
+          : TextCapitalization.sentences,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,

@@ -1,6 +1,6 @@
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
 
 class AdminController extends GetxController {
   final RxBool isLoading = false.obs;

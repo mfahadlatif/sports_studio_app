@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/features/user/presentation/pages/ground_detail_page.dart';
-import 'package:sports_studio/widgets/app_button.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/features/user/presentation/pages/ground_detail_page.dart';
+import 'package:sport_studio/widgets/app_button.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -86,9 +86,9 @@ class UserBookingDetailPage extends StatelessWidget {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0.5),
+                        Colors.black.withValues(alpha: 0.5),
                         Colors.transparent,
-                        Colors.black.withOpacity(0.2),
+                        Colors.black.withValues(alpha: 0.2),
                       ],
                     ),
                   ),
@@ -182,7 +182,7 @@ class UserBookingDetailPage extends StatelessWidget {
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
+                                  color: AppColors.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(Icons.stadium_rounded,
@@ -275,9 +275,9 @@ class UserBookingDetailPage extends StatelessWidget {
                           padding: const EdgeInsets.all(AppSpacing.l),
                           margin: const EdgeInsets.only(bottom: AppSpacing.xxl),
                           decoration: BoxDecoration(
-                            color: Colors.orange.withOpacity(0.05),
+                            color: Colors.orange.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: Colors.orange.withOpacity(0.2)),
+                            border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,7 +326,7 @@ class UserBookingDetailPage extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -380,9 +380,9 @@ class UserBookingDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

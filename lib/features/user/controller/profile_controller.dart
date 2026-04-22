@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/network/api_services.dart';
-import 'package:sports_studio/core/models/models.dart' as models;
-import 'package:sports_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/network/api_services.dart';
+import 'package:sport_studio/core/models/models.dart' as models;
+import 'package:sport_studio/core/utils/app_utils.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:sports_studio/features/landing/controller/landing_controller.dart';
 
 class ProfileController extends GetxController {
   final RxBool isLoadingProfile = false.obs;
@@ -16,6 +16,9 @@ class ProfileController extends GetxController {
   final RxList<models.Notification> notifications = <models.Notification>[].obs;
   final RxInt unreadCount = 0.obs;
   final RxString pickedAvatarPath = ''.obs;
+  final RxInt pendingJoinRequestsCount = 0.obs;
+  final RxInt managedEventsCount = 0.obs;
+  final RxBool hasOrganizedEvents = false.obs;
 
   // Form controllers
   final nameController = TextEditingController();
@@ -40,6 +43,25 @@ class ProfileController extends GetxController {
     // to ensure they only happen when a valid session token exists.
   }
 
+  Future<void> refreshProfileData() async {
+    await Future.wait([
+      fetchProfile(),
+      fetchNotifications(),
+      _fetchManagedEventsCount(),
+    ]);
+  }
+
+  Future<void> _fetchManagedEventsCount() async {
+    try {
+      final res = await ApiClient().dio.get('/events/user/managed');
+      final list = res.data is List
+          ? res.data
+          : (res.data['data'] as List? ?? []);
+      managedEventsCount.value = list.length;
+      hasOrganizedEvents.value = list.length > 0;
+    } catch (_) {}
+  }
+
   Future<void> fetchProfile() async {
     const storage = FlutterSecureStorage();
     final token = await storage.read(key: 'auth_token');
@@ -50,11 +72,13 @@ class ProfileController extends GetxController {
     try {
       final user = await _userApiService.getCurrentUser();
       userProfile.value = user.toJson();
+      pendingJoinRequestsCount.value = user.pendingJoinRequestsCount ?? 0;
+      if (pendingJoinRequestsCount.value > 0) hasOrganizedEvents.value = true;
 
       // Populate form controllers
       nameController.text = user.name;
       emailController.text = user.email;
-      
+
       String rawPhone = user.phone ?? '';
       fullPhone.value = rawPhone;
 
@@ -101,9 +125,9 @@ class ProfileController extends GetxController {
             : phoneController.text.trim(),
         'business_name': businessNameController.text.trim(),
       };
-      
+
       print('🚀 [ProfileCtrl] Payload prepared (Email removed): $profileData');
-      
+
       if (pickedAvatarPath.value.isNotEmpty) {
         profileData['avatar_file_path'] = pickedAvatarPath.value;
       }
@@ -111,16 +135,18 @@ class ProfileController extends GetxController {
       print('🛰️ [ProfileCtrl] Calling API...');
       final user = await _userApiService.updateProfile(profileData);
       print('✅ [ProfileCtrl] API success: ${user.name}');
-      
+
       final userData = user.toJson();
-      if (userData['avatar'] != null && userData['avatar'].toString().isNotEmpty) {
+      if (userData['avatar'] != null &&
+          userData['avatar'].toString().isNotEmpty) {
         // Appending timestamp to blow cache if URL is same but content changed
         final sep = userData['avatar'].toString().contains('?') ? '&' : '?';
-        userData['avatar'] = '${userData['avatar']}${sep}t=${DateTime.now().millisecondsSinceEpoch}';
+        userData['avatar'] =
+            '${userData['avatar']}${sep}t=${DateTime.now().millisecondsSinceEpoch}';
       }
       userProfile.value = userData;
       pickedAvatarPath.value = ''; // Reset picked image
-      
+
       print('🔄 [ProfileCtrl] State updated, going back and showing toast...');
       Get.back();
       AppUtils.showSuccess(message: 'Profile updated successfully');
@@ -176,7 +202,7 @@ class ProfileController extends GetxController {
         maxWidth: 800,
       );
       if (image == null) return;
-      
+
       pickedAvatarPath.value = image.path;
       print('📷 [ProfileCtrl] Picked and deferred image: ${image.path}');
     } catch (e) {
@@ -289,8 +315,8 @@ class ProfileController extends GetxController {
       final response = await _userApiService.verifyPhone(phone, code);
 
       // Check for various success indicators in response
-      if (response['phone_verified'] == true || 
-          response['is_verified'] == true || 
+      if (response['phone_verified'] == true ||
+          response['is_verified'] == true ||
           response['is_phone_verified'] == true ||
           response['user'] != null) {
         AppUtils.showSuccess(message: 'Phone verified successfully!');
@@ -315,7 +341,6 @@ class ProfileController extends GetxController {
     }
   }
 
-
   void clearPasswordFields() {
     currentPasswordController.clear();
     newPasswordController.clear();
@@ -326,10 +351,10 @@ class ProfileController extends GetxController {
     final user = userProfile;
     nameController.text = user['name']?.toString() ?? '';
     emailController.text = user['email']?.toString() ?? '';
-    
+
     String rawPhone = user['phone']?.toString() ?? '';
     fullPhone.value = rawPhone;
-    
+
     // Robust stripping: handle both "+92" and "92"
     String dCode = dialCode.value;
     String dCodeNoPlus = dCode.replaceAll('+', '');
@@ -341,7 +366,7 @@ class ProfileController extends GetxController {
     } else {
       phoneController.text = rawPhone;
     }
-    
+
     businessNameController.text = user['business_name']?.toString() ?? '';
     pickedAvatarPath.value = ''; // Reset on populate
     clearPasswordFields(); // Ensure security fields are empty
@@ -350,10 +375,13 @@ class ProfileController extends GetxController {
   bool get isPhoneVerified {
     // Rely exclusively on phone verification flags
     final status = userProfile['is_phone_verified'];
-    if (status == true || status == 1 || status?.toString() == '1' || status?.toString().toLowerCase() == 'true') {
+    if (status == true ||
+        status == 1 ||
+        status?.toString() == '1' ||
+        status?.toString().toLowerCase() == 'true') {
       return true;
     }
-    
+
     // Check for the timestamp as a robust fallback
     final verifiedAt = userProfile['phone_verified_at'];
     return verifiedAt != null && verifiedAt.toString().isNotEmpty;
@@ -380,8 +408,7 @@ class ProfileController extends GetxController {
   }
 
   bool get isSocialUser {
-    return userProfile['google_id'] != null ||
-        userProfile['apple_id'] != null;
+    return userProfile['google_id'] != null || userProfile['apple_id'] != null;
   }
 
   @override

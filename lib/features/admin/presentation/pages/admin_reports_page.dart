@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/network/api_client.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class AdminReportsPage extends StatefulWidget {
-  const AdminReportsPage({super.key});
+  final bool isTab;
+  const AdminReportsPage({super.key, this.isTab = false});
 
   @override
   State<AdminReportsPage> createState() => _AdminReportsPageState();
@@ -51,6 +52,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        automaticallyImplyLeading: !widget.isTab,
         title: const Text('Business Intelligence'),
         centerTitle: true,
         actions: [
@@ -203,7 +205,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -219,7 +221,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -361,7 +363,7 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
                   child: LinearProgressIndicator(
                     value: pct / 100,
                     minHeight: 6,
-                    backgroundColor: color.withOpacity(0.1),
+                    backgroundColor: color.withValues(alpha: 0.1),
                     valueColor: AlwaysStoppedAnimation(color),
                   ),
                 ),

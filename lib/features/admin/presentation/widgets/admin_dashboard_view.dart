@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/widgets/section_header.dart';
-import 'package:sports_studio/widgets/app_shimmer.dart';
-import 'package:sports_studio/features/admin/controller/admin_controller.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/widgets/section_header.dart';
+import 'package:sport_studio/widgets/app_shimmer.dart';
+import 'package:sport_studio/features/admin/controller/admin_controller.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_users_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_withdrawals_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_reports_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_reviews_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_newsletter_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_settings_page.dart';
-import 'package:sports_studio/features/admin/presentation/pages/admin_events_page.dart';
-import 'package:sports_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_users_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_withdrawals_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_reports_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_reviews_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_newsletter_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_settings_page.dart';
+import 'package:sport_studio/features/admin/presentation/pages/admin_events_page.dart';
+import 'package:sport_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
 
 class AdminDashboardView extends StatelessWidget {
   const AdminDashboardView({super.key});
@@ -185,7 +185,7 @@ class AdminDashboardView extends StatelessWidget {
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -290,7 +290,7 @@ class AdminDashboardView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,7 +390,7 @@ class AdminDashboardView extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border.withOpacity(0.5)),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -418,13 +418,13 @@ class AdminDashboardView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color, size: 20),

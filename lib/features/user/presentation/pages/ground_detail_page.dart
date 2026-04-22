@@ -3,20 +3,20 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:sports_studio/core/theme/app_colors.dart';
-import 'package:sports_studio/core/theme/app_text_styles.dart';
-import 'package:sports_studio/core/constants/app_constants.dart';
-import 'package:sports_studio/core/utils/app_utils.dart';
-import 'package:sports_studio/features/user/controller/favorites_controller.dart';
-import 'package:sports_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/theme/app_colors.dart';
+import 'package:sport_studio/core/theme/app_text_styles.dart';
+import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/user/controller/favorites_controller.dart';
+import 'package:sport_studio/core/utils/url_helper.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-import 'package:sports_studio/features/user/controller/ground_controller.dart';
-import 'package:sports_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/user/controller/ground_controller.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:sports_studio/widgets/app_progress_indicator.dart';
-import 'package:sports_studio/features/user/presentation/pages/booking_slot_page.dart';
-import 'package:sports_studio/widgets/full_screen_image_viewer.dart';
+import 'package:sport_studio/widgets/app_progress_indicator.dart';
+import 'package:sport_studio/features/user/presentation/pages/booking_slot_page.dart';
+import 'package:sport_studio/widgets/full_screen_image_viewer.dart';
 
 class GroundDetailPage extends StatefulWidget {
   const GroundDetailPage({super.key});
@@ -28,6 +28,7 @@ class GroundDetailPage extends StatefulWidget {
 class _GroundDetailPageState extends State<GroundDetailPage> {
   final controller = Get.put(GroundController());
   final RxInt _currentPage = 0.obs;
+  final RxBool _showAllReviews = false.obs;
   final PageController _pageController = PageController();
   Timer? _carouselTimer;
   final arguments = Get.arguments as Map<String, dynamic>?;
@@ -153,7 +154,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   CircleAvatar(
-                    backgroundColor: Colors.black.withOpacity(0.3),
+                    backgroundColor: Colors.black.withValues(alpha: 0.3),
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Get.back(),
@@ -243,10 +244,10 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                           borderRadius: BorderRadius.circular(4),
                           color: _currentPage.value == index
                               ? Colors.white
-                              : Colors.white.withOpacity(0.5),
+                              : Colors.white.withValues(alpha: 0.5),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 2,
                             ),
                           ],
@@ -305,20 +306,46 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 ),
               ),
             ),
-            Row(
-              children: [
-                const Icon(Icons.star, color: Colors.amber, size: 18),
-                const SizedBox(width: 4),
-                Text(
-                  ground?['avg_rating']?.toString() ?? '0.0',
-                  style: AppTextStyles.h3,
-                ),
-                Text(
-                  ' (${ground?['reviews_count'] ?? 0} reviews)',
-                  style: AppTextStyles.bodySmall,
-                ),
-              ],
-            ),
+            Obx(() {
+              // Priority 1: Ground pre-calculated fields (instant)
+              final groundRating = double.tryParse((ground['avg_rating'] ?? 
+                                                 ground['rating'] ?? 
+                                                 ground['rating_avg'] ?? '0.0').toString()) ?? 0.0;
+              final groundReviewsCount = int.tryParse((ground['reviews_count'] ?? 
+                                                    ground['num_reviews'] ?? '0').toString()) ?? 0;
+              
+              // Priority 2: Real-time calculated from fetched reviews list
+              final apiReviews = controller.reviews;
+              final apiCount = apiReviews.length;
+              
+              double displayRating = groundRating;
+              int displayCount = groundReviewsCount;
+              
+              // Only overwrite with API reviews once they have finished loading.
+              // This ensures that if the owner hides some reviews, the average rating 
+              // and total count will correct themselves to reflect only visible ones.
+              if (!controller.isLoadingReviews.value) {
+                if (apiCount > 0) {
+                  displayRating = apiReviews.fold(0.0, (sum, r) => sum + r.rating) / apiCount;
+                  displayCount = apiCount;
+                } else if (groundRating > 0) {
+                  // If API says 0 reviews but search data said some existed, 
+                  // it means they are likely hidden or there's a sync issue.
+                  // We'll trust the API (0 visible).
+                  displayRating = 0.0;
+                  displayCount = 0;
+                }
+              }
+
+              return Row(
+                children: [
+                  const Icon(Icons.star, color: Colors.amber, size: 18),
+                  const SizedBox(width: 4),
+                  Text(displayRating.toStringAsFixed(1), style: AppTextStyles.h3),
+                  Text(' ($displayCount reviews)', style: AppTextStyles.bodySmall),
+                ],
+              );
+            }),
           ],
         ),
         const SizedBox(height: 12),
@@ -366,7 +393,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
       decoration: BoxDecoration(
         color: Colors.grey[50],
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border.withOpacity(0.5)),
+        border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -378,6 +405,8 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
             'Lights',
             (ground?['has_lighting'] == 1 ||
                     ground?['has_lighting'] == true ||
+                    ground?['lighting'] == 1 ||
+                    ground?['lighting'] == true ||
                     (ground?['amenities']?.toString().toLowerCase().contains(
                           'lighting',
                         ) ??
@@ -546,9 +575,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.primaryLight.withOpacity(0.3),
+        color: AppColors.primaryLight.withValues(alpha: 0.3),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -626,7 +655,9 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
             decoration: BoxDecoration(
               color: Colors.grey[100],
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border.withOpacity(0.5)),
+              border: Border.all(
+                color: AppColors.border.withValues(alpha: 0.5),
+              ),
             ),
             child: Row(
               children: [
@@ -661,7 +692,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
           width: double.infinity,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.border.withOpacity(0.5)),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
@@ -722,12 +753,20 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
               ),
           ],
         ),
-        Obx(
-          () => Text(
-            '${controller.reviews.length} total',
+        Obx(() {
+          final apiReviews = controller.reviews;
+          int displayCount = int.tryParse((ground['reviews_count'] ?? 
+                                        ground['num_reviews'] ?? '0').toString()) ?? 0;
+          
+          if (!controller.isLoadingReviews.value) {
+            displayCount = apiReviews.length;
+          }
+
+          return Text(
+            '$displayCount total',
             style: AppTextStyles.bodySmall,
-          ),
-        ),
+          );
+        }),
         const SizedBox(height: AppSpacing.s),
         Obx(() {
           if (controller.isLoadingReviews.value) {
@@ -747,17 +786,39 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
             );
           }
 
+          final displayReviews = _showAllReviews.value
+              ? controller.reviews
+              : controller.reviews.take(3).toList();
+
           return Column(
-            children: controller.reviews.take(3).map((r) {
-              final name = r.userName ?? r.user?.name ?? 'User';
-              final comment = r.comment ?? '';
-              return _reviewCard(
-                name,
-                r.rating.toString(),
-                comment,
-                r.createdAt,
-              );
-            }).toList(),
+            children: [
+              ...displayReviews.map((r) {
+                final name = r.userName ?? r.user?.name ?? 'User';
+                final comment = r.comment ?? '';
+                return _reviewCard(
+                  name,
+                  r.rating.toString(),
+                  comment,
+                  r.createdAt,
+                );
+              }).toList(),
+              if (controller.reviews.length > 3 && !_showAllReviews.value)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: TextButton.icon(
+                    onPressed: () => _showAllReviews.value = true,
+                    icon:
+                        const Icon(Icons.expand_more, color: AppColors.primary),
+                    label: const Text(
+                      'View All Reviews',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           );
         }),
       ],
@@ -845,8 +906,11 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   Widget _buildBottomBar(dynamic ground) {
+    if (_isOwnerOfGround(ground)) {
+      return const SizedBox.shrink(); // Hide the Booking/Edit bar for the owner
+    }
+
     final price = ground?['price_per_hour'] ?? '0';
-    final isOwner = _isOwnerOfGround(ground);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.l),
@@ -854,7 +918,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, -5),
           ),
@@ -869,7 +933,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  isOwner ? 'Your Pricing' : 'Total Price',
+                  'Total Price',
                   style: AppTextStyles.label.copyWith(
                     color: AppColors.textMuted,
                   ),
@@ -886,19 +950,7 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () {
-                    if (isOwner) {
-                      Get.toNamed(
-                        '/add-ground',
-                        arguments: {
-                          'isEdit': true,
-                          'ground': ground,
-                          'complexId': ground['complex_id'],
-                          'complexName': ground['complex']?['name'] ?? '',
-                        },
-                      );
-                    } else {
-                      Get.to(() => const BookingSlotPage(), arguments: ground);
-                    }
+                    Get.to(() => const BookingSlotPage(), arguments: ground);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
@@ -906,14 +958,11 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     elevation: 4,
-                    shadowColor: AppColors.primary.withOpacity(0.4),
+                    shadowColor: AppColors.primary.withValues(alpha: 0.4),
                   ),
-                  child: Text(
-                    isOwner ? 'Edit Ground' : 'Book Now',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: const Text(
+                    'Book Now',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -925,7 +974,19 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
   }
 
   void _showReviewSheet(dynamic ground) {
+    final profileCtrl = Get.find<ProfileController>();
+    final bool isLoggedIn = profileCtrl.userProfile.isNotEmpty;
+
     final commentCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+
+    // Pre-fill if logged in (hidden from UI but sent to API)
+    if (isLoggedIn) {
+      nameCtrl.text = profileCtrl.userProfile['name']?.toString() ?? '';
+      emailCtrl.text = profileCtrl.userProfile['email']?.toString() ?? '';
+    }
+
     final RxDouble rating = 5.0.obs;
     final groundId = int.tryParse(ground['id'].toString()) ?? 0;
 
@@ -986,11 +1047,56 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 ),
               ),
               const SizedBox(height: AppSpacing.l),
+
+              // Only show Name/Email fields for Guest users
+              if (!isLoggedIn) ...[
+                Text('Your Name', style: AppTextStyles.label),
+                const SizedBox(height: AppSpacing.s),
+                TextField(
+                  controller: nameCtrl,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your name',
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+                Text('Your Email', style: AppTextStyles.label),
+                const SizedBox(height: AppSpacing.s),
+                TextField(
+                  controller: emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your email',
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.primary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+              ],
+
               Text('Your Review', style: AppTextStyles.label),
               const SizedBox(height: AppSpacing.s),
               TextField(
                 controller: commentCtrl,
                 maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
                   hintText: 'Tell others about the field, lighting, etc...',
                   filled: true,
@@ -1011,6 +1117,10 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                 height: 54,
                 child: ElevatedButton(
                   onPressed: () async {
+                    if (!isLoggedIn && nameCtrl.text.trim().isEmpty) {
+                      AppUtils.showWarning(message: 'Please enter your name');
+                      return;
+                    }
                     if (commentCtrl.text.trim().isEmpty) {
                       AppUtils.showWarning(message: 'Please enter a comment');
                       return;
@@ -1019,6 +1129,8 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
                       groundId: groundId,
                       rating: rating.value,
                       comment: commentCtrl.text.trim(),
+                      userName: nameCtrl.text.trim(),
+                      userEmail: emailCtrl.text.trim(),
                     );
                     Get.back();
                   },
@@ -1048,10 +1160,19 @@ class _GroundDetailPageState extends State<GroundDetailPage> {
     try {
       if (ground == null) return false;
       final profileCtrl = Get.find<ProfileController>();
-      final myId = profileCtrl.userProfile['id'];
-      final ownerId = ground['user_id'] ?? ground['owner_id'];
-      if (myId == null || ownerId == null) return false;
-      return myId.toString() == ownerId.toString();
+      final myId = profileCtrl.userProfile['id']?.toString();
+      if (myId == null) return false;
+
+      // Check all possible owner ID mappings
+      final List<dynamic> ownerFields = [
+        ground['user_id'],
+        ground['owner_id'],
+        ground['complex']?['owner_id'],
+        ground['complex']?['user_id'],
+        ground['complex']?['owner']?['id'],
+      ];
+
+      return ownerFields.any((id) => id != null && id.toString() == myId);
     } catch (_) {
       return false;
     }
@@ -1091,7 +1212,7 @@ class _FavoriteButtonDetail extends StatelessWidget {
     return Obx(() {
       if (_isMyGround()) {
         return CircleAvatar(
-          backgroundColor: Colors.black.withOpacity(0.3),
+          backgroundColor: Colors.black.withValues(alpha: 0.3),
           child: IconButton(
             icon: const Icon(Icons.edit, color: Colors.white),
             onPressed: () => Get.toNamed(
@@ -1112,7 +1233,7 @@ class _FavoriteButtonDetail extends StatelessWidget {
       final isFav = controller.isFavorite(id);
 
       return CircleAvatar(
-        backgroundColor: Colors.black.withOpacity(0.3),
+        backgroundColor: Colors.black.withValues(alpha: 0.3),
         child: IconButton(
           icon: Icon(
             isFav ? Icons.favorite : Icons.favorite_border,
