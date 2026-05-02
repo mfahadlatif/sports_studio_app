@@ -10,7 +10,9 @@ class OwnerController extends GetxController {
   final RxInt totalBookings = 0.obs;
   final RxInt totalGrounds = 0.obs;
   final RxDouble monthlyRevenue = 0.0.obs;
+  final RxDouble revenueGrowth = 0.0.obs;
   final RxInt pendingReviewsCount = 0.obs;
+  final RxInt totalReviewsCount = 0.obs;
 
   final RxList<dynamic> recentBookings = <dynamic>[].obs;
   final RxList<dynamic> complexes = <dynamic>[].obs;
@@ -22,11 +24,18 @@ class OwnerController extends GetxController {
   }
 
   Future<void> fetchDashboard() async {
-    await Future.wait([fetchStats(), fetchComplexes()]);
+    isLoading.value = true;
+    try {
+      await Future.wait([fetchStats(silent: true), fetchComplexes()]);
+    } catch (e) {
+      print('Error fetching dashboard: $e');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
-  Future<void> fetchStats() async {
-    isLoading.value = true;
+  Future<void> fetchStats({bool silent = false}) async {
+    if (!silent) isLoading.value = true;
     try {
       final response = await ApiClient().dio.get('/owner/stats');
       if (response.statusCode == 200) {
@@ -41,16 +50,20 @@ class OwnerController extends GetxController {
             int.tryParse(data['total_grounds']?.toString() ?? '0') ?? 0;
         monthlyRevenue.value =
             double.tryParse(data['monthly_revenue']?.toString() ?? '0') ?? 0.0;
+        revenueGrowth.value =
+            double.tryParse(data['revenue_growth']?.toString() ?? '0') ?? 0.0;
         pendingReviewsCount.value =
             int.tryParse(data['pending_reviews_count']?.toString() ?? '0') ?? 0;
-        if (data['recent_bookings'] != null) {
-          recentBookings.value = data['recent_bookings'];
+        totalReviewsCount.value =
+            int.tryParse(data['total_reviews_count']?.toString() ?? '0') ?? 0;
+        if (data['recent_bookings'] != null && data['recent_bookings'] is List) {
+          recentBookings.assignAll(data['recent_bookings']);
         }
       }
     } catch (e) {
       print('Failed to fetch owner stats: $e');
     } finally {
-      isLoading.value = false;
+      if (!silent) isLoading.value = false;
     }
   }
 
@@ -58,7 +71,8 @@ class OwnerController extends GetxController {
     try {
       final response = await ApiClient().dio.get('/complexes');
       if (response.statusCode == 200) {
-        complexes.value = response.data['data'] ?? [];
+        final List<dynamic> data = response.data['data'] ?? [];
+        complexes.assignAll(data);
       }
     } catch (e) {
       print('Failed to fetch owner complexes: $e');

@@ -322,9 +322,9 @@ class HomeController extends GetxController {
       );
     } else if (sortBy.value == 'Rating: High to Low') {
       result.sort(
-        (a, b) => (double.tryParse(b['avg_rating']?.toString() ?? '0') ?? 0)
+        (a, b) => (double.tryParse((b['rating'] ?? b['avg_rating'] ?? '0').toString()) ?? 0)
             .compareTo(
-              double.tryParse(a['avg_rating']?.toString() ?? '0') ?? 0,
+              double.tryParse((a['rating'] ?? a['avg_rating'] ?? '0').toString()) ?? 0,
             ),
       );
     }

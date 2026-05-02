@@ -111,6 +111,8 @@ class PhoneTextfield extends StatelessWidget {
                   hasBorder: false,
                   hintText: "Enter phone number",
                   readOnly: readOnly,
+                  showCursor: !readOnly, // Hide cursor if read-only
+                  enableInteractiveSelection: !readOnly, // Disable selection if read-only
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   onChanged: (v) {
                     String processedValue = v;

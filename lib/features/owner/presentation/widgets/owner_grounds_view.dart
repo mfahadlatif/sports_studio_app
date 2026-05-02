@@ -9,6 +9,8 @@ import 'package:sport_studio/features/owner/controller/grounds_controller.dart';
 
 import 'package:sport_studio/core/models/models.dart';
 import 'package:sport_studio/core/utils/url_helper.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
 
 class OwnerGroundsView extends StatelessWidget {
   final bool isTab;
@@ -47,6 +49,14 @@ class OwnerGroundsView extends StatelessWidget {
               actions: [
                 IconButton(
                   onPressed: () async {
+                    final profileController = Get.find<ProfileController>();
+                    if (!profileController.isPhoneVerified) {
+                      AppUtils.showPhoneVerificationRequiredDialog(
+                        title: 'Phone Verification Required',
+                        message: 'To add a ground, your phone number must be verified for security and contact purposes.',
+                      );
+                      return;
+                    }
                     final result = await Get.toNamed('/add-ground');
                     if (result == true) controller.fetchComplexesAndGrounds();
                   },
@@ -155,7 +165,17 @@ class OwnerGroundsView extends StatelessWidget {
                       Text('No grounds yet', style: AppTextStyles.h3),
                       const SizedBox(height: AppSpacing.l),
                       ElevatedButton.icon(
-                        onPressed: () => Get.toNamed('/add-ground'),
+                        onPressed: () {
+                          final profileController = Get.find<ProfileController>();
+                          if (!profileController.isPhoneVerified) {
+                            AppUtils.showPhoneVerificationRequiredDialog(
+                              title: 'Phone Verification Required',
+                              message: 'To add a ground, your phone number must be verified for security and contact purposes.',
+                            );
+                            return;
+                          }
+                          Get.toNamed('/add-ground');
+                        },
                         icon: const Icon(Icons.add),
                         label: const Text('Add Ground'),
                       ),

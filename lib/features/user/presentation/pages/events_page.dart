@@ -11,6 +11,7 @@ import 'package:sport_studio/core/models/models.dart';
 import 'package:sport_studio/core/utils/app_utils.dart';
 import 'package:sport_studio/features/user/presentation/pages/create_match_page.dart';
 import 'package:sport_studio/features/user/presentation/pages/event_detail_page.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
 
 class EventsPage extends StatelessWidget {
   final bool isTab;
@@ -19,6 +20,13 @@ class EventsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(EventsController());
+    
+    // Ensure events are fetched when first coming to the screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.events.isEmpty && !controller.isLoadingPublicEvents.value) {
+        controller.fetchPublicEvents();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -28,6 +36,14 @@ class EventsPage extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
+          final profileController = Get.find<ProfileController>();
+          if (!profileController.isPhoneVerified) {
+            AppUtils.showPhoneVerificationRequiredDialog(
+              title: 'Phone Verification Required',
+              message: 'To organize a match, your phone number must be verified for safety and coordination.',
+            );
+            return;
+          }
           final result = await Get.to(() => const CreateMatchPage());
           if (result == true) {
             controller.fetchPublicEvents();
@@ -44,7 +60,7 @@ class EventsPage extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Obx(() {
-              if (controller.isLoadingEvents.value) {
+              if (controller.isLoadingPublicEvents.value) {
                 return ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(AppSpacing.m),
@@ -57,7 +73,7 @@ class EventsPage extends StatelessWidget {
                 );
               }
 
-              if (controller.events.isEmpty) {
+              if (controller.filteredEvents.isEmpty) {
                 return ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   children: [
@@ -86,9 +102,9 @@ class EventsPage extends StatelessWidget {
               return ListView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(AppSpacing.m),
-                itemCount: controller.events.length,
+                itemCount: controller.filteredEvents.length,
                 itemBuilder: (context, index) {
-                  final event = controller.events[index];
+                  final event = controller.filteredEvents[index];
                   return _buildEventCard(event);
                 },
               );
@@ -156,7 +172,22 @@ class EventsPage extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.h3),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: AppTextStyles.h3,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatusBadge(event.status),
+                    ],
+                  ),
                   const SizedBox(height: AppSpacing.s),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -216,6 +247,44 @@ class EventsPage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String statusStr) {
+    final status = statusStr.toLowerCase();
+    
+    Color bgColor;
+    String label = status.toUpperCase();
+
+    if (status == 'published' || status == 'upcoming') {
+      bgColor = Colors.blue;
+      label = 'UPCOMING';
+    } else if (status == 'completed') {
+      bgColor = Colors.green;
+    } else if (status == 'cancelled') {
+      bgColor = Colors.red;
+    } else if (status == 'ongoing') {
+      bgColor = Colors.orange;
+    } else {
+      bgColor = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: bgColor.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: bgColor,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );

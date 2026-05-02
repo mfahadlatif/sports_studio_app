@@ -11,6 +11,7 @@ import 'package:sport_studio/core/utils/url_helper.dart';
 import 'package:sport_studio/features/owner/presentation/pages/add_complex_page.dart';
 import 'package:sport_studio/core/models/models.dart';
 import 'package:sport_studio/features/owner/presentation/pages/complex_detail_page.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
 
 class SportsComplexesPage extends StatefulWidget {
   const SportsComplexesPage({super.key});
@@ -39,7 +40,11 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
         final list = data is List ? data : [];
         setState(() {
           _complexes = list
-              .map((e) => e is Map ? Complex.fromJson(Map<String, dynamic>.from(e)) : null)
+              .map(
+                (e) => e is Map
+                    ? Complex.fromJson(Map<String, dynamic>.from(e))
+                    : null,
+              )
               .whereType<Complex>()
               .toList();
         });
@@ -53,7 +58,8 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
   Future<void> _deleteComplex(Complex complex) async {
     final confirmed = await AppUtils.showDeleteConfirmation(
       title: 'Delete Complex?',
-      message: 'Are you sure you want to remove "${complex.name}"? All associated grounds and arenas will also be permanently deleted.',
+      message:
+          'Are you sure you want to remove "${complex.name}"? All associated grounds and arenas will also be permanently deleted.',
     );
 
     if (confirmed == true) {
@@ -70,6 +76,12 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
   }
 
   void _openForm({Complex? complex}) async {
+    final profileCtrl = Get.find<ProfileController>();
+    if (!profileCtrl.isPhoneVerified) {
+      AppUtils.showPhoneVerificationRequiredDialog();
+      return;
+    }
+
     final result = await Get.to(
       () => AddComplexPage(complex: complex?.toJson()),
       transition: Transition.rightToLeft,
@@ -157,8 +169,10 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
     final isActive = complex.status == 'active' || complex.status == '1';
 
     return GestureDetector(
-      onTap: () =>
-          Get.to(() => const ComplexDetailPage(), arguments: {'id': complex.id}),
+      onTap: () => Get.to(
+        () => const ComplexDetailPage(),
+        arguments: {'id': complex.id},
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: AppSpacing.m),
         decoration: BoxDecoration(
@@ -235,7 +249,9 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.05),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.05,
+                                ),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
@@ -258,7 +274,32 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            const SizedBox(width: 8),
+                            // Status Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? Colors.green.withValues(alpha: 0.1)
+                                    : Colors.red.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isActive
+                                      ? Colors.green.withValues(alpha: 0.2)
+                                      : Colors.red.withValues(alpha: 0.2),
+                                ),
+                              ),
+                              child: Text(
+                                isActive ? 'ACTIVE' : 'INACTIVE',
+                                style: TextStyle(
+                                  color: isActive ? Colors.green : Colors.red,
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -268,27 +309,45 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
                           Wrap(
                             spacing: 4,
                             runSpacing: 4,
-                            children: (complex.grounds != null && complex.grounds!.isNotEmpty 
-                                ? (complex.grounds!.first.amenities ?? []) 
-                                : (complex.amenities ?? []))
-                                .take(6)
-                                .map<Widget>((fId) {
-                                  final info = _getFacilityInfo(fId.toString());
-                                  return Container(
-                                    padding: const EdgeInsets.all(4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.background,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: AppColors.border.withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    child: info['asset'] != null 
-                                        ? Image.asset(info['asset']!, width: 14, height: 14)
-                                        : Text(info['icon']!, style: const TextStyle(fontSize: 10)),
-                                  );
-                                })
-                                .toList(),
+                            children:
+                                (complex.grounds != null &&
+                                            complex.grounds!.isNotEmpty
+                                        ? (complex.grounds!.first.amenities ??
+                                              [])
+                                        : (complex.amenities ?? []))
+                                    .take(6)
+                                    .map<Widget>((fId) {
+                                      final info = _getFacilityInfo(
+                                        fId.toString(),
+                                      );
+                                      return Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.background,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.border.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                          ),
+                                        ),
+                                        child: info['asset'] != null
+                                            ? Image.asset(
+                                                info['asset']!,
+                                                width: 14,
+                                                height: 14,
+                                              )
+                                            : Text(
+                                                info['icon']!,
+                                                style: const TextStyle(
+                                                  fontSize: 10,
+                                                ),
+                                              ),
+                                      );
+                                    })
+                                    .toList(),
                           ),
                       ],
                     ),
@@ -334,7 +393,8 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
         ? UrlHelper.getParsedImages(complex.images)
         : <String>[];
     final firstUrl = urls.isNotEmpty ? UrlHelper.sanitizeUrl(urls.first) : null;
-    final hasValidUrl = firstUrl != null &&
+    final hasValidUrl =
+        firstUrl != null &&
         firstUrl.isNotEmpty &&
         !firstUrl.contains('unsplash.com');
     if (!hasValidUrl) {
@@ -358,11 +418,8 @@ class _SportsComplexesPageState extends State<SportsComplexesPage> {
       width: 44,
       height: 44,
       fit: BoxFit.cover,
-      placeholder: (context, url) => Container(
-        color: AppColors.primaryLight,
-        width: 44,
-        height: 44,
-      ),
+      placeholder: (context, url) =>
+          Container(color: AppColors.primaryLight, width: 44, height: 44),
       errorWidget: (context, url, error) => Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(

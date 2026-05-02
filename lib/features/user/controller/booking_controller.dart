@@ -17,25 +17,15 @@ class BookingController extends GetxController {
   final RxInt players = 2.obs;
   final double serviceFee = 0.0;
 
-  final RxList<String> allSlots = <String>[
-    '06:00 AM',
-    '07:00 AM',
-    '08:00 AM',
-    '09:00 AM',
-    '10:00 AM',
-    '11:00 AM',
-    '12:00 PM',
-    '01:00 PM',
-    '02:00 PM',
-    '03:00 PM',
-    '04:00 PM',
-    '05:00 PM',
-    '06:00 PM',
-    '07:00 PM',
-    '08:00 PM',
-    '09:00 PM',
-    '10:00 PM',
-  ].obs;
+  @override
+  void onInit() {
+    super.onInit();
+    // Initialize data immediately on load
+    final ground = Get.arguments;
+    setGroundAndFetchAvailability(ground);
+  }
+
+  final RxList<String> allSlots = <String>[].obs;
 
   final RxList<String> bookedSlots = <String>[].obs;
   final RxBool isLoadingSlots = false.obs;
@@ -417,8 +407,11 @@ class BookingController extends GetxController {
 
       final booking = await _bookingApiService.createBooking(bookingData);
 
-      if (paymentMethod == 'wallet') {
-        AppUtils.showSuccess(message: 'Wallet payment successful! Booking confirmed.');
+      if (paymentMethod == 'wallet' || paymentMethod == 'cash') {
+        final msg = paymentMethod == 'wallet' 
+            ? 'Wallet payment successful! Booking confirmed.'
+            : 'Booking confirmed! Please pay at the venue.';
+        AppUtils.showSuccess(message: msg);
         Get.offAllNamed('/');
         selectedSlots.clear();
         return;
@@ -433,6 +426,7 @@ class BookingController extends GetxController {
           'discount': discount,
           'deal': selectedDeal.value,
           'promoCode': promoCode.value,
+          'paymentMethod': paymentMethod ?? 'card',
         },
       );
       selectedSlots.clear();

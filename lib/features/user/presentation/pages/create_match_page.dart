@@ -275,6 +275,17 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
       return;
     }
 
+    // Ensure selected booking is paid
+    if (_selectedBooking != null &&
+        _selectedBooking['payment_status']?.toString().toLowerCase() !=
+            'paid') {
+      AppUtils.showError(
+        message:
+            'The selected ground booking is unpaid. Please complete payment for the booking before hosting an event.',
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     try {
       final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
@@ -1893,3 +1904,4 @@ class _CreateMatchPageState extends State<CreateMatchPage> {
     );
   }
 }
+

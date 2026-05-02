@@ -16,6 +16,8 @@ import 'package:sport_studio/features/user/presentation/pages/user_bookings_page
 import 'package:sport_studio/features/user/presentation/pages/deals_page.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:sport_studio/core/constants/user_roles.dart';
+import 'package:sport_studio/core/utils/app_utils.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -23,6 +25,7 @@ class HomeView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(HomeController());
+    final profileController = Get.put(ProfileController());
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () => controller.refreshData(),
@@ -70,12 +73,21 @@ class HomeView extends StatelessWidget {
                         return Expanded(
                           child: Row(
                             children: [
-                              _buildQuickAction(
-                                'Host Match',
-                                LucideIcons.circlePlay,
-                                Colors.orange,
-                                () => Get.to(() => const CreateMatchPage()),
-                              ),
+                                _buildQuickAction(
+                                  'Host Match',
+                                  LucideIcons.circlePlay,
+                                  Colors.orange,
+                                  () {
+                                    if (!profileController.isPhoneVerified) {
+                                      AppUtils.showPhoneVerificationRequiredDialog(
+                                        title: 'Phone Verification Required',
+                                        message: 'To host a new match, your phone number must be verified for security and coordination.',
+                                      );
+                                      return;
+                                    }
+                                    Get.to(() => const CreateMatchPage());
+                                  },
+                                ),
                               const SizedBox(width: AppSpacing.m),
                             ],
                           ),

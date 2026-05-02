@@ -290,14 +290,24 @@ class EventPreviewCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    name,
-                    style: AppTextStyles.h3.copyWith(
-                      fontSize: 16,
-                      color: AppColors.textPrimary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: AppTextStyles.h3.copyWith(
+                            fontSize: 16,
+                            color: AppColors.textPrimary,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatusBadge(event['status']?.toString()),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   Row(
@@ -369,6 +379,44 @@ class EventPreviewCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String? statusStr) {
+    final status = (statusStr ?? 'upcoming').toLowerCase();
+    
+    Color bgColor;
+    String label = status.toUpperCase();
+
+    if (status == 'published' || status == 'upcoming') {
+      bgColor = Colors.blue;
+      label = 'UPCOMING';
+    } else if (status == 'completed') {
+      bgColor = Colors.green;
+    } else if (status == 'cancelled') {
+      bgColor = Colors.red;
+    } else if (status == 'ongoing') {
+      bgColor = Colors.orange;
+    } else {
+      bgColor = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: bgColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: bgColor.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: bgColor,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
         ),
       ),
     );

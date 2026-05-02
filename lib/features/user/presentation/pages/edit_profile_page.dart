@@ -174,6 +174,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           'Enter your email',
           keyboardType: TextInputType.emailAddress,
           readOnly: true,
+          showCursor: false,
+          enableSelection: false,
         ),
         const SizedBox(height: AppSpacing.m),
         PhoneTextfield(
@@ -250,6 +252,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
     String hint, {
     TextInputType keyboardType = TextInputType.text,
     bool readOnly = false,
+    bool? showCursor,
+    bool? enableSelection,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,6 +274,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ? TextCapitalization.none
               : TextCapitalization.sentences,
           readOnly: readOnly,
+          showCursor: showCursor,
+          enableInteractiveSelection: enableSelection,
           style: AppTextStyles.bodyLarge.copyWith(
             color: readOnly ? AppColors.textMuted : AppColors.textPrimary,
           ),

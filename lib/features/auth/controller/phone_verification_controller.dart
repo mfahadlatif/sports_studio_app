@@ -134,45 +134,71 @@ class PhoneVerificationController extends GetxController {
   Future<bool> _onFirebaseVerified(String phone, PhoneAuthCredential credential) async {
     try {
       // 1. Sign in with the credential to confirm with Firebase
+      log('🔐 [PhoneVerification] Signing in to Firebase with credential...');
       final userCredential = await _auth.signInWithCredential(credential);
       final firebaseUser = userCredential.user;
       
-      if (firebaseUser == null) throw Exception('Firebase user is null after sign in');
+      if (firebaseUser == null) {
+        log('❌ [PhoneVerification] Firebase user is null after sign in');
+        AppUtils.showError(title: 'Firebase Error', message: 'Failed to sign in with your phone number');
+        return false;
+      }
 
       // 2. Synchronize with backend
-      log('📡 [PhoneVerification] Syncing with backend...');
+      log('📡 [PhoneVerification] Syncing with backend: $phone');
       final response = await ApiClient().dio.post(
         '/verify-phone',
         data: {
           'phone': phone,
           'verified': true,
           'firebase_uid': firebaseUser.uid,
-          'code': 'firebase_verified', // Handshake with backend
+          'code': 'firebase_verified',
         },
       );
 
-      if (response.statusCode == 200) {
+      // Check for success (200 OK or 201 Created)
+      if (response.statusCode != null && response.statusCode! >= 200 && response.statusCode! < 300) {
+        log('✅ [PhoneVerification] Backend Sync Success: ${response.data}');
+        
         isVerified.value = true;
         phoneNumber.value = phone;
         
-        // Refresh profile to update UI flags
+        // Populate profile controller immediately with updated data if available
         try {
           final profileController = Get.find<ProfileController>();
-          await profileController.fetchProfile();
-        } catch (_) {}
+          if (response.data is Map && response.data['user'] != null) {
+            profileController.updateUserData(response.data['user']);
+          }
+          await profileController.refreshProfileData();
+        } catch (e) {
+          log('⚠️ [PhoneVerification] Profile refresh warning: $e');
+        }
 
         return true;
+      } else {
+        log('❌ [PhoneVerification] Backend Sync Rejected. Status: ${response.statusCode}');
+        String msg = response.data?['message'] ?? 'Failed to sync verification with server';
+        AppUtils.showError(title: 'Sync Error', message: msg);
+        return false;
       }
+    } on FirebaseAuthException catch (e) {
+      log('❌ [PhoneVerification] Firebase Auth Error: ${e.code} | ${e.message}');
+      AppUtils.showError(title: 'Verification Error', message: e.message ?? 'Firebase verification failed');
       return false;
-    } catch (e) {
-      log('❌ [PhoneVerification] Backend Sync Error: $e');
-      String msg = 'Failed to sync verification with server';
-      if (e is DioException) {
-        msg = e.response?.data?['message'] ?? msg;
+    } on DioException catch (e) {
+      log('❌ [PhoneVerification] API Connection Error: ${e.message}');
+      String msg = 'Failed to sync verification with server. Please check your internet.';
+      if (e.response?.data is Map) {
+        msg = e.response?.data['message'] ?? msg;
       }
       AppUtils.showError(title: 'Sync Error', message: msg);
       return false;
-    } finally {
+    } catch (e) {
+      log('❌ [PhoneVerification] Unexpected Error during sync: $e');
+      AppUtils.showError(title: 'Sync Error', message: 'Failed to sync verification with server');
+      return false;
+    }
+ finally {
       isLoading.value = false;
     }
   }

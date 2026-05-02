@@ -12,6 +12,8 @@ class AppTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final ValueChanged<String>? onChanged;
   final bool readOnly;
+  final bool? showCursor;
+  final bool? enableInteractiveSelection;
   final TextCapitalization? _textCapitalization;
   TextCapitalization get textCapitalization {
     if (_textCapitalization != null) return _textCapitalization!;
@@ -35,6 +37,8 @@ class AppTextField extends StatelessWidget {
     this.inputFormatters,
     this.onChanged,
     this.readOnly = false,
+    this.showCursor,
+    this.enableInteractiveSelection,
   }) : _textCapitalization = textCapitalization;
 
   @override
@@ -46,6 +50,8 @@ class AppTextField extends StatelessWidget {
       inputFormatters: inputFormatters,
       onChanged: onChanged,
       readOnly: readOnly,
+      showCursor: showCursor,
+      enableInteractiveSelection: enableInteractiveSelection,
       style: AppTextStyles.bodyLarge,
       decoration: InputDecoration(
         hintText: hintText,

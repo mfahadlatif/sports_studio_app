@@ -3,9 +3,11 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:sport_studio/core/constants/user_roles.dart';
 import 'package:sport_studio/core/theme/app_colors.dart';
 import 'package:sport_studio/core/theme/app_text_styles.dart';
 import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
 import 'package:sport_studio/features/owner/controller/bookings_controller.dart';
 import 'package:sport_studio/features/user/presentation/pages/payment_page.dart';
 import 'package:sport_studio/widgets/app_progress_indicator.dart';
@@ -34,7 +36,7 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
       child: Scaffold(
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
-          title: const Text('My Match Bookings'),
+          title: Text(Get.find<LandingController>().currentRole.value == UserRole.owner ? 'Ground Bookings' : 'My Match Bookings'),
           centerTitle: true,
           elevation: 0,
           backgroundColor: Colors.white,
@@ -214,10 +216,12 @@ class _UserBookingsPageState extends State<UserBookingsPage> {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.l),
-                    Text('No $type matches found', style: AppTextStyles.h3),
+                    Text('No $type bookings found', style: AppTextStyles.h3),
                     const SizedBox(height: AppSpacing.s),
                     Text(
-                      'Matches you book will appear here',
+                      Get.find<LandingController>().currentRole.value == UserRole.owner 
+                          ? 'Ground bookings will appear here' 
+                          : 'Matches you book will appear here',
                       style: AppTextStyles.bodySmall.copyWith(
                         color: AppColors.textMuted,
                       ),
@@ -293,8 +297,23 @@ class _BookingCard extends StatelessWidget {
 
     final totalAmount =
         double.tryParse((booking['price'] ?? 0).toString()) ?? 0.0;
-    final status = booking['status'] ?? 'pending';
+    String status = (booking['status'] ?? 'pending').toString();
     final paymentStatus = booking['payment_status'] ?? 'unpaid';
+
+    final String rawEnd = (booking['end'] ?? booking['end_time'] ?? '').toString();
+    bool isTimePassed = false;
+    try {
+      if (rawEnd.isNotEmpty) {
+        final endDt = DateTime.parse(
+          rawEnd.contains(' ') ? rawEnd.replaceFirst(' ', 'T') : rawEnd,
+        );
+        isTimePassed = endDt.isBefore(DateTime.now());
+      }
+    } catch (e) {}
+
+    if (isTimePassed && status == 'pending') {
+      status = 'cancelled';
+    }
 
     final ground = booking['ground'] is Map ? booking['ground'] as Map : null;
     final groundImage = UrlHelper.getFirstImage(ground?['images']);
@@ -327,7 +346,8 @@ class _BookingCard extends StatelessWidget {
     final canPay =
         paymentStatus == 'unpaid' &&
         (status == 'pending' || status == 'confirmed') &&
-        !isExpired;
+        !isExpired &&
+        !isTimePassed;
 
     return GestureDetector(
       onTap: () =>
@@ -492,41 +512,50 @@ class _BookingCard extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
-                    if (canPay) ...[
-                      if (expiresAt != null && status == 'pending')
-                        _BookingCountdown(expiresAt: expiresAt),
-                      const SizedBox(width: 12),
-                      ElevatedButton(
-                        onPressed: () => Get.to(
-                          () => const PaymentPage(),
-                          arguments: isEvent
-                              ? {
-                                  'participantId': booking['id'],
-                                  'totalPrice': totalAmount,
-                                  'type': 'event_participant',
-                                }
-                              : {
-                                  'bookingId': booking['id'],
-                                  'totalPrice': totalAmount,
-                                  'type': 'booking',
-                                },
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
+                    if (canPay && Get.find<LandingController>().currentRole.value != UserRole.owner) ...[
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (expiresAt != null && status == 'pending') ...[
+                            _BookingCountdown(expiresAt: expiresAt),
+                            const SizedBox(height: 6),
+                          ],
+                          ElevatedButton(
+                            onPressed: () => Get.to(
+                              () => const PaymentPage(),
+                              arguments: isEvent
+                                  ? {
+                                      'participantId': booking['id'],
+                                      'totalPrice': totalAmount,
+                                      'type': 'event_participant',
+                                    }
+                                  : {
+                                      'bookingId': booking['id'],
+                                      'totalPrice': totalAmount,
+                                      'type': 'booking',
+                                    },
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 10,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Pay Now',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Pay Now',
-                          style: TextStyle(fontWeight: FontWeight.bold),
-                        ),
+                        ],
                       ),
                     ] else if ((status == 'pending' || status == 'confirmed') &&
                         booking['is_event_linked'] == true)
@@ -558,7 +587,7 @@ class _BookingCard extends StatelessWidget {
                           ],
                         ),
                       )
-                    else if (status == 'pending' || status == 'confirmed')
+                    else if ((status == 'pending' || status == 'confirmed') && Get.find<LandingController>().currentRole.value != UserRole.owner)
                       _CancelButton(
                         onPressed: () => _confirmCancel(context, booking),
                       ),

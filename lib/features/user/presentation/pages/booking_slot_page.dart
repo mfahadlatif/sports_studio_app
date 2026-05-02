@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
 import 'package:sport_studio/core/theme/app_colors.dart';
 import 'package:sport_studio/core/theme/app_text_styles.dart';
 import 'package:sport_studio/core/constants/app_constants.dart';
@@ -17,12 +18,6 @@ class BookingSlotPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(BookingController());
-
-    // Set ground and fetch availability after controller is initialized
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final ground = Get.arguments;
-      controller.setGroundAndFetchAvailability(ground);
-    });
 
     return Scaffold(
       appBar: AppBar(title: const Text('Select Time Slot')),
@@ -489,18 +484,43 @@ class BookingSlotPage extends StatelessWidget {
                 Text('Available Slots', style: AppTextStyles.h3),
                 Obx(
                   () => controller.isLoadingSlots.value
-                      ? const AppProgressIndicator(size: 16, strokeWidth: 2)
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        )
                       : const SizedBox.shrink(),
                 ),
               ],
             ),
             const SizedBox(height: AppSpacing.m),
-            Obx(
-              () => GridView.builder(
+            Obx(() {
+              if (controller.isLoadingSlots.value) {
+                return _buildShimmerSlots();
+              }
+
+              if (controller.allSlots.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
+                    child: Text(
+                      'No slots available for this date.',
+                      style: AppTextStyles.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // Changed to 2 for wider range text
+                  crossAxisCount: 2,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
                   childAspectRatio: 3.5,
@@ -566,11 +586,37 @@ class BookingSlotPage extends StatelessWidget {
                     );
                   });
                 },
-              ),
-            ),
+              );
+            }),
             const SizedBox(height: AppSpacing.xl),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildShimmerSlots() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey[200]!,
+      highlightColor: Colors.grey[50]!,
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 3.5,
+        ),
+        itemCount: 8,
+        itemBuilder: (context, index) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          );
+        },
       ),
     );
   }
@@ -689,7 +735,7 @@ class BookingSlotPage extends StatelessWidget {
                 label: 'Pay with Safepay (Card)',
                 onPressed: () {
                   Get.back();
-                  controller.createBooking();
+                  controller.createBooking(paymentMethod: 'card');
                 },
               ),
               const SizedBox(height: AppSpacing.s),

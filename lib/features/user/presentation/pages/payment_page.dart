@@ -50,6 +50,9 @@ class _PaymentPageState extends State<PaymentPage> {
           _promoCtrl.text = _appliedPromo['code'] ?? '';
         }
       }
+      if (args['paymentMethod'] != null) {
+        _selectedMethod = args['paymentMethod'].toString();
+      }
     }
 
     _bootstrapTimerFromServer();
@@ -167,7 +170,6 @@ class _PaymentPageState extends State<PaymentPage> {
     double subtotal = 0.0;
     double discountAmount = 0.0;
 
-    // ── Extract IDs NOW (while PaymentPage is active and Get.arguments is valid)
     final String? paymentType = (args != null && args is Map) ? args['type']?.toString() : null;
     final int? bookingId = (args != null && args is Map)
         ? (args['bookingId'] is int ? args['bookingId'] : int.tryParse(args['bookingId']?.toString() ?? ''))
@@ -177,18 +179,17 @@ class _PaymentPageState extends State<PaymentPage> {
         : null;
 
     if (args != null && args is Map) {
-      subtotal =
-          double.tryParse(
-            args['subtotal']?.toString() ??
-                args['totalPrice']?.toString() ??
-                '0',
-          ) ??
-          0.0;
+      subtotal = (args['subtotal'] as num?)?.toDouble() ?? 
+                 (args['totalPrice'] as num?)?.toDouble() ?? 
+                 0.0;
+      
       if (_discountPercentage > 0) {
         discountAmount = subtotal * (_discountPercentage / 100);
+      } else {
+        discountAmount = (args['discount'] as num?)?.toDouble() ?? 0.0;
       }
     }
-    final amount = subtotal - discountAmount;
+    final amount = (subtotal - discountAmount).clamp(0.0, double.infinity);
 
     if (_selectedMethod == 'cod') {
       if (paymentType == 'event_participant') {
@@ -447,31 +448,61 @@ class _PaymentPageState extends State<PaymentPage> {
                         const SizedBox(height: AppSpacing.xl),
                         Text('Payment Method', style: AppTextStyles.h3),
                         const SizedBox(height: AppSpacing.m),
-                        _buildOption(
-                          'card',
-                          Icons.credit_card_rounded,
-                          'Safepay Checkout',
-                          'Credit / Debit Card secure payment',
-                          Colors.indigo,
-                        ),
-                        const SizedBox(height: AppSpacing.m),
-                        if (type == 'event_participant') ...[
+                        if (Get.arguments?['paymentMethod'] != null) ...[
+                          if (_selectedMethod == 'card')
+                            _buildOption(
+                              'card',
+                              Icons.credit_card_rounded,
+                              'Safepay Checkout',
+                              'Credit / Debit Card secure payment',
+                              Colors.indigo,
+                              isReadOnly: true,
+                            ),
+                          if (_selectedMethod == 'wallet')
+                            _buildOption(
+                              'wallet',
+                              Icons.account_balance_wallet_rounded,
+                              'Wallet Balance',
+                              'Pay using your remaining balance',
+                              Colors.teal,
+                              isReadOnly: true,
+                            ),
+                          if (_selectedMethod == 'cod')
+                            _buildOption(
+                              'cod',
+                              Icons.payments_rounded,
+                              'Cash at Venue',
+                              'Pay directly at the sports complex',
+                              Colors.orange,
+                              isReadOnly: true,
+                            ),
+                        ] else ...[
                           _buildOption(
-                            'wallet',
-                            Icons.account_balance_wallet_rounded,
-                            'Wallet Balance',
-                            'Pay using your remaining balance',
-                            Colors.teal,
+                            'card',
+                            Icons.credit_card_rounded,
+                            'Safepay Checkout',
+                            'Credit / Debit Card secure payment',
+                            Colors.indigo,
                           ),
                           const SizedBox(height: AppSpacing.m),
+                          if (type == 'event_participant') ...[
+                            _buildOption(
+                              'wallet',
+                              Icons.account_balance_wallet_rounded,
+                              'Wallet Balance',
+                              'Pay using your remaining balance',
+                              Colors.teal,
+                            ),
+                            const SizedBox(height: AppSpacing.m),
+                          ],
+                          _buildOption(
+                            'cod',
+                            Icons.payments_rounded,
+                            'Cash at Venue',
+                            'Pay directly at the sports complex',
+                            Colors.orange,
+                          ),
                         ],
-                        _buildOption(
-                          'cod',
-                          Icons.payments_rounded,
-                          'Cash at Venue',
-                          'Pay directly at the sports complex',
-                          Colors.orange,
-                        ),
                         const SizedBox(height: AppSpacing.xl),
                       ],
                     ),
@@ -578,10 +609,10 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
-  Widget _buildOption(String id, IconData icon, String title, String sub, Color color) {
+  Widget _buildOption(String id, IconData icon, String title, String sub, Color color, {bool isReadOnly = false}) {
     final isSelected = _selectedMethod == id;
     return GestureDetector(
-      onTap: () => setState(() => _selectedMethod = id),
+      onTap: isReadOnly ? null : () => setState(() => _selectedMethod = id),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.m),
@@ -722,29 +753,22 @@ class _PaymentPageState extends State<PaymentPage> {
 
   Widget _buildPriceSummary() {
     final args = Get.arguments;
-    double subtotal = 1000.0;
+    double subtotal = 0.0;
     double discount = 0.0;
-    double total = 1000.0;
+    double total = 0.0;
 
     if (args != null && args is Map) {
+      subtotal = (args['subtotal'] as num?)?.toDouble() ?? 
+                 (args['totalPrice'] as num?)?.toDouble() ?? 
+                 0.0;
+                 
       if (_appliedPromo != null) {
         // Recalculate if user changed promo on this page
-        subtotal =
-            double.tryParse(
-              args['subtotal']?.toString() ??
-                  args['totalPrice']?.toString() ??
-                  '1000',
-            ) ??
-            1000.0;
         discount = subtotal * (_discountPercentage / 100);
         total = subtotal - discount;
       } else {
-        total =
-            double.tryParse(args['totalPrice']?.toString() ?? '1000') ?? 1000.0;
-        subtotal =
-            double.tryParse(args['subtotal']?.toString() ?? total.toString()) ??
-            total;
-        discount = double.tryParse(args['discount']?.toString() ?? '0') ?? 0;
+        discount = (args['discount'] as num?)?.toDouble() ?? 0.0;
+        total = (args['totalPrice'] as num?)?.toDouble() ?? (subtotal - discount);
       }
     }
 

@@ -20,6 +20,13 @@ class SportsGroundsPage extends StatelessWidget {
     final controller = Get.put(GroundsController());
     final RxString searchQuery = ''.obs;
 
+    // Ensure data is fetched when first coming to the screen if it's empty
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.grounds.isEmpty && !controller.isLoading.value) {
+        controller.fetchComplexesAndGrounds();
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
@@ -214,15 +221,20 @@ class SportsGroundsPage extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: ground.status == 'active'
                                   ? Colors.green.withValues(alpha: 0.1)
-                                  : Colors.orange.withValues(alpha: 0.1),
+                                  : Colors.red.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: ground.status == 'active'
+                                    ? Colors.green.withValues(alpha: 0.2)
+                                    : Colors.red.withValues(alpha: 0.2),
+                              ),
                             ),
                             child: Text(
-                              (ground.status ?? 'unknown').toUpperCase(),
+                              ground.status.toUpperCase(),
                               style: TextStyle(
                                 color: ground.status == 'active'
                                     ? Colors.green
-                                    : Colors.orange,
+                                    : Colors.red,
                                 fontSize: 8,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -287,7 +299,7 @@ class SportsGroundsPage extends StatelessWidget {
                                         'Are you sure you want to delete "${ground.name}"? This action cannot be undone.',
                                   );
                               if (confirmed == true) {
-                                controller.deleteGround(ground.id!);
+                                controller.deleteGround(ground.id);
                               }
                             },
                           ),

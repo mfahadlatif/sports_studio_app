@@ -4,6 +4,8 @@ import 'package:sport_studio/core/theme/app_colors.dart';
 import 'package:sport_studio/core/theme/app_text_styles.dart';
 import 'package:sport_studio/core/constants/app_constants.dart';
 import 'package:sport_studio/core/network/api_client.dart';
+import 'package:sport_studio/features/user/controller/notifications_controller.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
 import 'package:sport_studio/widgets/app_progress_indicator.dart';
 
 class NotificationsPage extends StatefulWidget {
@@ -62,7 +64,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
           {
             'id': '2',
             'title': 'Payment Received',
-            'message': '${AppConstants.currencySymbol} 3,000 payment received for booking #1042.',
+            'message':
+                '${AppConstants.currencySymbol} 3,000 payment received for booking #1042.',
             'type': 'payment',
             'read': false,
             'createdAt': DateTime.now()
@@ -101,6 +104,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
   Future<void> _markAsRead(String id) async {
     try {
       await ApiClient().dio.post('/notifications/$id/read');
+
+      // Update global unread count if controller exists
+      if (Get.isRegistered<NotificationsController>()) {
+        Get.find<NotificationsController>().decrementCount();
+      }
+      if (Get.isRegistered<ProfileController>()) {
+        Get.find<ProfileController>().fetchNotifications();
+      }
     } catch (_) {}
     setState(() {
       final idx = _notifications.indexWhere((n) => n['id'] == id);
@@ -114,6 +125,14 @@ class _NotificationsPageState extends State<NotificationsPage> {
     setState(() => _isMarkingAll = true);
     try {
       await ApiClient().dio.post('/notifications/read-all');
+
+      // Update global unread count
+      if (Get.isRegistered<NotificationsController>()) {
+        Get.find<NotificationsController>().unreadCount.value = 0;
+      }
+      if (Get.isRegistered<ProfileController>()) {
+        Get.find<ProfileController>().unreadCount.value = 0;
+      }
     } catch (_) {}
     setState(() {
       _notifications = _notifications.map((n) => {...n, 'read': true}).toList();
@@ -242,7 +261,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
                                 physics: const AlwaysScrollableScrollPhysics(),
                                 children: [
                                   SizedBox(
-                                    height: MediaQuery.of(context).size.height * 0.2,
+                                    height:
+                                        MediaQuery.of(context).size.height *
+                                        0.2,
                                   ),
                                   _emptyState(),
                                 ],

@@ -31,40 +31,44 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   }
 
   Future<void> _loadBooking() async {
-    // Booking can be passed via arguments or fetched by id
     final args = Get.arguments;
+    int? bookingId;
+
     if (args is Map && args['booking'] != null) {
+      final bookingJson = args['booking'];
       setState(() {
-        _booking = args['booking'] is Booking
-            ? args['booking'] as Booking
-            : Booking.fromJson(Map<String, dynamic>.from(args['booking'] as Map));
+        _booking = bookingJson is Booking
+            ? bookingJson
+            : Booking.fromJson(Map<String, dynamic>.from(bookingJson as Map));
         _isLoading = false;
       });
-      return;
+      bookingId = _booking?.id;
+    } else {
+      bookingId = args?['id'] ?? args;
     }
 
-    final id = args?['id'] ?? args;
-    if (id == null) {
-      Get.back();
+    if (bookingId == null) {
+      if (_booking == null) Get.back();
       return;
     }
 
     try {
-      final res = await ApiClient().dio.get('/bookings/$id');
+      final res = await ApiClient().dio.get('/bookings/$bookingId');
       if (res.statusCode == 200) {
         final data = res.data is Map && res.data['data'] != null
             ? res.data['data']
             : res.data;
         setState(() {
-          _booking = Booking.fromJson(Map<String, dynamic>.from(data as Map));
+          _booking = Booking.fromJson(data);
+          _isLoading = false;
         });
       }
     } catch (e) {
-      print('❌ [BookingDetail] _loadBooking error: $id | $e');
-      AppUtils.showError(message: 'Could not load booking details. Please try again.');
-      Get.back();
-    } finally {
-      setState(() => _isLoading = false);
+      print('Error fetching booking details: $e');
+      if (_booking == null) {
+        AppUtils.showError(message: 'Failed to load booking details');
+        Get.back();
+      }
     }
   }
 
@@ -81,21 +85,30 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
 
       final res = await ApiClient().dio.put('/bookings/$id', data: payload);
       if (res.statusCode == 200) {
-        final data = res.data is Map && res.data['data'] != null ? res.data['data'] : res.data;
+        final data = res.data is Map && res.data['data'] != null
+            ? res.data['data']
+            : res.data;
         if (data is Map) {
-          setState(() => _booking = Booking.fromJson(Map<String, dynamic>.from(data as Map)));
+          setState(
+            () => _booking = Booking.fromJson(
+              Map<String, dynamic>.from(data as Map),
+            ),
+          );
         } else {
-           _loadBooking(); // fallback
+          _loadBooking(); // fallback
         }
-        
+
         if (Get.isRegistered<BookingsController>()) {
           Get.find<BookingsController>().fetchBookings(silent: true);
         }
 
         String successMsg = 'Booking status updated successfully';
-        if (newStatus == 'confirmed') successMsg = 'Booking accepted successfully';
-        if (newStatus == 'cancelled') successMsg = 'Booking declined successfully';
-        if (newStatus == 'completed') successMsg = 'Booking marked as completed';
+        if (newStatus == 'confirmed')
+          successMsg = 'Booking accepted successfully';
+        if (newStatus == 'cancelled')
+          successMsg = 'Booking declined successfully';
+        if (newStatus == 'completed')
+          successMsg = 'Booking marked as completed';
 
         AppUtils.showSuccess(message: successMsg);
       } else {
@@ -118,11 +131,16 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
       // Match website/backend: POST /bookings/:id/finalize-payment (cash/COD)
       final res = await ApiClient().dio.post('/bookings/$id/finalize-payment');
       if (res.statusCode == 200) {
-        final Map<String, dynamic> responseMap = Map<String, dynamic>.from(res.data as Map);
-        final dynamic bookingData = responseMap['booking'] ?? responseMap['data'] ?? responseMap;
-        
+        final Map<String, dynamic> responseMap = Map<String, dynamic>.from(
+          res.data as Map,
+        );
+        final dynamic bookingData =
+            responseMap['booking'] ?? responseMap['data'] ?? responseMap;
+
         setState(() {
-          _booking = Booking.fromJson(Map<String, dynamic>.from(bookingData as Map));
+          _booking = Booking.fromJson(
+            Map<String, dynamic>.from(bookingData as Map),
+          );
         });
 
         if (Get.isRegistered<BookingsController>()) {
@@ -188,7 +206,12 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
   Widget _buildBody() {
     final booking = _booking!;
 
-    final String status = (booking.status).toString();
+    final bool isTimePassed = booking.endTime.isBefore(DateTime.now());
+    String status = (booking.status).toString();
+
+    if (isTimePassed && status == 'pending') {
+      status = 'cancelled';
+    }
     final String paymentStatus = (booking.paymentStatus).toString();
 
     final userName =
@@ -292,7 +315,30 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                               letterSpacing: 1.5,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 8),
+                          if (booking.event != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Colors.blueAccent, Colors.lightBlue],
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                "Event: ${booking.event!.name}",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                          ],
                           Text(groundName, style: AppTextStyles.h2),
                           if (groundType.isNotEmpty)
                             Text(
@@ -352,7 +398,7 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                 crossAxisCount: 2,
                 mainAxisSpacing: AppSpacing.m,
                 crossAxisSpacing: AppSpacing.m,
-                childAspectRatio: 2.0,
+                childAspectRatio: 2,
                 children: [
                   _infoCell(Icons.calendar_today_outlined, 'Date', date),
                   _infoCell(
@@ -364,6 +410,19 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                     Icons.people_outline,
                     'Players',
                     '${booking.players} people',
+                  ),
+                  _infoCell(
+                    Icons.payment_outlined,
+                    'Payment',
+                    paymentStatus.toUpperCase(),
+                  ),
+                  _infoCell(
+                    Icons.payments_outlined,
+                    'Method',
+                    (booking.paymentMethod?.toLowerCase() == 'cash' ||
+                            booking.paymentMethod?.toLowerCase() == 'cod')
+                        ? 'CASH'
+                        : (booking.paymentMethod ?? 'N/A').toUpperCase(),
                   ),
                   _infoCell(
                     null,
@@ -507,24 +566,28 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
               // Actions panel (if pending or unpaid)
               // Only show if there's actually something to do.
               () {
-                final isNotOnline =
-                    booking.paymentMethod?.toLowerCase() != 'safepay' &&
-                    booking.paymentMethod?.toLowerCase() != 'online' &&
-                    booking.paymentMethod?.toLowerCase() != 'wallet';
+                final bool isOnlinePayment =
+                    booking.paymentMethod?.toLowerCase() != 'cash' &&
+                    booking.paymentMethod?.toLowerCase() != 'cod' &&
+                    booking.paymentMethod != null;
 
-                final canAcceptDecline = status == 'pending';
-                final canMarkPaid =
-                    paymentStatus != 'paid' && status != 'cancelled';
+                final bool isPending = status == 'pending';
+                final bool isUnpaidCash =
+                    (paymentStatus == 'unpaid' || paymentStatus == 'pending') &&
+                    !isOnlinePayment;
+
+                final canAcceptDecline = isPending && !isOnlinePayment;
+                final canMarkPaid = isUnpaidCash;
                 final canMarkCompleted =
                     status == 'confirmed' && paymentStatus == 'paid';
 
-                if (isNotOnline &&
-                    (canAcceptDecline || canMarkPaid || canMarkCompleted)) {
+                if ((canAcceptDecline || canMarkPaid || canMarkCompleted) &&
+                    !isTimePassed) {
                   return Column(
                     children: [
                       _sectionHeader(
-                        'Pending Actions',
-                        Icons.pending_actions_outlined,
+                        'Booking Management',
+                        Icons.settings_suggest_outlined,
                       ),
                       const SizedBox(height: AppSpacing.s),
                       Container(
@@ -545,34 +608,58 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                             ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.green,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                         ),
+                                        elevation: 0,
                                       ),
                                       icon: const Icon(
                                         Icons.check_circle_outline,
+                                        size: 18,
                                       ),
-                                      label: const Text('Accept'),
+                                      label: const Text(
+                                        'Accept',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  const SizedBox(width: AppSpacing.s),
+                                  const SizedBox(width: AppSpacing.m),
                                   Expanded(
                                     child: ElevatedButton.icon(
                                       onPressed: _isUpdating
                                           ? null
                                           : () => _showDeclineSheet(),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
+                                        backgroundColor: Colors.red.shade400,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 12,
+                                        ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                         ),
+                                        elevation: 0,
                                       ),
-                                      icon: const Icon(Icons.cancel_outlined),
-                                      label: const Text('Decline'),
+                                      icon: const Icon(
+                                        Icons.cancel_outlined,
+                                        size: 18,
+                                      ),
+                                      label: const Text(
+                                        'Decline',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -591,27 +678,30 @@ class _BookingDetailPageState extends State<BookingDetailPage> {
                                           _markAsPaid,
                                         ),
                                   style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
                                     side: const BorderSide(
                                       color: AppColors.primary,
+                                      width: 1.5,
                                     ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
+                                    backgroundColor: AppColors.primary
+                                        .withValues(alpha: 0.05),
                                   ),
-                                  icon: Padding(
-                                    padding: const EdgeInsets.all(4.0),
-                                    child: Text(
-                                      AppConstants.currencySymbol,
-                                      style: const TextStyle(
-                                        color: AppColors.primary,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
+                                  icon: const Icon(
+                                    Icons.payments_outlined,
+                                    size: 18,
+                                    color: AppColors.primary,
                                   ),
                                   label: const Text(
                                     'Mark as Paid',
-                                    style: TextStyle(color: AppColors.primary),
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),

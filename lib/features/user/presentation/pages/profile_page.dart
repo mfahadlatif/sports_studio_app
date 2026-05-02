@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:sport_studio/features/user/controller/notifications_controller.dart';
+
 import 'package:get/get.dart';
 import 'package:sport_studio/core/theme/app_colors.dart';
 import 'package:sport_studio/core/theme/app_text_styles.dart';
@@ -103,7 +105,7 @@ class ProfilePage extends StatelessWidget {
                             ),
                             _buildOption(
                               icon: Icons.calendar_month_outlined,
-                              title: 'Bookings',
+                              title: 'Ground Bookings',
                               subtitle: 'View all bookings',
                               onTap: () => landingController.changeNavIndex(2),
                               color: Colors.green,
@@ -187,7 +189,7 @@ class ProfilePage extends StatelessWidget {
                             _buildSectionTitle('ACTIVITY'),
                             _buildOption(
                               icon: Icons.calendar_today_outlined,
-                              title: 'My Match Bookings',
+                              title: 'My Bookings',
                               subtitle: 'Upcoming and past arena games',
                               onTap: () =>
                                   Get.to(() => const UserBookingsPage()),
@@ -223,17 +225,35 @@ class ProfilePage extends StatelessWidget {
                                   Get.to(() => const ManagedEventsPage()),
                               color: Colors.pink,
                             ),
-                            Obx(() => (profileController.hasOrganizedEvents.value || profileController.pendingJoinRequestsCount.value > 0) ? _buildOption(
-                              icon: Icons.person_add_alt_1_outlined,
-                              title: 'Join Requests',
-                              subtitle: 'Approve players for your events',
-                              onTap: () =>
-                                  Get.to(() => const JoinRequestsPage()),
-                              color: Colors.orange,
-                              badge: profileController.pendingJoinRequestsCount.value > 0
-                                  ? profileController.pendingJoinRequestsCount.value.toString()
-                                  : null,
-                            ) : const SizedBox.shrink()),
+                            Obx(
+                              () =>
+                                  (profileController.hasOrganizedEvents.value ||
+                                      profileController
+                                              .pendingJoinRequestsCount
+                                              .value >
+                                          0)
+                                  ? _buildOption(
+                                      icon: Icons.person_add_alt_1_outlined,
+                                      title: 'Join Requests',
+                                      subtitle:
+                                          'Approve players for your events',
+                                      onTap: () => Get.to(
+                                        () => const JoinRequestsPage(),
+                                      ),
+                                      color: Colors.orange,
+                                      badge:
+                                          profileController
+                                                  .pendingJoinRequestsCount
+                                                  .value >
+                                              0
+                                          ? profileController
+                                                .pendingJoinRequestsCount
+                                                .value
+                                                .toString()
+                                          : null,
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
                             _buildOption(
                               icon: Icons.local_offer_outlined,
                               title: 'Active Promo Codes',
@@ -255,8 +275,14 @@ class ProfilePage extends StatelessWidget {
                             icon: Icons.notifications_none_outlined,
                             title: 'Notifications',
                             subtitle: 'Manage alerts and push notifications',
-                            onTap: () =>
-                                Get.to(() => const NotificationsPage()),
+                            onTap: () async {
+                              await Get.to(() => const NotificationsPage());
+                              if (Get.isRegistered<NotificationsController>()) {
+                                Get.find<NotificationsController>()
+                                    .fetchUnreadCount();
+                              }
+                              profileController.fetchNotifications();
+                            },
                             color: Colors.amber,
                           ),
 
@@ -512,8 +538,9 @@ class ProfilePage extends StatelessWidget {
         children: [
           Text(
             title,
-            style:
-                AppTextStyles.bodyLarge.copyWith(fontWeight: FontWeight.bold),
+            style: AppTextStyles.bodyLarge.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
           ),
           if (badge != null) ...[
             const SizedBox(width: 8),

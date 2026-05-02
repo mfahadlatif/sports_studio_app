@@ -19,6 +19,7 @@ import 'package:sport_studio/features/admin/presentation/widgets/admin_dashboard
 import 'package:sport_studio/features/admin/presentation/pages/admin_users_page.dart';
 import 'package:sport_studio/features/admin/presentation/pages/admin_complex_management_page.dart';
 import 'package:sport_studio/features/admin/presentation/pages/admin_reports_page.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});
@@ -50,26 +51,26 @@ class LandingPage extends StatelessWidget {
       const ProfilePage(),
     ];
 
-    final List<GButton> userTabs = const [
-      GButton(icon: Icons.home_outlined, text: 'Home'),
-      GButton(icon: Icons.sports_soccer_outlined, text: 'Grounds'),
-      GButton(icon: Icons.event_outlined, text: 'Events'),
-      GButton(icon: Icons.person_outline, text: 'Profile'),
+    final List<GButton> userTabs = [
+      GButton(icon: LucideIcons.house, text: 'Home'),
+      GButton(icon: LucideIcons.mapPin, text: 'Grounds'),
+      GButton(icon: LucideIcons.calendarDays, text: 'Events'),
+      GButton(icon: LucideIcons.user, text: 'Profile'),
     ];
 
-    final List<GButton> ownerTabs = const [
-      GButton(icon: Icons.dashboard_outlined, text: 'Dashboard'),
-      GButton(icon: Icons.manage_accounts_outlined, text: 'Manage'),
-      GButton(icon: Icons.calendar_month_outlined, text: 'Bookings'),
-      GButton(icon: Icons.person_outline, text: 'Profile'),
+    final List<GButton> ownerTabs = [
+      GButton(icon: LucideIcons.layoutDashboard, text: 'Dashboard'),
+      GButton(icon: LucideIcons.notebookPen, text: 'Manage'),
+      GButton(icon: LucideIcons.calendarClock, text: 'Bookings'),
+      GButton(icon: LucideIcons.user, text: 'Profile'),
     ];
 
-    final List<GButton> adminTabs = const [
-      GButton(icon: Icons.admin_panel_settings_outlined, text: 'Admin'),
-      GButton(icon: Icons.people_outline, text: 'Users'),
-      GButton(icon: Icons.business_outlined, text: 'Complexes'),
-      GButton(icon: Icons.analytics_outlined, text: 'Reports'),
-      GButton(icon: Icons.person_outline, text: 'Profile'),
+    final List<GButton> adminTabs = [
+      GButton(icon: LucideIcons.shieldCheck, text: 'Admin'),
+      GButton(icon: LucideIcons.users, text: 'Users'),
+      GButton(icon: LucideIcons.building, text: 'Complexes'),
+      GButton(icon: LucideIcons.chartBar, text: 'Reports'),
+      GButton(icon: LucideIcons.user, text: 'Profile'),
     ];
 
     return PopScope(

@@ -77,7 +77,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
       child: Obx(() => Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: !widget.isTab,
-          title: const Text('Bookings'),
+          title: const Text('Ground Bookings'),
           centerTitle: true,
           actions: [
             IconButton(
@@ -419,9 +419,25 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
           (booking['total_amount'] ?? booking['total_price'] ?? 0).toString(),
         ) ??
         0.0;
-    final String status = (booking['status'] ?? 'pending').toString();
+    String status = (booking['status'] ?? 'pending').toString();
     final String paymentStatus = (booking['payment_status'] ?? 'unpaid')
         .toString();
+
+    bool isExpired = false;
+    try {
+      if (rawEnd.isNotEmpty) {
+        final endDt = DateTime.parse(
+          rawEnd.contains(' ') ? rawEnd.replaceFirst(' ', 'T') : rawEnd,
+        );
+        isExpired = endDt.isBefore(DateTime.now());
+      }
+    } catch (e) {
+      // Ignore parsing errors
+    }
+
+    if (isExpired && status == 'pending') {
+      status = 'cancelled';
+    }
 
     Color statusColor;
     switch (status) {
@@ -830,18 +846,32 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                                                 : Colors.red,
                                           ),
                                           const SizedBox(width: 4),
-                                          Text(
-                                            paymentStatus == 'paid'
-                                                ? 'PAID'
-                                                : 'UNPAID',
-                                            style: TextStyle(
-                                              color: paymentStatus == 'paid'
-                                                  ? Colors.green
-                                                  : Colors.red,
-                                              fontWeight: FontWeight.w900,
-                                              fontSize: 10,
-                                              letterSpacing: 0.5,
-                                            ),
+                                          Column(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                paymentStatus == 'paid'
+                                                    ? 'PAID'
+                                                    : 'UNPAID',
+                                                style: TextStyle(
+                                                  color: paymentStatus == 'paid'
+                                                      ? Colors.green
+                                                      : Colors.red,
+                                                  fontWeight: FontWeight.w900,
+                                                  fontSize: 10,
+                                                  letterSpacing: 0.5,
+                                                ),
+                                              ),
+                                              Text(
+                                                (booking['payment_method'] ?? 'N/A').toString().toUpperCase(),
+                                                style: TextStyle(
+                                                  color: Colors.grey.shade500,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 7,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -856,87 +886,93 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                     ),
 
                     // Action Buttons — Owner Only
-                    if (isOwnerOrAdmin &&
-                        status != 'cancelled' &&
-                        (status == 'pending' ||
-                            paymentStatus == 'unpaid' ||
-                            paymentStatus == 'pending')) ...[
-                      if (booking['payment_method']?.toString().toLowerCase() !=
-                              'safepay' &&
-                          booking['payment_method']?.toString().toLowerCase() !=
-                              'online' &&
-                          booking['payment_method']?.toString().toLowerCase() !=
-                              'wallet') ...[
-                        const SizedBox(height: AppSpacing.m),
-                        Obx(
+                    if (isOwnerOrAdmin && status != 'cancelled' && !isExpired) ...[
+                      // Logic: 
+                      // 1. If Pending -> Show Accept/Decline
+                      // 2. If Unpaid & Cash -> Show Mark as Paid
+                      () {
+                        final bool isPending = status == 'pending';
+                        final bool isUnpaidCash = (paymentStatus == 'unpaid' || paymentStatus == 'pending') && 
+                                                 (booking['payment_method']?.toString().toLowerCase() == 'cash' || 
+                                                  booking['payment_method'] == null);
+
+                        if (!isPending && !isUnpaidCash) return const SizedBox.shrink();
+
+                        return Obx(
                           () => Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.l,
                             ),
-                            child: Row(
+                            child: Column(
                               children: [
-                                if (status == 'pending') ...[
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: controller.isActioning.value
-                                          ? null
-                                          : () => _confirmAction(
-                                              context,
-                                              'Accept',
-                                              () {
-                                                controller.updateBookingStatus(
+                                // Accept / Decline Row
+                                if (isPending)
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: controller.isActioning.value
+                                              ? null
+                                              : () => _confirmAction(
+                                                  context,
+                                                  'Accept',
+                                                  () {
+                                                    controller.updateBookingStatus(
+                                                      booking,
+                                                      'confirmed',
+                                                    );
+                                                  },
+                                                ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            elevation: 0,
+                                          ),
+                                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                                          label: const Text(
+                                            'Accept',
+                                            style: TextStyle(fontWeight: FontWeight.bold),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: AppSpacing.m),
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: controller.isActioning.value
+                                              ? null
+                                              : () => _showDeclineDialog(
+                                                  context,
                                                   booking,
-                                                  'confirmed',
-                                                );
-                                              },
+                                                  controller,
+                                                ),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red.shade400,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12),
                                             ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
+                                            elevation: 0,
+                                          ),
+                                          icon: const Icon(Icons.cancel_outlined, size: 18),
+                                          label: const Text(
+                                            'Decline',
+                                            style: TextStyle(fontWeight: FontWeight.bold),
                                           ),
                                         ),
                                       ),
-                                      icon: const Icon(
-                                        Icons.check_circle_outline,
-                                        size: 16,
-                                      ),
-                                      label: const Text('Accept'),
-                                    ),
+                                    ],
                                   ),
-                                  const SizedBox(width: AppSpacing.s),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: controller.isActioning.value
-                                          ? null
-                                          : () => _showDeclineDialog(
-                                              context,
-                                              booking,
-                                              controller,
-                                            ),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.red,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                      ),
-                                      icon: const Icon(
-                                        Icons.cancel_outlined,
-                                        size: 16,
-                                      ),
-                                      label: const Text('Decline'),
-                                    ),
-                                  ),
-                                ],
-                                if ((paymentStatus == 'unpaid' ||
-                                        paymentStatus == 'pending') &&
-                                    status != 'cancelled') ...[
-                                  if (status == 'pending')
-                                    const SizedBox(width: AppSpacing.s),
-                                  Expanded(
+                                
+                                // Mark Paid Row
+                                if (isUnpaidCash && status != 'cancelled') ...[
+                                  if (isPending) const SizedBox(height: AppSpacing.s),
+                                  SizedBox(
+                                    width: double.infinity,
                                     child: OutlinedButton.icon(
                                       onPressed: controller.isActioning.value
                                           ? null
@@ -948,30 +984,19 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                                               },
                                             ),
                                       style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(
-                                          color: AppColors.primary,
-                                        ),
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        side: const BorderSide(color: AppColors.primary, width: 1.5),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          borderRadius: BorderRadius.circular(12),
                                         ),
+                                        backgroundColor: AppColors.primary.withValues(alpha: 0.05),
                                       ),
-                                      icon: Padding(
-                                        padding: const EdgeInsets.all(8.0),
-                                        child: Text(
-                                          AppConstants.currencySymbol,
-                                          style: const TextStyle(
-                                            color: AppColors.primary,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
+                                      icon: const Icon(Icons.payments_outlined, size: 18, color: AppColors.primary),
                                       label: const Text(
-                                        'Mark Paid',
+                                        'Mark as Paid',
                                         style: TextStyle(
                                           color: AppColors.primary,
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ),
@@ -980,8 +1005,8 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
                               ],
                             ),
                           ),
-                        ),
-                      ],
+                        );
+                      }(),
                     ],
                     const SizedBox(height: AppSpacing.m),
                   ],
@@ -1108,7 +1133,7 @@ class _OwnerBookingsViewState extends State<OwnerBookingsView> {
               Navigator.pop(ctx);
               controller.updateBookingStatus(
                 booking,
-                'cancelled',
+                'rejected',
                 reason: reasonController.text,
               );
             },

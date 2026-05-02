@@ -4,12 +4,13 @@ import 'package:dio/dio.dart';
 import 'package:sport_studio/core/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import 'package:sport_studio/core/constants/app_constants.dart';
+import 'package:sport_studio/features/landing/controller/landing_controller.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 
 class AppUtils {
   static String formatCurrency(dynamic amount) {
     if (amount == null) return '${AppConstants.currencySymbol} 0';
-    final formatter = NumberFormat('#,###');
+    final formatter = NumberFormat('#,##0.00');
     final val = double.tryParse(amount.toString()) ?? 0.0;
     return '${AppConstants.currencySymbol} ${formatter.format(val)}';
   }
@@ -22,22 +23,30 @@ class AppUtils {
       final dt = DateTime(now.year, now.month, now.day, time.hour, time.minute);
       return DateFormat('hh:mm a').format(dt);
     }
+    if (time is num) {
+      final hour = time.toInt();
+      final now = DateTime.now();
+      final dt = DateTime(now.year, now.month, now.day, hour, 0);
+      return DateFormat('hh:mm a').format(dt);
+    }
     if (time is String) {
+      // Clean time string first (handle things like "23:00:00")
+      final cleanTime = time.trim();
       try {
-        // Try parsing as full datetime first
-        final dt = DateTime.parse(time.replaceFirst(' ', 'T'));
+        // Try parsing HH:mm:ss or HH:mm or just HH
+        final parts = cleanTime.split(':');
+        final hour = int.parse(parts[0]);
+        final minute = parts.length > 1 ? int.parse(parts[1]) : 0;
+        final now = DateTime.now();
+        final dt = DateTime(now.year, now.month, now.day, hour, minute);
         return DateFormat('hh:mm a').format(dt);
       } catch (_) {
         try {
-          // Try parsing as HH:mm
-          final parts = time.split(':');
-          final hour = int.parse(parts[0]);
-          final minute = int.parse(parts[1]);
-          final now = DateTime.now();
-          final dt = DateTime(now.year, now.month, now.day, hour, minute);
+          // Try ISO format
+          final dt = DateTime.parse(cleanTime.replaceFirst(' ', 'T'));
           return DateFormat('hh:mm a').format(dt);
         } catch (_) {
-          return time;
+          return cleanTime;
         }
       }
     }
@@ -137,7 +146,9 @@ class AppUtils {
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: (confirmColor ?? AppColors.primary).withValues(alpha: 0.1),
+                    color: (confirmColor ?? AppColors.primary).withValues(
+                      alpha: 0.1,
+                    ),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -390,36 +401,191 @@ class AppUtils {
 
   static void showDeactivatedDialog() {
     Get.dialog(
-      AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.lock_outline, color: AppColors.error),
-            const SizedBox(width: 10),
-            const Text(
-              'Account Deactivated',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        content: const Text(
-          'Your account has been deactivated by the administrator. Please contact support to regain access to your profile and bookings.',
-          style: TextStyle(fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text(
-              'OK',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_outline,
+                  color: AppColors.error,
+                  size: 44,
+                ),
               ),
-            ),
+              const SizedBox(height: 24),
+              const Text(
+                'Account Deactivated',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Your account has been deactivated by the administrator. Please contact support to regain access to your profile and bookings.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Get.back(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'OK',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
       barrierDismissible: false,
+    );
+  }
+
+  static void showPhoneVerificationRequiredDialog({
+    String title = 'Verification Required',
+    String message =
+        'Please verify your phone number to continue with this action.',
+  }) {
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        child: Padding(
+          padding: const EdgeInsets.all(32.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.verified_user_outlined,
+                  color: AppColors.primary,
+                  size: 44,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Get.back(); // Close dialog
+
+                    try {
+                      final landingCtrl = Get.find<LandingController>();
+
+                      // If we are on a pushed screen (like GroundDetail or ComplexDetail),
+                      // we need to pop back to the LandingPage first.
+                      if (Get.currentRoute != '/') {
+                        Get.until((route) => Get.currentRoute == '/');
+                      }
+
+                      landingCtrl.changeNavIndex(3); // Switch to Profile tab
+                    } catch (_) {
+                      // Fallback if LandingController is not found
+                      Get.offAllNamed('/'); // Go to LandingPage
+                      Future.delayed(const Duration(milliseconds: 100), () {
+                        if (Get.isRegistered<LandingController>()) {
+                          Get.find<LandingController>().changeNavIndex(3);
+                        }
+                      });
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: const Text(
+                    'Go to Profile',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Get.back(),
+                child: Text(
+                  'Maybe Later',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      barrierDismissible: true,
     );
   }
 
@@ -723,12 +889,15 @@ class AppUtils {
       ),
     );
   }
-  
+
   static Future<void> launchUrl(String url) async {
     try {
       final Uri uri = Uri.parse(url);
       if (await launcher.canLaunchUrl(uri)) {
-        await launcher.launchUrl(uri, mode: launcher.LaunchMode.externalApplication);
+        await launcher.launchUrl(
+          uri,
+          mode: launcher.LaunchMode.externalApplication,
+        );
       }
     } catch (e) {
       debugPrint('Launch error: $e');

@@ -13,6 +13,8 @@ import 'package:sport_studio/core/utils/url_helper.dart';
 import 'package:sport_studio/core/utils/app_utils.dart';
 import 'package:sport_studio/features/owner/presentation/pages/add_complex_page.dart';
 import 'package:sport_studio/widgets/full_screen_image_viewer.dart';
+import 'package:sport_studio/features/user/controller/profile_controller.dart';
+import 'package:sport_studio/features/auth/presentation/widgets/phone_verification_dialog.dart';
 
 class ComplexDetailPage extends StatefulWidget {
   const ComplexDetailPage({super.key});
@@ -38,14 +40,15 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
     _fetch();
     _startAutoScroll();
   }
-  
+
   void _extractComplexId() {
     final args = Get.arguments;
     if (args == null) return;
 
     dynamic rawId;
     if (args is Map) {
-      rawId = args['id'] ?? (args['complex'] is Map ? args['complex']['id'] : null);
+      rawId =
+          args['id'] ?? (args['complex'] is Map ? args['complex']['id'] : null);
     } else {
       rawId = args;
     }
@@ -153,7 +156,8 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   Future<void> _deleteGround(dynamic ground) async {
     final confirmed = await AppUtils.showDeleteConfirmation(
       title: 'Delete Ground?',
-      message: 'Are you sure you want to remove "${ground['name']}" permanently? This action cannot be undone.',
+      message:
+          'Are you sure you want to remove "${ground['name']}" permanently? This action cannot be undone.',
     );
     if (confirmed != true) return;
     try {
@@ -184,7 +188,10 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
   }
 
   String _formatOperatingHours(dynamic open, dynamic close) {
-    if (open == null || close == null || open.toString().isEmpty || close.toString().isEmpty) {
+    if (open == null ||
+        close == null ||
+        open.toString().isEmpty ||
+        close.toString().isEmpty) {
       return '—';
     }
     return AppUtils.formatTimeRange(open, close);
@@ -381,36 +388,45 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
         SliverAppBar(
           expandedHeight: 200,
           pinned: true,
-          leading: CircleAvatar(
-            backgroundColor: Colors.black45,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Get.back(),
+          leadingWidth: 50,
+
+          leading: Container(
+            height: 20,
+            width: 20,
+            margin: const EdgeInsets.only(left: 8),
+            decoration: BoxDecoration(
+              color: Colors.black45,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: IconButton(
+                padding: EdgeInsets.all(0),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Get.back(),
+              ),
             ),
           ),
           actions: [
             Container(
+              height: 40,
+              width: 40,
               margin: const EdgeInsets.only(right: 8),
               decoration: BoxDecoration(
                 color: Colors.black45,
                 shape: BoxShape.circle,
               ),
-              child: IconButton(
-                icon: const Icon(Icons.edit_outlined, color: Colors.white),
-                onPressed: () => _openEditComplexSheet(),
-                tooltip: 'Edit Complex',
+              child: Center(
+                child: IconButton(
+                  padding: EdgeInsets.all(0),
+
+                  icon: const Icon(Icons.edit_outlined, color: Colors.white),
+                  onPressed: () => _openEditComplexSheet(),
+                  tooltip: 'Edit Complex',
+                ),
               ),
             ),
           ],
           flexibleSpace: FlexibleSpaceBar(
-            title: Text(
-              name,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
-            ),
             background: Stack(
               fit: StackFit.expand,
               children: [
@@ -495,10 +511,47 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                                     Row(
                                       children: [
                                         Expanded(
-                                          child: Text(name, style: AppTextStyles.h2),
+                                          child: Text(
+                                            name,
+                                            style: AppTextStyles.h2,
+                                          ),
                                         ),
                                         const SizedBox(width: 8),
-                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: isActive
+                                                ? Colors.green.withValues(
+                                                    alpha: 0.1,
+                                                  )
+                                                : Colors.red.withValues(
+                                                    alpha: 0.1,
+                                                  ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color: isActive
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            isActive ? 'ACTIVE' : 'INACTIVE',
+                                            style: TextStyle(
+                                              color: isActive
+                                                  ? Colors.green
+                                                  : Colors.red,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.5,
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
                                     if (address.isNotEmpty) ...[
@@ -650,8 +703,19 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                             style: AppTextStyles.h3,
                           ),
                         ),
+
                         ElevatedButton.icon(
                           onPressed: () async {
+                            final profileController =
+                                Get.find<ProfileController>();
+                            if (!profileController.isPhoneVerified) {
+                              AppUtils.showPhoneVerificationRequiredDialog(
+                                title: 'Phone Verification Required',
+                                message:
+                                    'To add a ground, your phone number must be verified for security and contact purposes.',
+                              );
+                              return;
+                            }
                             if (!isActive) {
                               AppUtils.showError(
                                 message:
@@ -889,6 +953,31 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isActive
+                              ? Colors.green.withValues(alpha: 0.1)
+                              : Colors.red.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isActive ? Colors.green : Colors.red,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Text(
+                          isActive ? 'ACTIVE' : 'INACTIVE',
+                          style: TextStyle(
+                            color: isActive ? Colors.green : Colors.red,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -978,11 +1067,13 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
                         if (result == true) _fetch();
                       }),
                       _actionBtn(Icons.calendar_month_outlined, 'Bookings', () {
-                        Get.toNamed('/owner-bookings',
-                            arguments: {
-                              'groundId': ground['id'],
-                              'groundName': ground['name']
-                            });
+                        Get.toNamed(
+                          '/owner-bookings',
+                          arguments: {
+                            'groundId': ground['id'],
+                            'groundName': ground['name'],
+                          },
+                        );
                       }),
                       _actionBtn(Icons.delete_outline, 'Delete', () {
                         _deleteGround(ground);
@@ -1077,6 +1168,15 @@ class _ComplexDetailPageState extends State<ComplexDetailPage> {
           const SizedBox(height: AppSpacing.l),
           ElevatedButton.icon(
             onPressed: () async {
+              final profileController = Get.find<ProfileController>();
+              if (!profileController.isPhoneVerified) {
+                AppUtils.showPhoneVerificationRequiredDialog(
+                  title: 'Phone Verification Required',
+                  message:
+                      'To add a ground, your phone number must be verified for security and contact purposes.',
+                );
+                return;
+              }
               final result = await Get.toNamed(
                 '/add-ground',
                 arguments: {

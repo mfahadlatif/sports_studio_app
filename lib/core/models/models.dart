@@ -163,7 +163,8 @@ class Ground {
       closingTime: json['closing_time'],
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
-      avgRating: double.tryParse(json['avg_rating']?.toString() ?? ''),
+      avgRating: double.tryParse(
+          (json['rating'] ?? json['avg_rating'] ?? '').toString()),
       reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? ''),
       maxParticipants: int.tryParse(
           (json['max_participants'] ?? json['max_players'] ?? json['capacity'] ?? '')
@@ -417,7 +418,8 @@ class Event {
       userJoined: json['user_joined'] == 1 || json['user_joined'] == true,
       latitude: double.tryParse(json['latitude']?.toString() ?? ''),
       longitude: double.tryParse(json['longitude']?.toString() ?? ''),
-      avgRating: double.tryParse(json['avg_rating']?.toString() ?? ''),
+      avgRating: double.tryParse(
+          (json['rating'] ?? json['avg_rating'] ?? '').toString()),
       reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? ''),
       isVip: json['is_vip'] == 1 || json['is_vip'] == true,
     );

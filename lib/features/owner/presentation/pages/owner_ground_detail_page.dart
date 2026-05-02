@@ -22,7 +22,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
   bool _isLoading = true;
   dynamic _ground;
   List<dynamic> _recentBookings = [];
-  Map<String, dynamic> _stats = {
+  final Map<String, dynamic> _stats = {
     'total_revenue': 0,
     'bookings_count': 0,
     'avg_rating': 0.0,
@@ -53,9 +53,12 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
         _stats['bookings_count'] =
             int.tryParse(_ground['bookings_count']?.toString() ?? '0') ?? 0;
         _stats['avg_rating'] =
-            double.tryParse(_ground['avg_rating']?.toString() ?? '0.0') ?? 0.0;
+            double.tryParse(
+              (_ground['rating'] ?? _ground['avg_rating'])?.toString() ?? '0.0',
+            ) ??
+            0.0;
 
-        // Check if revenue is already in ground object (some APIs return it here)
+        // Check if revenue is already in ground object
         if (_ground['total_revenue'] != null) {
           _stats['total_revenue'] = _ground['total_revenue'];
         } else if (_ground['revenue'] != null) {
@@ -90,7 +93,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
           }
         }
       } catch (e) {
-        print('Could not fetch extra stats: $e');
+        // Stats failed to load, fallback handled in UI
       }
 
       // 3. Fetch recent bookings for this ground
@@ -335,21 +338,21 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
         _statItem(
           'Revenue',
           '${AppConstants.currencySymbol} ${revenue.toStringAsFixed(revenue == 0 ? 0 : 2)}',
-          Icons.payments_outlined,
+          Icons.account_balance_wallet_outlined,
           Colors.green,
         ),
         const SizedBox(width: AppSpacing.s),
         _statItem(
           'Bookings',
           '${_stats['bookings_count']}',
-          Icons.calendar_today_outlined,
+          Icons.calendar_month_outlined,
           Colors.blue,
         ),
         const SizedBox(width: AppSpacing.s),
         _statItem(
           'Rating',
           rating.toStringAsFixed(1),
-          Icons.star_outline,
+          Icons.star_rounded,
           Colors.orange,
         ),
       ],
@@ -359,7 +362,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
   Widget _statItem(String label, String value, IconData icon, Color color) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.m),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -388,10 +391,13 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
       children: [
         Expanded(
           child: ElevatedButton.icon(
-            onPressed: () => Get.toNamed('/owner-bookings', arguments: {
-              'groundId': _ground['id'],
-              'groundName': _ground['name']
-            }),
+            onPressed: () => Get.toNamed(
+              '/owner-bookings',
+              arguments: {
+                'groundId': _ground['id'],
+                'groundName': _ground['name'],
+              },
+            ),
             icon: const Icon(Icons.history_outlined),
             label: const Text('View All Bookings'),
             style: ElevatedButton.styleFrom(
@@ -399,6 +405,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
             ),
           ),
         ),
@@ -414,6 +421,7 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
+              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 6),
             ),
           ),
         ),
@@ -462,6 +470,11 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
                     _ground['lighting'] == true)
                 ? 'Available'
                 : 'Not Available',
+          ),
+          const Divider(height: AppSpacing.l),
+          _infoRow(
+            'Operating Hours',
+            '${AppUtils.formatTime(_ground['opening_time'] ?? '06:00')} - ${AppUtils.formatTime(_ground['closing_time'] ?? '23:00')}',
           ),
           const Divider(height: AppSpacing.l),
           Text(
@@ -548,9 +561,38 @@ class _OwnerGroundDetailPageState extends State<OwnerGroundDetailPage> {
             ),
           ),
         ),
-        title: Text(
-          b['user']?['name'] ?? b['customer_name'] ?? 'Player',
-          style: AppTextStyles.bodyLarge,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                b['user']?['name'] ?? b['customer_name'] ?? 'Player',
+                style: AppTextStyles.bodyLarge,
+              ),
+            ),
+            if (b['event'] != null) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Colors.blueAccent, Colors.lightBlue],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'EVENT',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 8,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
         subtitle: Text(
           '${AppUtils.formatDate(b['date'] ?? b['start_time'] ?? b['start'])} | '

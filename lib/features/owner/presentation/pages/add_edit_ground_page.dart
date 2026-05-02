@@ -383,7 +383,11 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                     lngController: _lngCtrl,
                   ),
                   const SizedBox(height: AppSpacing.m),
-                  _lbl('Select Sport Type *'),
+                  _buildSectionHeader(
+                    'Sport Selection *',
+                    Icons.layers_outlined,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
                   _buildSportGrid(),
                   const SizedBox(height: AppSpacing.m),
                   _lbl('Description'),
@@ -405,7 +409,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  _textField(_dimensionsCtrl, 'Dimensions', Icons.square_foot),
+                  _textField(_dimensionsCtrl, 'Dimensions', Icons.aspect_ratio_outlined),
                   const SizedBox(height: 12),
                   _textField(
                     _capacityCtrl,
@@ -418,14 +422,63 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                 ],
               ),
             ),
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(
+                    'Facilities & Amenities',
+                    Icons.add_circle_outline,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildAmenitiesGrid(),
+                ],
+              ),
+            ),
             const SizedBox(height: AppSpacing.l),
             _Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const _SectionTitle(
-                    icon: Icons.payments_outlined,
-                    label: 'Pricing & Availability',
+                  _buildSectionHeader(
+                    'Operating Hours',
+                    Icons.access_time_outlined,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _lbl('Opening Time', muted: true),
+                            _timeField(_openTimeController),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.m),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _lbl('Closing Time', muted: true),
+                            _timeField(_closeTimeController),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.l),
+            _Card(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildSectionHeader(
+                    'Default Pricing',
+                    Icons.payments_outlined,
                   ),
                   const SizedBox(height: AppSpacing.m),
                   Row(
@@ -435,7 +488,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                       Obx(() {
                         final settings = Get.find<SystemSettingsController>();
                         return Text(
-                          'Admin Commission: ${settings.commissionRate.toStringAsFixed(0)}%',
+                          'Fee: ${settings.commissionRate.toStringAsFixed(0)}%',
                           style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
@@ -448,47 +501,9 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                   _textField(
                     _priceController,
                     'Rate per hour',
-                    Icons.account_balance_wallet_outlined,
+                    Icons.payments_outlined,
                     keyboardType: TextInputType.number,
                   ),
-                  const SizedBox(height: AppSpacing.m),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _lbl('Opening Time'),
-                            _timeField(_openTimeController),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.m),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _lbl('Closing Time'),
-                            _timeField(_closeTimeController),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _Card(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader(
-                    'Facilities & Amenities',
-                    Icons.dns_outlined,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildAmenitiesGrid(),
                 ],
               ),
             ),
@@ -593,10 +608,10 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     shrinkWrap: true,
     physics: const NeverScrollableScrollPhysics(),
     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 3,
-      crossAxisSpacing: 10,
-      mainAxisSpacing: 10,
-      childAspectRatio: 2.1,
+      crossAxisCount: 4,
+      crossAxisSpacing: 8,
+      mainAxisSpacing: 8,
+      childAspectRatio: 1.0,
     ),
     itemCount: _sportConfigs.length,
     itemBuilder: (context, index) {
@@ -627,18 +642,18 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
                   ]
                 : null,
           ),
-          child: Row(
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(s['icon']!, style: const TextStyle(fontSize: 18)),
-              const SizedBox(width: 8),
+              Text(s['icon']!, style: const TextStyle(fontSize: 28)),
+              const SizedBox(height: 4),
               Flexible(
                 child: Text(
                   s['name']!,
                   style: TextStyle(
                     color: isSelected ? Colors.white : AppColors.textPrimary,
                     fontWeight: FontWeight.bold,
-                    fontSize: 11,
+                    fontSize: 9,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -960,7 +975,7 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
             return MediaQuery(
               data: MediaQuery.of(
                 context,
-              ).copyWith(alwaysUse24HourFormat: false),
+              ).copyWith(alwaysUse24HourFormat: false), // Use standard 12h/24h based on device, but allow AM/PM
               child: child!,
             );
           },
@@ -976,14 +991,19 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
       child: AbsorbPointer(
         child: TextField(
           controller: TextEditingController(
-            text: AppUtils.formatTime(ctrl.text),
+            text: AppUtils.formatTime(ctrl.text), // Format HH:mm into 12h (AM/PM)
           ),
-          style: AppTextStyles.bodySmall,
+          style: AppTextStyles.bodySmall.copyWith(
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            color: AppColors.textPrimary,
+          ),
           decoration: InputDecoration(
-            hintText: 'Select Time',
-            prefixIcon: const Icon(Icons.access_time, size: 18),
+            hintText: '00:00 AM',
+            prefixIcon: const Icon(Icons.access_time_outlined, size: 18, color: AppColors.primary),
             filled: true,
             fillColor: AppColors.inputBackground,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.borderRadius),
               borderSide: BorderSide.none,
@@ -994,13 +1014,14 @@ class _AddEditGroundPageState extends State<AddEditGroundPage> {
     );
   }
 
-  Widget _lbl(String t) => Padding(
-    padding: const EdgeInsets.only(bottom: 4),
+  Widget _lbl(String t, {bool muted = false}) => Padding(
+    padding: const EdgeInsets.only(bottom: 6, left: 4),
     child: Text(
       t,
       style: AppTextStyles.label.copyWith(
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.bold,
+        color: muted ? AppColors.textMuted : AppColors.textPrimary,
+        fontWeight: muted ? FontWeight.w600 : FontWeight.w900,
+        fontSize: muted ? 11 : 12,
       ),
     ),
   );

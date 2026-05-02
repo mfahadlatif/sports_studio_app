@@ -18,6 +18,9 @@ import 'package:sport_studio/features/admin/presentation/pages/admin_newsletter_
 import 'package:sport_studio/features/admin/presentation/pages/admin_settings_page.dart';
 import 'package:sport_studio/features/admin/presentation/pages/admin_events_page.dart';
 import 'package:sport_studio/features/owner/presentation/widgets/owner_bookings_view.dart';
+import 'package:sport_studio/features/user/controller/notifications_controller.dart';
+import 'package:sport_studio/features/user/presentation/pages/notifications_page.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 class AdminDashboardView extends StatelessWidget {
   const AdminDashboardView({super.key});
@@ -26,6 +29,7 @@ class AdminDashboardView extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = Get.put(AdminController());
     final profileController = Get.find<ProfileController>();
+    final notifyController = Get.put(NotificationsController());
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -119,6 +123,8 @@ class AdminDashboardView extends StatelessWidget {
   }
 
   Widget _buildHeader(ProfileController profileController) {
+    final notifyController = Get.find<NotificationsController>();
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(AppSpacing.m, 60, AppSpacing.m, 20),
@@ -155,15 +161,76 @@ class AdminDashboardView extends StatelessWidget {
                 ),
               ],
             ),
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: AppColors.primaryLight,
-              backgroundImage: user['avatar'] != null
-                  ? CachedNetworkImageProvider(avatarUrl)
-                  : null,
-              child: user['avatar'] == null
-                  ? const Icon(Icons.person, color: AppColors.primary)
-                  : null,
+            Row(
+              children: [
+                // Notification Icon
+                GestureDetector(
+                  onTap: () async {
+                    await Get.to(() => const NotificationsPage());
+                    notifyController.fetchUnreadCount();
+                  },
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                          ),
+                        ),
+                        child: const Icon(
+                          LucideIcons.bell,
+                          color: AppColors.primary,
+                          size: 20,
+                        ),
+                      ),
+                      Obx(() {
+                        if (notifyController.unreadCount.value == 0) {
+                          return const SizedBox.shrink();
+                        }
+                        return Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 16,
+                              minHeight: 16,
+                            ),
+                            child: Text(
+                              '${notifyController.unreadCount.value}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppColors.primaryLight,
+                  backgroundImage: user['avatar'] != null
+                      ? CachedNetworkImageProvider(avatarUrl)
+                      : null,
+                  child: user['avatar'] == null
+                      ? const Icon(Icons.person, color: AppColors.primary)
+                      : null,
+                ),
+              ],
             ),
           ],
         );

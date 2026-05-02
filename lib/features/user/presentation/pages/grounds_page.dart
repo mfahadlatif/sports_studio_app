@@ -53,6 +53,13 @@ class _GroundsPageState extends State<GroundsPage>
     final controller = Get.put(HomeController());
     Get.put(FavoritesController()); // Ensure favorites are initialized for cards
 
+    // Ensure data is fetched when first coming to the screen if it's empty
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (controller.filteredGrounds.isEmpty && !controller.isLoading.value) {
+        controller.fetchPremiumGrounds();
+      }
+    });
+
     return Scaffold(
       backgroundColor: Colors.grey[50], // Very light grey for modern feel
       body: RefreshIndicator(

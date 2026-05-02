@@ -5,11 +5,17 @@ import 'package:sport_studio/core/theme/app_text_styles.dart';
 import 'package:sport_studio/core/constants/app_constants.dart';
 import 'package:sport_studio/features/landing/controller/landing_controller.dart';
 
+import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:sport_studio/features/user/controller/notifications_controller.dart';
+import 'package:sport_studio/features/user/presentation/pages/notifications_page.dart';
+
 class HeroSection extends StatelessWidget {
   const HeroSection({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final notifyController = Get.put(NotificationsController());
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
@@ -28,29 +34,96 @@ class HeroSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Image.asset(
-                  AppConstants.appIcon,
-                  height: 16,
-                  width: 16,
-                  fit: BoxFit.contain,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-                const SizedBox(width: 8),
-                Text(
-                  'WELCOME TO SPORT STUDIO',
-                  style: AppTextStyles.label.copyWith(color: AppColors.primary),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                  ),
                 ),
-              ],
-            ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      AppConstants.appIcon,
+                      height: 16,
+                      width: 16,
+                      fit: BoxFit.contain,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'WELCOME TO SPORT STUDIO',
+                      style: AppTextStyles.label.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Notification Icon
+              GestureDetector(
+                onTap: () async {
+                  await Get.to(() => const NotificationsPage());
+                  notifyController.fetchUnreadCount();
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.1),
+                        ),
+                      ),
+                      child: const Icon(
+                        LucideIcons.bell,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    Obx(() {
+                      if (notifyController.unreadCount.value == 0)
+                        return const SizedBox.shrink();
+                      return Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            '${notifyController.unreadCount.value}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.m),
           Text(

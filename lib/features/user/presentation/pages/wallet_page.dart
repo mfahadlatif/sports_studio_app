@@ -87,14 +87,15 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
   Future<void> _requestWithdrawal() async {
     final settingsController = Get.find<SystemSettingsController>();
     final minAmount = settingsController.minWithdrawalAmount;
+    final currentBalance = double.tryParse(_wallet['balance']?.toString() ?? '0') ?? 0;
     final amount = double.tryParse(_withdrawAmountCtrl.text.trim());
 
     if (amount == null || amount < minAmount) {
       Get.dialog(
         AlertDialog(
-          title: const Text('Minimum Withdrawal'),
+          title: const Text('Invalid Amount'),
           content: Text(
-            'The minimum withdrawal amount is ${AppConstants.currencySymbol} ${minAmount.toStringAsFixed(0)}. Please enter an amount equal to or greater than this.',
+            'The minimum withdrawal amount is ${AppConstants.currencySymbol} ${minAmount.toStringAsFixed(0)}.',
           ),
           actions: [
             TextButton(onPressed: () => Get.back(), child: const Text('OK')),
@@ -103,6 +104,15 @@ class _WalletPageState extends State<WalletPage> with TickerProviderStateMixin {
       );
       return;
     }
+
+    if (amount > currentBalance) {
+      AppUtils.showError(
+        title: 'Insufficient Balance',
+        message: 'You only have ${AppConstants.currencySymbol} ${currentBalance.toStringAsFixed(0)} available in your wallet.',
+      );
+      return;
+    }
+
     if (_selectedBankAccountId == null) {
       AppUtils.showError(message: 'Add/select a bank account first');
       return;

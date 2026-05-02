@@ -1,6 +1,6 @@
+import 'dart:io';
 import 'package:get/get.dart';
 import 'package:sport_studio/core/network/api_client.dart';
-import 'package:sport_studio/core/utils/app_utils.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -61,6 +61,12 @@ class NotificationService extends GetxService {
       _showLocalNotification(message);
     });
 
+    // Listen for token refreshes
+    _fcm.onTokenRefresh.listen((newToken) {
+      print('Token refreshed: $newToken');
+      registerToken();
+    });
+
     // Handle background/terminated message click
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('App opened from notification: ${message.data}');
@@ -91,18 +97,54 @@ class NotificationService extends GetxService {
   Future<void> registerToken() async {
     try {
       final authToken = await _storage.read(key: 'auth_token');
-      if (authToken == null) return;
+      if (authToken == null) {
+        print('🔔 [NotificationService] No auth token found, skipping token registration');
+        return;
+      }
 
-      String? token = await _fcm.getToken();
+      String? token;
+      
+      if (Platform.isIOS) {
+        // On iOS, we often need to wait for the APNs token to be available
+        // before Firebase can provide an FCM token.
+        print('🔔 [NotificationService] Checking APNs token for iOS...');
+        String? apnsToken = await _fcm.getAPNSToken();
+        
+        int retryCount = 0;
+        while (apnsToken == null && retryCount < 3) {
+          print('🔔 [NotificationService] APNs token not yet available, retrying in 2 seconds... (Attempt ${retryCount + 1})');
+          await Future.delayed(const Duration(seconds: 2));
+          apnsToken = await _fcm.getAPNSToken();
+          retryCount++;
+        }
+
+        if (apnsToken != null) {
+          print('✅ [NotificationService] APNs Token acquired: $apnsToken');
+        } else {
+          print('❌ [NotificationService] Failed to acquire APNs Token after retries');
+        }
+      }
+
+      // For both Android and iOS, we use getToken() for Firebase Cloud Messaging.
+      // On iOS, getToken() automatically maps the APNs token to an FCM token.
+      token = await _fcm.getToken();
+
       if (token != null) {
-        print('Registering FCM Token: $token');
-        await ApiClient().dio.post('/update-fcm-token', data: {
+        print('🚀 [NotificationService] Registering FCM Token: $token');
+        final response = await ApiClient().dio.post('/update-fcm-token', data: {
           'token': token,
         });
-        print('FCM Token registered successfully');
+        
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          print('✅ [NotificationService] Token registered successfully on backend');
+        } else {
+          print('❌ [NotificationService] Backend failed to register token: ${response.statusCode}');
+        }
+      } else {
+        print('❌ [NotificationService] FCM Token is null, cannot register');
       }
     } catch (e) {
-      print('Error registering FCM token: $e');
+      print('❌ [NotificationService] Error registering token: $e');
     }
   }
 

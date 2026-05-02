@@ -205,7 +205,8 @@ class JoinRequestsPage extends StatelessWidget {
                       (user['avatar'] == null ||
                           user['avatar'].toString().isEmpty)
                       ? Text(
-                          (user['name'] ?? 'P')[0].toUpperCase(),
+                          (user['name'] ?? request['name'] ?? 'P')[0]
+                              .toUpperCase(),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             color: AppColors.primary,
@@ -221,7 +222,7 @@ class JoinRequestsPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user['name'] ?? 'Unknown Player',
+                        user['name'] ?? request['name'] ?? 'Unknown Player',
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           fontSize: 18,
@@ -285,14 +286,14 @@ class JoinRequestsPage extends StatelessWidget {
                 Expanded(
                   child: _infoRow(
                     Icons.email_outlined,
-                    user['email'] ?? 'No email',
+                    user['email'] ?? request['email'] ?? 'No email',
                     'Email Address',
                   ),
                 ),
                 Expanded(
                   child: _infoRow(
                     Icons.phone_outlined,
-                    user['phone'] ?? 'No phone',
+                    user['phone'] ?? request['phone'] ?? 'No phone',
                     'Contact Number',
                   ),
                 ),

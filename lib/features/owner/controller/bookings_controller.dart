@@ -203,7 +203,9 @@ class BookingsController extends GetxController {
     try {
       final id = booking['id'];
       final payload = <String, dynamic>{'status': newStatus};
-      if (newStatus == 'cancelled' && reason != null && reason.isNotEmpty) {
+      
+      // If owner rejects or user cancels, handle reason and refund status
+      if ((newStatus == 'cancelled' || newStatus == 'rejected') && reason != null && reason.isNotEmpty) {
         payload['rejection_reason'] = reason;
         payload['payment_status'] = 'refunded';
       }
@@ -218,7 +220,7 @@ class BookingsController extends GetxController {
         String successMsg = 'Booking status updated successfully';
         if (newStatus == 'confirmed')
           successMsg = 'Booking accepted successfully';
-        if (newStatus == 'cancelled')
+        if (newStatus == 'cancelled' || newStatus == 'rejected')
           successMsg = 'Booking declined successfully';
         if (newStatus == 'completed')
           successMsg = 'Booking marked as completed';

@@ -8,11 +8,13 @@ import 'package:sport_studio/features/user/controller/profile_controller.dart';
 import 'package:sport_studio/features/user/presentation/pages/event_detail_page.dart';
 
 class EventsController extends GetxController {
-  final RxBool isLoadingEvents = false.obs;
+  final RxBool isLoadingPublicEvents = false.obs;
+  final RxBool isLoadingUserEvents = false.obs;
   final RxBool isLoadingEvent = false.obs;
   final RxBool isCreatingEvent = false.obs;
   final RxBool isJoiningEvent = false.obs;
   final RxList<Event> events = <Event>[].obs;
+  final RxList<Event> filteredEvents = <Event>[].obs;
   final RxList<Event> userEvents = <Event>[].obs;
   final Rxn<Event> selectedEvent = Rxn<Event>();
   final RxString selectedEventType = 'all'.obs;
@@ -47,28 +49,30 @@ class EventsController extends GetxController {
   }
 
   Future<void> fetchPublicEvents() async {
-    isLoadingEvents.value = true;
+    isLoadingPublicEvents.value = true;
     try {
       final eventList = await _eventApiService.getPublicEvents();
-      events.value = eventList;
+      events.assignAll(eventList);
+      filteredEvents.assignAll(eventList);
+      filterEvents(); // Re-apply current filters if any
     } catch (e) {
       AppUtils.showError(message: 'Failed to fetch events: $e');
     } finally {
-      isLoadingEvents.value = false;
+      isLoadingPublicEvents.value = false;
     }
   }
 
   Future<void> fetchUserEvents() async {
-    isLoadingEvents.value = true;
+    isLoadingUserEvents.value = true;
     try {
       final profileController = Get.find<ProfileController>();
       final userId = profileController.userProfile['id'];
       final eventList = await _eventApiService.getUserEvents(organizerId: userId);
-      userEvents.value = eventList;
+      userEvents.assignAll(eventList);
     } catch (e) {
       AppUtils.showError(message: 'Failed to fetch user events: $e');
     } finally {
-      isLoadingEvents.value = false;
+      isLoadingUserEvents.value = false;
     }
   }
 
@@ -305,7 +309,7 @@ class EventsController extends GetxController {
   }
 
   void filterEvents() {
-    var filtered = events.where((event) {
+    var result = events.where((event) {
       bool matchesSearch =
           event.name.toLowerCase().contains(searchQuery.value.toLowerCase()) ||
           (event.description?.toLowerCase().contains(
@@ -320,8 +324,7 @@ class EventsController extends GetxController {
       return matchesSearch && matchesType;
     }).toList();
 
-    // Update filtered list (you might want to create a separate filtered list variable)
-    events.assignAll(filtered);
+    filteredEvents.assignAll(result);
   }
 
   void updateSearchQuery(String query) {

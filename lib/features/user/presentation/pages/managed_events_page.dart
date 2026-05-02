@@ -32,7 +32,7 @@ class ManagedEventsPage extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 800),
           child: Obx(() {
-            if (controller.isLoadingEvents.value) {
+            if (controller.isLoadingUserEvents.value) {
               return const Center(child: AppProgressIndicator());
             }
 

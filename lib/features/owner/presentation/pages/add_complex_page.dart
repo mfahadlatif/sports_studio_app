@@ -326,7 +326,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _SectionTitle(
-                    icon: Icons.info_outline,
+                    icon: Icons.domain_outlined,
                     label: 'Basic Information',
                   ),
                   const SizedBox(height: AppSpacing.m),
@@ -393,7 +393,7 @@ class _AddComplexPageState extends State<AddComplexPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const _SectionTitle(
-                    icon: Icons.apartment_outlined,
+                    icon: Icons.add_circle_outline,
                     label: 'Facilities Available',
                   ),
                   const SizedBox(height: 4),

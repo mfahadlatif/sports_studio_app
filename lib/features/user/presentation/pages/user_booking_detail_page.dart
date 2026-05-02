@@ -25,26 +25,39 @@ class UserBookingDetailPage extends StatelessWidget {
     final status = booking['status']?.toString() ?? 'pending';
     final paymentStatus = booking['payment_status']?.toString() ?? 'unpaid';
 
-    final startRaw = booking['start']?.toString() ?? booking['start_time']?.toString() ?? '';
-    final endRaw = booking['end']?.toString() ?? booking['end_time']?.toString() ?? '';
+    final startRaw =
+        booking['start']?.toString() ?? booking['start_time']?.toString() ?? '';
+    final endRaw =
+        booking['end']?.toString() ?? booking['end_time']?.toString() ?? '';
     DateTime? start = DateTime.tryParse(startRaw.replaceFirst(' ', 'T'));
     DateTime? end = DateTime.tryParse(endRaw.replaceFirst(' ', 'T'));
 
-    final dateStr = start != null ? DateFormat('MMM dd, yyyy').format(start) : '—';
+    final dateStr = start != null
+        ? DateFormat('MMM dd, yyyy').format(start)
+        : '—';
     final timeStr = (start != null && end != null)
         ? '${DateFormat('hh:mm a').format(start)} - ${DateFormat('hh:mm a').format(end)}'
         : '—';
 
     final ground = booking['ground'] is Map ? booking['ground'] as Map : null;
-    final complex = (ground != null && ground['complex'] is Map) ? ground['complex'] as Map : null;
-    final address = (complex?['address'] ?? ground?['location'] ?? '').toString();
+    final complex = (ground != null && ground['complex'] is Map)
+        ? ground['complex'] as Map
+        : null;
+    final address = (complex?['address'] ?? ground?['location'] ?? '')
+        .toString();
 
-    final lat = double.tryParse(complex?['latitude']?.toString() ?? '') ??
+    final lat =
+        double.tryParse(complex?['latitude']?.toString() ?? '') ??
         double.tryParse(ground?['latitude']?.toString() ?? '');
-    final lng = double.tryParse(complex?['longitude']?.toString() ?? '') ??
+    final lng =
+        double.tryParse(complex?['longitude']?.toString() ?? '') ??
         double.tryParse(ground?['longitude']?.toString() ?? '');
 
-    final price = double.tryParse((booking['price'] ?? booking['total_price'] ?? 0).toString()) ?? 0.0;
+    final price =
+        double.tryParse(
+          (booking['price'] ?? booking['total_price'] ?? 0).toString(),
+        ) ??
+        0.0;
     final groundId = ground?['id'];
     final groundImage = UrlHelper.getFirstImage(ground?['images']);
 
@@ -69,13 +82,16 @@ class UserBookingDetailPage extends StatelessWidget {
                     height: 300,
                     width: double.infinity,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                        height: 300, color: Colors.grey[200]),
+                    placeholder: (context, url) =>
+                        Container(height: 300, color: Colors.grey[200]),
                     errorWidget: (context, url, error) => Container(
                       height: 300,
                       color: AppColors.primary,
-                      child: const Icon(Icons.sports_soccer,
-                          size: 80, color: Colors.white24),
+                      child: const Icon(
+                        Icons.sports_soccer,
+                        size: 80,
+                        color: Colors.white24,
+                      ),
                     ),
                   ),
                 ),
@@ -124,7 +140,7 @@ class UserBookingDetailPage extends StatelessWidget {
                           _statusBadge(status),
                           const Spacer(),
                           Text(
-                             'Booking ID: #${booking['id']}',
+                            'Booking ID: #${booking['id']}',
                             style: AppTextStyles.label.copyWith(
                               color: AppColors.textMuted,
                               letterSpacing: 0.5,
@@ -150,13 +166,34 @@ class UserBookingDetailPage extends StatelessWidget {
                       _sectionCard(
                         child: Column(
                           children: [
-                            _detailRow(Icons.calendar_today_rounded, 'Date', dateStr),
+                            _detailRow(
+                              Icons.calendar_today_rounded,
+                              'Date',
+                              dateStr,
+                            ),
                             const Divider(height: 24),
-                            _detailRow(Icons.alarm_rounded, 'Time Slot', timeStr),
+                            _detailRow(
+                              Icons.alarm_rounded,
+                              'Time Slot',
+                              timeStr,
+                            ),
                             const Divider(height: 24),
                             if (!isEvent) ...[
-                              _detailRow(Icons.payment_rounded, 'Payment',
-                                  paymentStatus.toUpperCase()),
+                              _detailRow(
+                                Icons.payment_rounded,
+                                'Payment Status',
+                                paymentStatus.toUpperCase(),
+                                valueColor: paymentStatus == 'paid'
+                                    ? Colors.green
+                                    : Colors.orange,
+                              ),
+                              const Divider(height: 24),
+                              _detailRow(
+                                Icons.payments_rounded,
+                                'Method',
+                                (booking['payment_method']?.toString() ?? 'N/A')
+                                    .toUpperCase(),
+                              ),
                               const Divider(height: 24),
                             ],
                             _detailRow(
@@ -175,33 +212,49 @@ class UserBookingDetailPage extends StatelessWidget {
                       // Ground Quick Link (Click to View Ground)
                       if (ground != null)
                         _sectionCard(
-                          onTap: () => Get.to(() => const GroundDetailPage(), arguments: {'ground': ground}),
+                          onTap: () => Get.to(
+                            () => const GroundDetailPage(),
+                            arguments: {'ground': ground},
+                          ),
                           child: Row(
                             children: [
                               Container(
                                 width: 50,
                                 height: 50,
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.stadium_rounded,
-                                    color: AppColors.primary),
+                                child: const Icon(
+                                  Icons.stadium_rounded,
+                                  color: AppColors.primary,
+                                ),
                               ),
                               const SizedBox(width: AppSpacing.m),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('View Ground Details',
-                                        style: AppTextStyles.h3.copyWith(fontSize: 16)),
-                                    Text('Photos, facilities & address',
-                                        style: AppTextStyles.bodySmall),
+                                    Text(
+                                      'View Ground Details',
+                                      style: AppTextStyles.h3.copyWith(
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Photos, facilities & address',
+                                      style: AppTextStyles.bodySmall,
+                                    ),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios_rounded,
-                                  size: 14, color: AppColors.textMuted),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 14,
+                                color: AppColors.textMuted,
+                              ),
                             ],
                           ),
                         ),
@@ -214,17 +267,25 @@ class UserBookingDetailPage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Location & Contact', style: AppTextStyles.h3),
+                              Text(
+                                'Location & Contact',
+                                style: AppTextStyles.h3,
+                              ),
                               const SizedBox(height: AppSpacing.m),
                               Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Icon(Icons.location_on_rounded,
-                                      size: 18, color: AppColors.primary),
+                                  const Icon(
+                                    Icons.location_on_rounded,
+                                    size: 18,
+                                    color: AppColors.primary,
+                                  ),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
-                                      address.isEmpty ? 'Location details unavailable' : address,
+                                      address.isEmpty
+                                          ? 'Location details unavailable'
+                                          : address,
                                       style: AppTextStyles.bodyMedium,
                                     ),
                                   ),
@@ -236,16 +297,23 @@ class UserBookingDetailPage extends StatelessWidget {
                                   Expanded(
                                     child: AppButton(
                                       label: 'Get Directions',
-                                      leadingIcon: const Icon(Icons.directions_rounded, size: 18, color: Colors.white),
+                                      leadingIcon: const Icon(
+                                        Icons.directions_rounded,
+                                        size: 18,
+                                        color: Colors.white,
+                                      ),
                                       onPressed: () => _openMaps(
                                         lat: lat,
                                         lng: lng,
-                                        query: address.isEmpty ? title : address,
+                                        query: address.isEmpty
+                                            ? title
+                                            : address,
                                       ),
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.m),
-                                  if (complex?['phone'] != null || ground?['owner_phone'] != null)
+                                  if (complex?['phone'] != null ||
+                                      ground?['owner_phone'] != null)
                                     Container(
                                       decoration: BoxDecoration(
                                         color: AppColors.primary,
@@ -253,12 +321,17 @@ class UserBookingDetailPage extends StatelessWidget {
                                       ),
                                       child: IconButton(
                                         onPressed: () {
-                                          final phone = complex?['phone'] ?? ground?['owner_phone'];
+                                          final phone =
+                                              complex?['phone'] ??
+                                              ground?['owner_phone'];
                                           if (phone != null) {
                                             launchUrl(Uri.parse('tel:$phone'));
                                           }
                                         },
-                                        icon: const Icon(Icons.call, color: Colors.white),
+                                        icon: const Icon(
+                                          Icons.call,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
                                 ],
@@ -277,14 +350,19 @@ class UserBookingDetailPage extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: Colors.orange.withValues(alpha: 0.05),
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+                            border: Border.all(
+                              color: Colors.orange.withValues(alpha: 0.2),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Row(
                                 children: [
-                                  const Icon(Icons.help_outline_rounded, color: Colors.orange),
+                                  const Icon(
+                                    Icons.help_outline_rounded,
+                                    color: Colors.orange,
+                                  ),
                                   const SizedBox(width: 12),
                                   Text(
                                     'Need to change plans?',
@@ -337,8 +415,13 @@ class UserBookingDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _detailRow(IconData icon, String label, String value,
-      {Color? valueColor, bool isBold = false}) {
+  Widget _detailRow(
+    IconData icon,
+    String label,
+    String value, {
+    Color? valueColor,
+    bool isBold = false,
+  }) {
     return Row(
       children: [
         Container(
@@ -350,7 +433,10 @@ class UserBookingDetailPage extends StatelessWidget {
           child: Icon(icon, size: 18, color: AppColors.textMuted),
         ),
         const SizedBox(width: 12),
-        Text(label, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted)),
+        Text(
+          label,
+          style: AppTextStyles.bodySmall.copyWith(color: AppColors.textMuted),
+        ),
         const Spacer(),
         Text(
           value,
@@ -406,7 +492,11 @@ class UserBookingDetailPage extends StatelessWidget {
     );
   }
 
-  Future<void> _openMaps({double? lat, double? lng, required String query}) async {
+  Future<void> _openMaps({
+    double? lat,
+    double? lng,
+    required String query,
+  }) async {
     final q = Uri.encodeComponent(query);
     final url = (lat != null && lng != null)
         ? 'https://www.google.com/maps/search/?api=1&query=$lat,$lng'
